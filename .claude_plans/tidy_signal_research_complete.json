@@ -1,0 +1,561 @@
+{
+  "metadata": {
+    "research_date": "2025-12-07",
+    "research_topic": "Python library applying R tidyverse/tidymodels philosophy to signal detection in commodities markets",
+    "researcher": "Claude Technical Research Agents",
+    "version": "1.0",
+    "document_type": "Comprehensive Research Findings"
+  },
+
+  "viability_assessment": {
+    "overall_rating": "HIGHLY VIABLE",
+    "confidence": "HIGH",
+    "rationale": [
+      "Clear ecosystem gap for tidyverse-style signal detection in Python",
+      "Strong foundation exists in py-tidymodels patterns",
+      "Proven design patterns from R tidyverse/tidymodels transfer well",
+      "Major gaps in existing Python trading libraries (ML, CV, portfolio)",
+      "Technical feasibility confirmed with available Python libraries"
+    ],
+    "risks": {
+      "scope_creep": {"likelihood": "HIGH", "impact": "HIGH"},
+      "performance_issues": {"likelihood": "MEDIUM", "impact": "MEDIUM"},
+      "limited_adoption": {"likelihood": "MEDIUM", "impact": "HIGH"}
+    }
+  },
+
+  "unique_value_proposition": {
+    "statement": "tidy-signal would be the first Python library to combine tidyverse philosophy with commodities signal detection, providing composable signal specifications, built-in time-series CV, native vintage data support, and ML-first signal integration",
+    "differentiators": [
+      "Tidyverse philosophy applied to signal detection",
+      "Composable signal specifications with registry-based engines",
+      "Built-in time-series cross-validation (py-rsample equivalent)",
+      "Native vintage/point-in-time data support",
+      "ML pipelines as first-class signals",
+      "Commodities-specific features (term structure, seasonality)",
+      "Three-DataFrame outputs compatible with py-tidymodels"
+    ],
+    "target_users": [
+      "Commodities quants and traders",
+      "Data scientists in finance",
+      "Researchers in quantitative finance",
+      "py-tidymodels users extending to trading"
+    ]
+  },
+
+  "r_tidyverse_patterns": {
+    "core_philosophy": {
+      "four_tenets": [
+        {
+          "name": "Reuse Existing Data Structures",
+          "description": "Use standard formats like data frames rather than bespoke structures",
+          "python_adaptation": "Use pandas DataFrames as primary data structure"
+        },
+        {
+          "name": "Compose Simple Functions with Pipes",
+          "description": "Build complex solutions by chaining single-purpose functions",
+          "python_adaptation": "Method chaining with .pipe() for custom functions"
+        },
+        {
+          "name": "Embrace Functional Programming",
+          "description": "Prioritize immutable objects and functional abstractions",
+          "python_adaptation": "Frozen dataclasses for specifications"
+        },
+        {
+          "name": "Design for Humans",
+          "description": "Optimize for usability over computational efficiency",
+          "python_adaptation": "Type hints, autocomplete-friendly naming, progressive disclosure"
+        }
+      ]
+    },
+    "key_patterns": {
+      "parsnip_model_specification": {
+        "description": "Three-step specification: Type -> Engine -> Mode",
+        "benefits": ["Unified interface", "Interchangeable engines", "Portable definitions"],
+        "application": "SignalSpec with signal_type, engine, args"
+      },
+      "recipes_preprocessing": {
+        "description": "Specification -> Preparation (prep) -> Application (bake)",
+        "benefits": ["Prevents data leakage", "Consistent preprocessing"],
+        "application": "SignalPipeline with step_*() methods and prep()/apply()"
+      },
+      "broom_standardized_outputs": {
+        "description": "tidy() + glance() + augment() for consistent outputs",
+        "benefits": ["Predictable structure", "Consistent downstream analysis"],
+        "application": "Three-DataFrame output: detections, parameters, metrics"
+      },
+      "rsample_resampling": {
+        "description": "Time-aware cross-validation with rolling/sliding windows",
+        "benefits": ["Prevents lookahead bias", "Realistic performance estimates"],
+        "application": "py-rsample with rolling_origin(), sliding_window()"
+      }
+    },
+    "citations": [
+      {"id": 1, "text": "Wickham, H. 'The tidy tools manifesto.' tidyverse.org"},
+      {"id": 2, "text": "Kuhn, M. and Silge, J. 'Tidy Modeling with R.' tmwr.org"},
+      {"id": 3, "text": "Dancho, M. 'tidyquant: Tidy Quantitative Financial Analysis.'"}
+    ]
+  },
+
+  "python_trading_libraries": {
+    "analysis": [
+      {
+        "name": "Zipline",
+        "stars": 19200,
+        "signal_api": "Declarative CustomFactor",
+        "performance": "Slow (event-driven)",
+        "ml_integration": "Poor",
+        "maintenance": "Abandoned -> zipline-reloaded fork",
+        "strengths": ["Pipeline API", "Rich ecosystem", "Lookahead prevention"],
+        "weaknesses": ["Steep learning curve", "Rigid data bundles", "Slow"]
+      },
+      {
+        "name": "VectorBT",
+        "stars": 6300,
+        "signal_api": "Boolean arrays from indicators",
+        "performance": "Excellent (1000x+ speedup)",
+        "ml_integration": "Limited",
+        "maintenance": "Active",
+        "strengths": ["Speed", "Parameter optimization", "Fluent API"],
+        "weaknesses": ["No lookahead prevention", "Stateless orders", "PRO paywall"]
+      },
+      {
+        "name": "Backtrader",
+        "stars": 19700,
+        "signal_api": "OOP with Lines abstraction",
+        "performance": "Slow (event-driven)",
+        "ml_integration": "Poor",
+        "maintenance": "Stagnant since 2019",
+        "strengths": ["Flexible", "Live trading", "122 indicators"],
+        "weaknesses": ["Very slow", "Metaclass complexity", "No development"]
+      },
+      {
+        "name": "Alphalens",
+        "stars": 4000,
+        "signal_api": "Post-hoc factor analysis",
+        "performance": "N/A (analysis only)",
+        "ml_integration": "N/A",
+        "maintenance": "Abandoned -> cloudQuant fork",
+        "strengths": ["Industry-standard factor analysis", "IC calculation"],
+        "weaknesses": ["Not a backtester", "Strict data requirements"]
+      },
+      {
+        "name": "Pyfolio",
+        "stars": 6100,
+        "signal_api": "N/A (portfolio analysis)",
+        "performance": "N/A (visualization)",
+        "ml_integration": "N/A",
+        "maintenance": "Abandoned -> pyfolio-reloaded fork",
+        "strengths": ["Comprehensive tear sheets", "Risk analytics"],
+        "weaknesses": ["Static plots", "Dated aesthetics"]
+      },
+      {
+        "name": "Empyrical",
+        "stars": 1400,
+        "signal_api": "Pure functional metrics",
+        "performance": "Fast",
+        "ml_integration": "N/A",
+        "maintenance": "Stable (no active development needed)",
+        "strengths": ["Simple API", "1700+ dependents", "Reliable"],
+        "weaknesses": ["Limited scope", "No visualization"]
+      }
+    ],
+    "ecosystem_gaps": [
+      {"gap": "ML/AI Integration", "impact": "HIGH", "description": "No library supports ML-driven signals natively"},
+      {"gap": "Modern Data Interfaces", "impact": "HIGH", "description": "All assume OHLCV; poor alternative data support"},
+      {"gap": "Portfolio Construction", "impact": "MEDIUM-HIGH", "description": "Missing layer between signals and execution"},
+      {"gap": "Time-Series CV", "impact": "MEDIUM", "description": "No walk-forward or purged CV built-in"},
+      {"gap": "Real-time/Streaming", "impact": "MEDIUM-HIGH", "description": "All batch-focused, no streaming architecture"}
+    ],
+    "key_insights": [
+      "Quantopian shutdown revealed fragility of company-backed open source",
+      "Maintained forks (zipline-reloaded) can successfully continue abandoned projects",
+      "VectorBT's vectorization shows 1000x+ speedups are achievable",
+      "Separation of concerns works well: factors vs portfolio construction vs analytics"
+    ]
+  },
+
+  "statistical_methods_inventory": {
+    "ranked_methods": [
+      {
+        "rank": 1,
+        "method": "Cointegration Testing",
+        "importance": "CRITICAL",
+        "techniques": ["Engle-Granger (2 series)", "Johansen (3+ series)", "Phillips-Ouliaris (robust)"],
+        "python_libraries": ["statsmodels.tsa.stattools.coint", "statsmodels.tsa.vector_ar.vecm.coint_johansen", "arch.unitroot.cointegration.phillips_ouliaris"],
+        "use_cases": ["Pairs identification", "Spread trading", "Hedge ratio estimation"]
+      },
+      {
+        "rank": 2,
+        "method": "Ornstein-Uhlenbeck Process",
+        "importance": "HIGH",
+        "techniques": ["MLE estimation", "OLS on AR(1)", "Kalman filter (dynamic)"],
+        "python_libraries": ["scipy.optimize.minimize", "ouparams", "pykalman"],
+        "use_cases": ["Spread modeling", "Half-life estimation", "Optimal thresholds"]
+      },
+      {
+        "rank": 3,
+        "method": "Half-Life & Z-Score Signals",
+        "importance": "HIGH",
+        "techniques": ["AR(1) coefficient", "OU kappa", "Rolling estimation"],
+        "python_libraries": ["statsmodels (OLS)", "pandas (rolling)"],
+        "use_cases": ["Lookback period selection", "Entry/exit signals", "Position sizing"]
+      },
+      {
+        "rank": 4,
+        "method": "Stationarity Testing",
+        "importance": "HIGH",
+        "techniques": ["ADF test", "KPSS test", "Phillips-Perron"],
+        "python_libraries": ["statsmodels.tsa.stattools.adfuller", "statsmodels.tsa.stattools.kpss", "arch.unitroot.PhillipsPerron"],
+        "use_cases": ["Spread validation", "Regime detection", "Model diagnostics"]
+      },
+      {
+        "rank": 5,
+        "method": "Structural Break Detection",
+        "importance": "MEDIUM-HIGH",
+        "techniques": ["Bai-Perron", "CUSUM", "Pelt/Binseg"],
+        "python_libraries": ["ruptures", "kats.detectors.cusum_detection"],
+        "use_cases": ["Regime changes", "Model recalibration", "Risk control"]
+      },
+      {
+        "rank": 6,
+        "method": "Markov Switching Regime Detection",
+        "importance": "MEDIUM-HIGH",
+        "techniques": ["Markov Regression", "Markov Autoregression"],
+        "python_libraries": ["statsmodels.tsa.MarkovRegression", "statsmodels.tsa.MarkovAutoregression"],
+        "use_cases": ["Volatility regimes", "Contango/backwardation", "Adaptive parameters"]
+      },
+      {
+        "rank": 7,
+        "method": "Hurst Exponent",
+        "importance": "MEDIUM",
+        "techniques": ["R/S analysis", "DFA"],
+        "python_libraries": ["hurst.compute_Hc"],
+        "use_cases": ["Mean reversion screening", "Strategy selection", "Time frame optimization"]
+      },
+      {
+        "rank": 8,
+        "method": "Seasonal Decomposition",
+        "importance": "MEDIUM",
+        "techniques": ["STL (LOESS-based)", "Classical decomposition", "X-13ARIMA"],
+        "python_libraries": ["statsmodels.tsa.seasonal.STL", "statsmodels.tsa.seasonal.seasonal_decompose"],
+        "use_cases": ["Agricultural commodities", "Deseasonalize before cointegration", "Pattern analysis"]
+      }
+    ],
+    "commodities_strategies": [
+      {
+        "strategy": "Calendar Spreads",
+        "cointegration_strength": "Strong",
+        "half_life_days": "10-30",
+        "entry_zscore": 2.0,
+        "exit_zscore": 0.5,
+        "recommended_methods": ["Engle-Granger", "OU process", "Rolling estimation"],
+        "examples": ["CL1-CL2 (WTI)", "NG1-NG2", "ZC1-ZC2 (Corn)"]
+      },
+      {
+        "strategy": "Crack Spreads",
+        "cointegration_strength": "Medium-Strong",
+        "half_life_days": "15-40",
+        "entry_zscore": 2.5,
+        "exit_zscore": 0.75,
+        "recommended_methods": ["Phillips-Ouliaris", "Markov switching", "CUSUM"],
+        "examples": ["3 CL - 2 RB - 1 HO"]
+      },
+      {
+        "strategy": "Crush Spreads",
+        "cointegration_strength": "Strong",
+        "half_life_days": "10-25",
+        "entry_zscore": 1.5,
+        "exit_zscore": 0.3,
+        "recommended_methods": ["Engle-Granger", "STL deseasonalization", "Hurst screening"],
+        "examples": ["ZS - ZM - ZL (Soybeans)"]
+      },
+      {
+        "strategy": "Location Spreads",
+        "cointegration_strength": "Medium",
+        "half_life_days": "20-50",
+        "entry_zscore": 2.5,
+        "exit_zscore": 1.0,
+        "recommended_methods": ["Johansen", "Kalman filter", "Structural break detection"],
+        "examples": ["WTI-Brent"]
+      }
+    ]
+  },
+
+  "vintage_data_and_point_in_time": {
+    "core_concepts": {
+      "alfred_database": {
+        "full_name": "ArchivaL Federal Reserve Economic Data",
+        "volume": "815,000+ vintage series",
+        "three_date_model": ["observation_date", "vintage_date", "realtime_end"],
+        "python_library": "fredapi"
+      },
+      "ragged_edge_problem": {
+        "definition": "Uneven data availability at sample edge due to publication lags",
+        "solutions": ["Factor MIDAS", "Kalman filter", "Realignment", "Factor estimation"]
+      },
+      "lookahead_bias_prevention": {
+        "techniques": [
+          "Bitemporal modeling (valid time + transaction time)",
+          "Temporal data splitting (not random)",
+          "Expanding window normalization",
+          "Point-in-time database queries",
+          "Event-driven backtesting"
+        ]
+      }
+    },
+    "commodities_timing": {
+      "wasde_reports": {
+        "frequency": "Monthly",
+        "schedule": "8th-12th of month at noon ET",
+        "importance": "HIGH - May report establishes new-crop estimates"
+      },
+      "eia_petroleum": {
+        "frequency": "Weekly",
+        "schedule": "Wednesday 9:30 AM CT",
+        "importance": "HIGH - Major volatility driver"
+      },
+      "eia_natural_gas": {
+        "frequency": "Weekly",
+        "schedule": "Thursday 9:30 AM CT",
+        "importance": "HIGH - Seasonal sensitivity"
+      },
+      "settlement_prices": {
+        "timing": "After close, available next morning",
+        "recommendation": "Lag by 1 day in backtests"
+      }
+    },
+    "data_structure_recommendations": {
+      "dimensions": ["vintage_date", "observation_date", "asset", "feature"],
+      "storage_by_scale": {
+        "small_under_5gb": "pandas MultiIndex + Parquet files",
+        "medium_5_to_50gb": "PostgreSQL bitemporal schema",
+        "large_over_50gb": "TimescaleDB or xarray + Zarr"
+      }
+    }
+  },
+
+  "multi_dimensional_time_series": {
+    "recommended_structures": {
+      "2_3_dimensions": {
+        "structure": "pandas MultiIndex DataFrame",
+        "storage": "Parquet partitioned by asset/year",
+        "processing": "pandas / Polars"
+      },
+      "4_plus_dimensions": {
+        "structure": "xarray DataArray/Dataset",
+        "storage": "Zarr / NetCDF",
+        "processing": "Dask for out-of-core"
+      }
+    },
+    "tidy_format_for_signals": {
+      "core_columns": ["date", "asset", "contract", "tenor"],
+      "signal_columns": ["close", "volume", "SMA_20", "momentum", "z_score"],
+      "metadata_columns": ["model", "model_group_name", "group", "split"],
+      "output_columns": ["actuals", "fitted", "forecast", "residuals"]
+    },
+    "term_structure_approaches": {
+      "constant_maturity": "Interpolate to fixed maturities (30, 60, 90 days)",
+      "rolling_contracts": "Panama or proportional adjustment at rolls",
+      "generic_contracts": "CL1, CL2, CL3 with roll rules"
+    }
+  },
+
+  "api_pattern_recommendations": {
+    "signal_specification": {
+      "pattern": "Frozen dataclass with set_*() methods returning new instances",
+      "components": ["signal_type", "engine", "args"],
+      "example": "SignalSpec(type='cointegration').set_engine('statsmodels').set_args(significance=0.05)"
+    },
+    "preprocessing_pipeline": {
+      "pattern": "Fluent interface with step_*() methods and prep()/apply()",
+      "prevents": "Data leakage by learning from training only",
+      "example": "SignalPipeline().step_normalize().step_deseasonalize().prep(train).apply(test)"
+    },
+    "three_dataframe_output": {
+      "pattern": "extract_outputs() returns (detections, parameters, metrics)",
+      "detections": "Observation-level: date, asset, signal_value, entry, exit",
+      "parameters": "Component-level: term, estimate, std_error, p_value",
+      "metrics": "Model-level: sharpe, max_drawdown, IC, turnover"
+    },
+    "registry_pattern": {
+      "pattern": "Decorator-based engine registration with ABC",
+      "extensibility": "Users add custom engines without modifying core",
+      "example": "@register_signal('momentum', 'custom') class CustomMomentumEngine(SignalEngine)"
+    },
+    "time_series_cv": {
+      "pattern": "Rolling origin, sliding window, purged CV",
+      "principle": "Training never contains future information",
+      "example": "rolling_origin(data, initial=252, assess=21, cumulative=True)"
+    }
+  },
+
+  "implementation_roadmap": {
+    "phases": [
+      {
+        "phase": 1,
+        "name": "Core Infrastructure",
+        "deliverables": [
+          "SignalSpec frozen dataclass",
+          "SignalEngine ABC and registry",
+          "Basic signals: momentum, mean_reversion",
+          "Three-DataFrame output pattern",
+          "Integration with py-hardhat"
+        ]
+      },
+      {
+        "phase": 2,
+        "name": "Statistical Methods",
+        "deliverables": [
+          "Cointegration engines (Engle-Granger, Johansen)",
+          "Stationarity testing (ADF, KPSS)",
+          "OU process parameter estimation",
+          "Half-life and z-score signals"
+        ]
+      },
+      {
+        "phase": 3,
+        "name": "Time-Series CV (py-rsample)",
+        "deliverables": [
+          "rolling_origin()",
+          "sliding_window() / sliding_period()",
+          "expanding_window()",
+          "purged_cv()",
+          "Integration with signal evaluation"
+        ]
+      },
+      {
+        "phase": 4,
+        "name": "Preprocessing Pipelines",
+        "deliverables": [
+          "SignalPipeline with step_*() methods",
+          "prep() / apply() pattern",
+          "Deseasonalization (STL)",
+          "Normalization (lookahead-free)",
+          "Point-in-time data handling"
+        ]
+      },
+      {
+        "phase": 5,
+        "name": "Commodities-Specific Features",
+        "deliverables": [
+          "Term structure utilities",
+          "Spread construction helpers",
+          "Vintage data integration",
+          "Release calendar awareness"
+        ]
+      },
+      {
+        "phase": 6,
+        "name": "ML Integration",
+        "deliverables": [
+          "ML signal type (sklearn interface)",
+          "Feature engineering pipeline",
+          "Walk-forward validation",
+          "Online learning support"
+        ]
+      },
+      {
+        "phase": 7,
+        "name": "Portfolio Construction",
+        "deliverables": [
+          "Signal -> weights optimization",
+          "Constraint handling",
+          "Transaction cost modeling",
+          "Risk budgeting"
+        ]
+      },
+      {
+        "phase": 8,
+        "name": "Analytics & Visualization",
+        "deliverables": [
+          "Interactive Plotly Dash dashboards",
+          "Tear sheet generation",
+          "IC analysis, turnover analysis",
+          "Regime detection visualization"
+        ]
+      }
+    ]
+  },
+
+  "gap_analysis": {
+    "what_exists": {
+      "backtesting": ["Zipline", "Backtrader", "VectorBT"],
+      "factor_analysis": ["Alphalens"],
+      "portfolio_analytics": ["Pyfolio", "Empyrical"],
+      "statistical_methods": ["statsmodels", "arch"],
+      "time_series": ["Prophet", "statsmodels"]
+    },
+    "what_is_missing": [
+      {
+        "gap": "Unified Signal API",
+        "current_state": "Fragmented approaches across libraries",
+        "opportunity": "Tidymodels-style composable signal specifications"
+      },
+      {
+        "gap": "ML-Native Signals",
+        "current_state": "ML must be bolted on externally",
+        "opportunity": "First-class sklearn/LightGBM integration"
+      },
+      {
+        "gap": "Time-Series CV",
+        "current_state": "Manual train/test splits only",
+        "opportunity": "py-rsample equivalent with rolling, purged CV"
+      },
+      {
+        "gap": "Portfolio Construction",
+        "current_state": "Order execution only, no signal -> weights",
+        "opportunity": "Signal aggregation, optimization, constraints"
+      },
+      {
+        "gap": "Commodities Focus",
+        "current_state": "Equity-centric libraries",
+        "opportunity": "Term structure, vintage data, seasonality"
+      },
+      {
+        "gap": "Interactive Analytics",
+        "current_state": "Static matplotlib tear sheets",
+        "opportunity": "Plotly Dash interactive dashboards"
+      }
+    ]
+  },
+
+  "success_criteria": {
+    "library_metrics": [
+      "10+ signal types with 20+ engines",
+      "Time-series CV matching R rsample functionality",
+      "Sub-second performance for typical backtests",
+      "Seamless integration with py-parsnip models",
+      "Interactive analytics dashboard"
+    ],
+    "community_metrics": [
+      "500+ GitHub stars within first year",
+      "20+ contributors",
+      "100+ dependent projects",
+      "Active Discord/Discourse community"
+    ]
+  },
+
+  "citations": {
+    "r_tidyverse": [
+      "Wickham, H. 'The tidy tools manifesto.' https://tidyverse.tidyverse.org/articles/manifesto.html",
+      "Kuhn, M. and Silge, J. 'Tidy Modeling with R.' https://www.tmwr.org/",
+      "Dancho, M. 'tidyquant.' https://business-science.github.io/tidyquant/"
+    ],
+    "python_trading": [
+      "Quantopian. 'Zipline.' https://github.com/quantopian/zipline",
+      "Polakowo. 'VectorBT.' https://github.com/polakowo/vectorbt",
+      "Mementum. 'Backtrader.' https://github.com/mementum/backtrader"
+    ],
+    "statistical_methods": [
+      "Engle & Granger (1987). Co-integration and Error Correction. Econometrica.",
+      "Johansen (1988). Statistical Analysis of Cointegration Vectors. JEDC.",
+      "Cleveland et al. (1990). STL Decomposition. Journal of Official Statistics."
+    ],
+    "vintage_data": [
+      "Anderson (2006). Replicability, Real-Time Data. Fed St. Louis Review.",
+      "Marcellino et al. (2010). Factor MIDAS. Oxford Bulletin of Economics.",
+      "ALFRED Database. https://alfred.stlouisfed.org/"
+    ]
+  }
+}

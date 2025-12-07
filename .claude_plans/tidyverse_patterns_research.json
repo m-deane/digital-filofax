@@ -1,0 +1,799 @@
+{
+  "search_summary": {
+    "platforms_searched": ["tidyverse.org", "tidymodels.org", "github", "cran", "r-bloggers", "stackoverflow"],
+    "repositories_analyzed": 8,
+    "docs_reviewed": 25
+  },
+
+  "core_tidyverse_principles": {
+    "philosophy": {
+      "summary": "The tidyverse is fundamentally human-centered, designed to support data analyst activities by acknowledging strengths and weaknesses of human cognition. 'Programs must be written for people to read, and only incidentally for machines to execute.'",
+      "citation": "[1] Wickham et al. 'The tidy tools manifesto.' tidyverse.org"
+    },
+
+    "four_foundational_tenets": [
+      {
+        "principle": "Reuse Existing Data Structures",
+        "description": "Leverage standard formats like data frames and tibbles rather than creating bespoke structures. Promotes compatibility across packages.",
+        "benefit": "Reduces cognitive load - users don't need to learn new data representations"
+      },
+      {
+        "principle": "Compose Simple Functions with the Pipe",
+        "description": "Build complex solutions by chaining single-purpose functions together. 'It is often the quality of the glue that most directly determines the power of the system.'",
+        "benefit": "Enables left-to-right, top-to-bottom readable code that mirrors human thought processes"
+      },
+      {
+        "principle": "Embrace Functional Programming",
+        "description": "Prioritize immutable objects and functional abstractions over loops. Avoid mixing side-effects with transformations.",
+        "benefit": "Predictable, testable code with clear data flow"
+      },
+      {
+        "principle": "Design for Humans",
+        "description": "Optimize for usability and cognition rather than computational efficiency. Invest in evocative, explicit function names with common prefixes for discoverability.",
+        "benefit": "Thinking time is the bottleneck in data analysis, not computing time"
+      }
+    ],
+
+    "grammar_of_verbs": {
+      "concept": "dplyr provides a consistent set of verbs for data manipulation, forming a 'grammar' analogous to grammar of graphics",
+      "core_verbs": [
+        {
+          "verb": "select",
+          "purpose": "Choose columns/variables",
+          "pattern": "Column selection based on names, types, or patterns"
+        },
+        {
+          "verb": "filter",
+          "purpose": "Choose rows/observations",
+          "pattern": "Row selection based on logical conditions"
+        },
+        {
+          "verb": "mutate",
+          "purpose": "Add or transform variables",
+          "pattern": "Create new columns as functions of existing ones"
+        },
+        {
+          "verb": "summarize",
+          "purpose": "Aggregate data",
+          "pattern": "Reduce multiple values to summary statistics"
+        },
+        {
+          "verb": "group_by",
+          "purpose": "Define groups for operations",
+          "pattern": "Split-apply-combine pattern"
+        },
+        {
+          "verb": "arrange",
+          "purpose": "Reorder rows",
+          "pattern": "Sort data by one or more columns"
+        }
+      ],
+      "composability": "Each verb accomplishes one thing well; complex operations emerge from composition via pipe operator",
+      "citation": "[2] Wickham, H. 'A Grammar of Data Manipulation.' dplyr.tidyverse.org"
+    },
+
+    "pipe_operator_philosophy": {
+      "concept": "The pipe (%>% and |>) enables function composition as a tool for solving complex problems by combining simple pieces",
+      "syntax": "x %>% f(y) transforms into f(x, y)",
+      "benefits": [
+        "Avoids saving intermediate objects",
+        "Eliminates deeply nested function calls",
+        "Creates readable left-to-right, top-to-bottom flow",
+        "Mirrors natural language sentence structure"
+      ],
+      "design_goal": "Common composition tool that works across all tidyverse packages",
+      "citation": "[3] Bache, S. and Wickham, H. 'magrittr: A Forward-Pipe Operator for R.'"
+    },
+
+    "non_standard_evaluation": {
+      "concept": "NSE allows accessing the code used to compute function arguments, not just their values. Enables dramatic reduction in typing.",
+      "mechanisms": [
+        {
+          "type": "Data Masking",
+          "description": "Use data variables as if they were environment variables (write 'my_variable' not 'df$my_variable')",
+          "used_by": "arrange(), count(), filter(), group_by(), mutate(), summarise()"
+        },
+        {
+          "type": "Tidy Selection",
+          "description": "Choose variables based on position, name, or type (e.g., starts_with('x') or is.numeric)",
+          "used_by": "across(), relocate(), rename(), select(), pull()"
+        }
+      ],
+      "lazy_evaluation": "Expressions evaluated when needed, not before. Arguments stored in 'promises' containing both value and expression.",
+      "benefit": "Shorter, cleaner code by dispensing with quote marks and data frame prefixes",
+      "challenge": "Adds complexity when used indirectly (loops, functions). Requires special handling.",
+      "citation": "[4] Wickham, H. 'Programming with dplyr.' dplyr.tidyverse.org"
+    },
+
+    "tidy_data_principles": {
+      "definition": "Standard way of storing data where: (1) each variable is in a column, (2) each observation is a row, (3) each value is a cell",
+      "benefit": "Spend less time fighting with tools and more time working on analysis",
+      "impact": "Shared data structure enables seamless integration across tidyverse packages"
+    }
+  },
+
+  "tidymodels_patterns": {
+    "overview": {
+      "philosophy": "Separate specification of what you want to do from the actual doing. Similar to ggplot2, dplyr, and recipes.",
+      "key_insight": "Model specifications are functionally independent of data",
+      "citation": "[5] Kuhn, M. and Silge, J. 'Tidy Modeling with R.' tmwr.org"
+    },
+
+    "parsnip_model_specification": {
+      "pattern": "Three-step specification that decouples model definition from data",
+      "steps": [
+        {
+          "step": 1,
+          "name": "Type Specification",
+          "example": "linear_reg(), rand_forest(), boost_tree()",
+          "purpose": "Declare mathematical model structure"
+        },
+        {
+          "step": 2,
+          "name": "Engine Selection",
+          "example": "set_engine('lm'), set_engine('glmnet'), set_engine('stan')",
+          "purpose": "Choose computational backend (package or technology)"
+        },
+        {
+          "step": 3,
+          "name": "Mode Declaration",
+          "example": "set_mode('regression'), set_mode('classification')",
+          "purpose": "Specify prediction outcome type when needed"
+        }
+      ],
+      "key_principle": "Specifications built without referencing data - enables reproducible, portable model definitions",
+      "immutability": "Model specifications do not immediately evaluate arguments; they save argument expressions and environments",
+      "benefits": [
+        "Unified interface across diverse model types",
+        "Interchangeable engines without code changes",
+        "Model definitions can be saved, shared, and reused",
+        "Predictable, consistent outputs (always tibbles with standardized column names)"
+      ],
+      "citation": "[6] 'How parsnip works.' tidyverse.org/blog/2019/04/parsnip-internals/"
+    },
+
+    "parameter_standardization": {
+      "problem": "Different packages use different argument names for same concepts (mtry vs num.trees vs n_estimators)",
+      "solution": "Parsnip creates unified vocabulary across packages",
+      "categories": [
+        {
+          "type": "Main Arguments",
+          "description": "Common across engines (e.g., penalty, mixture, trees, mtry)",
+          "design_question": "Would people viewing results understand the name?"
+        },
+        {
+          "type": "Engine-Specific Arguments",
+          "description": "Implementation-dependent parameters passed via set_engine()",
+          "example": "set_engine('ranger', importance = 'impurity')"
+        }
+      ],
+      "translate_function": "translate() reveals how parsnip maps unified syntax to each engine's native interface",
+      "benefit": "Learn parameter names once, apply across all implementations"
+    },
+
+    "engine_registry_pattern": {
+      "concept": "Models store information in a registry system allowing dynamic engine discovery",
+      "implementation": "get_model_env() provides access to model registry",
+      "extensibility": "Users can register custom models and engines following documented patterns",
+      "benefit": "New implementations can be added without modifying core package code",
+      "citation": "[7] 'How to build a parsnip model.' tidymodels.org/learn/develop/models/"
+    },
+
+    "recipes_preprocessing": {
+      "philosophy": "Preprocessing steps should be estimated together with a model, not separately",
+      "core_pattern": "Specification → Preparation → Application",
+      "three_phase_workflow": [
+        {
+          "phase": "Specification",
+          "function": "recipe() and step_*() functions",
+          "purpose": "Define what transformations should occur",
+          "characteristic": "Declarative, data-agnostic"
+        },
+        {
+          "phase": "Preparation (prep)",
+          "triggers": "When fit() called on workflow",
+          "operations": [
+            "Determine factor levels from training data",
+            "Identify zero-variance predictors",
+            "Compute normalization statistics",
+            "Calculate PCA loadings"
+          ],
+          "principle": "All estimates computed on training data only"
+        },
+        {
+          "phase": "Application (bake)",
+          "targets": "Both training and test sets",
+          "principle": "Apply learned transformations consistently. Nothing recomputed; no information from test set used."
+        }
+      ],
+      "composability": "Steps compose through piping, creating modular preprocessing pipelines",
+      "role_based_selection": "Selectors like all_nominal_predictors() make recipes adaptable and reusable",
+      "separation_of_concerns": "Preprocessing independent of model specification - enables different preprocessing for different models",
+      "extensibility": "Over 100 available steps across recipes ecosystem; custom steps follow standard template",
+      "citation": "[8] 'Preprocess your data with recipes.' tidymodels.org/start/recipes/"
+    },
+
+    "workflows_composition": {
+      "purpose": "Bundle recipe + model + postprocessing into unified object",
+      "advantages": [
+        "Don't track separate objects in workspace",
+        "Recipe prep, model fit, postprocessor estimation executed in single fit() call",
+        "Easier to train and test bundled configurations"
+      ],
+      "workflowsets_pattern": "Create and evaluate combinations of recipes × models systematically",
+      "citation": "[9] 'A Model Workflow.' tmwr.org/workflows.html"
+    },
+
+    "broom_standardized_outputs": {
+      "philosophy": "Standardize model outputs to enable consistent analysis regardless of underlying model type",
+      "three_function_pattern": [
+        {
+          "function": "tidy()",
+          "returns": "Component-level information",
+          "content": "One row per model component (coefficient, cluster, test)",
+          "typical_columns": "term, estimate, std.error, statistic, p.value",
+          "use_case": "Statistical inference on model parameters"
+        },
+        {
+          "function": "glance()",
+          "returns": "Model-level summary",
+          "content": "Exactly one row with goodness-of-fit measures",
+          "typical_columns": "r.squared, adj.r.squared, sigma, AIC, BIC, deviance",
+          "use_case": "Model comparison and selection"
+        },
+        {
+          "function": "augment()",
+          "returns": "Observation-level diagnostics",
+          "content": "Original data plus columns for predictions, residuals, influence",
+          "typical_columns": ".fitted, .resid, .se.fit, .hat, .cooksd",
+          "use_case": "Residual analysis and diagnostics"
+        }
+      ],
+      "column_naming_convention": "New columns begin with '.' to prevent overwriting existing data",
+      "output_format": "Always tibbles, never rownames (ensures combine-ability)",
+      "coverage": "Tidies 100+ models from diverse packages",
+      "benefit": "Apply same visualization and analysis code regardless of model type",
+      "citation": "[10] 'Convert Statistical Objects into Tidy Tibbles.' broom.tidymodels.org"
+    },
+
+    "rsample_resampling": {
+      "purpose": "Modular methods for resampling to estimate sampling distribution of statistics",
+      "common_methods": [
+        {
+          "method": "V-Fold Cross-Validation",
+          "pattern": "Split data into V roughly equal groups; each fold serves as assessment set once",
+          "use_case": "General model evaluation"
+        },
+        {
+          "method": "Monte Carlo CV",
+          "pattern": "Random sampling with specified proportion for analysis set",
+          "tradeoff": "More biased than V-fold but faster"
+        },
+        {
+          "method": "Bootstrap",
+          "pattern": "Sampling with replacement, same size as original data",
+          "use_case": "Uncertainty estimation"
+        }
+      ],
+      "time_series_specific": [
+        {
+          "method": "Rolling Origin",
+          "pattern": "Evaluation on rolling forecasting origin",
+          "principle": "Analysis set never contains observations later than assessment set"
+        },
+        {
+          "method": "Sliding Window",
+          "description": "Fixed-size windows based on row numbers",
+          "use_case": "Regular time series"
+        },
+        {
+          "method": "Sliding Index",
+          "description": "Windows relative to date/time index column",
+          "use_case": "Irregular time series or irregular lookback periods"
+        },
+        {
+          "method": "Sliding Period",
+          "description": "Break index into period-based groups (monthly, yearly)",
+          "use_case": "Constructing rolling monthly/yearly windows from daily data"
+        }
+      ],
+      "deterministic": "Time-based resampling functions always return same results (independent of random seed)",
+      "group_based_cv": "Resampling respects grouping variables (e.g., repeated measures on same subject)",
+      "citation": "[11] 'Common Resampling Patterns.' rsample.tidymodels.org"
+    },
+
+    "yardstick_metrics": {
+      "purpose": "Tidy tools for quantifying model fit quality",
+      "metric_types": [
+        {
+          "type": "Numeric Metrics",
+          "examples": "RMSE, MAE, MSE, R-squared",
+          "pattern": "Simplest implementation - compare truth vs estimate"
+        },
+        {
+          "type": "Class Metrics",
+          "examples": "Accuracy, sensitivity, specificity",
+          "pattern": "Confusion matrix based"
+        },
+        {
+          "type": "Class Probability Metrics",
+          "examples": "ROC AUC, log loss, Brier score",
+          "pattern": "Use predicted probabilities"
+        }
+      ],
+      "multiclass_handling": "Macro, micro, and macro-weighted averaging available",
+      "grouped_data": "Works with grouped data frames to calculate metrics across resamples",
+      "metric_sets": "Create custom collections of metrics to evaluate simultaneously",
+      "custom_metrics": {
+        "components": [
+          "Implementation function (e.g., mse_impl())",
+          "Validation via check_numeric_metric()",
+          "Missing value handling with yardstick_remove_missing()",
+          "Data frame method using metric_summarizer()",
+          "Wrapper in new_numeric_metric() for integration"
+        ]
+      },
+      "citation": "[12] 'Tidy Characterizations of Model Performance.' yardstick.tidymodels.org"
+    }
+  },
+
+  "tidyquant_finance_patterns": {
+    "philosophy": "Bring quantitative finance into tidyverse workflow by integrating specialized packages with tidy data principles",
+    "integration_approach": "Seamless interaction between tidy data frames and time series operations from zoo, xts, quantmod, TTR, PerformanceAnalytics",
+
+    "core_functions": [
+      {
+        "function": "tq_get()",
+        "purpose": "One-stop shop for web-based financial data in tidy format",
+        "data_types": [
+          "Stock prices",
+          "Financial statistics and ratios",
+          "Financial statements",
+          "Dividends and splits",
+          "Economic data"
+        ],
+        "pattern": "Data acquisition as first step in tidy pipeline"
+      },
+      {
+        "function": "tq_mutate()",
+        "purpose": "Add calculated financial columns while maintaining original structure",
+        "pattern": "Analogous to dplyr::mutate() but for financial transformations",
+        "use_case": "Adding technical indicators, returns calculations"
+      },
+      {
+        "function": "tq_transmute()",
+        "purpose": "Return new data frames with transformed metrics",
+        "pattern": "Analogous to dplyr::transmute() - keeps only new columns",
+        "use_case": "Changing data periodicity (daily → monthly), applying transformations"
+      },
+      {
+        "function": "tq_performance()",
+        "purpose": "Convert investment returns into performance metrics",
+        "integration": "PerformanceAnalytics functions",
+        "pattern": "Apply financial performance measures to return streams"
+      },
+      {
+        "function": "tq_portfolio()",
+        "purpose": "Aggregate multiple asset returns into portfolio-level analyses",
+        "pattern": "Weighted composition of underlying assets",
+        "requirement": "Must first develop portfolio weights"
+      }
+    ],
+
+    "rolling_calculations": {
+      "pattern": "Apply rolling window calculations using zoo functions",
+      "examples": [
+        "rollapply() - general rolling application",
+        "rollapplyr() - right-aligned rolling",
+        "rollmax() - rolling maximum",
+        "TTR::runCor() - rolling correlations"
+      ],
+      "benefit": "Familiar tidyverse piping with sophisticated time series operations"
+    },
+
+    "scaling_pattern": {
+      "concept": "Greatest benefit is ability to easily scale financial analysis",
+      "workflow": "Create analysis for one security, extend to multiple groups",
+      "mechanism": "tidyverse split-apply-combine via group_by()",
+      "use_case": "Compare many securities simultaneously to make informed decisions"
+    },
+
+    "portfolio_optimization": {
+      "integration": "ROI package for nonlinear programming",
+      "capabilities": [
+        "Calculate optimal minimum variance portfolios",
+        "Develop efficient frontiers",
+        "Constraint-based optimization"
+      ]
+    },
+
+    "key_benefit": "Complete financial analyses in tidyverse using familiar data manipulation patterns alongside sophisticated financial calculations",
+    "citation": "[13] 'Tidy Quantitative Financial Analysis.' business-science.github.io/tidyquant/"
+  },
+
+  "transferable_design_patterns": {
+    "for_python_signal_detection_library": [
+      {
+        "pattern": "Grammar of Verbs",
+        "description": "Define domain-specific verbs for signal operations",
+        "application_to_signals": {
+          "core_verbs": [
+            "detect() - identify signals/patterns",
+            "filter() - remove noise or select frequencies",
+            "transform() - apply transformations (FFT, wavelet, etc.)",
+            "extract() - pull out features",
+            "aggregate() - combine signals or summarize",
+            "validate() - check signal quality"
+          ],
+          "benefit": "Intuitive, verb-based API matches mental model of signal processing tasks"
+        },
+        "python_implementation": "Use method chaining with pandas-like API, return self or new immutable objects",
+        "example_pseudocode": "signal.filter(low_freq=10, high_freq=100).detect(threshold=0.5).extract(features=['peak', 'width'])"
+      },
+      {
+        "pattern": "Immutable Specifications",
+        "description": "Separate detector/filter specification from execution",
+        "application_to_signals": {
+          "concept": "Define detector configuration independently of signal data",
+          "workflow": [
+            "Specify: detector = PeakDetector(threshold=0.5, method='wavelet')",
+            "Fit: fitted = detector.fit(training_signals)",
+            "Detect: results = fitted.detect(new_signals)"
+          ],
+          "benefit": "Detector configurations portable, shareable, version-controllable"
+        },
+        "python_implementation": "Use frozen dataclasses or immutable objects; modifications return new instances",
+        "example": "from dataclasses import dataclass, replace\n@dataclass(frozen=True)\nclass DetectorSpec:\n    threshold: float\n    method: str"
+      },
+      {
+        "pattern": "Registry-Based Extensibility",
+        "description": "Allow multiple backend implementations via registry pattern",
+        "application_to_signals": {
+          "concept": "Different detection algorithms as interchangeable 'engines'",
+          "examples": [
+            "PeakDetector with engine='scipy', 'cwt', 'custom'",
+            "FrequencyFilter with engine='scipy', 'numpy.fft', 'pywavelets'"
+          ],
+          "benefit": "Add new algorithms without modifying core code; users can plug in custom implementations"
+        },
+        "python_implementation": "Decorator-based registration system with abstract base classes",
+        "example": "@register_detector('peak', 'wavelet')\nclass WaveletPeakDetector(DetectorEngine):\n    def detect(self, signal): ..."
+      },
+      {
+        "pattern": "Standardized Three-Output Pattern",
+        "description": "Consistent output structure across all detectors",
+        "application_to_signals": {
+          "outputs": [
+            {
+              "dataframe": "detections",
+              "content": "Detection-level results (timestamp, amplitude, confidence, classification)",
+              "analogous_to": "broom::augment() - observation level"
+            },
+            {
+              "dataframe": "parameters",
+              "content": "Detector parameters and feature importances",
+              "analogous_to": "broom::tidy() - component level"
+            },
+            {
+              "dataframe": "metrics",
+              "content": "Performance metrics (precision, recall, F1, SNR)",
+              "analogous_to": "broom::glance() - model level"
+            }
+          ],
+          "benefit": "Predictable outputs enable consistent downstream analysis and visualization"
+        },
+        "column_naming": "Use dot-prefix for added columns (.detection_time, .confidence) to prevent collisions"
+      },
+      {
+        "pattern": "Prep-and-Apply Pipeline",
+        "description": "Learn preprocessing from training data, apply consistently to new data",
+        "application_to_signals": {
+          "workflow": [
+            "Define: pipeline = Pipeline().normalize().denoise().filter(low=10)",
+            "Prep: pipeline.prep(training_signals)  # learns normalization params, noise profile",
+            "Apply: clean_test = pipeline.apply(test_signals)  # uses learned params"
+          ],
+          "benefit": "Prevents data leakage; ensures test data processed identically to training"
+        },
+        "recipes_analogy": "Like recipes prep/bake - statistics computed once on training, applied consistently"
+      },
+      {
+        "pattern": "Rolling/Sliding Window Resampling",
+        "description": "Time-aware validation for temporal signals",
+        "application_to_signals": {
+          "methods": [
+            "rolling_origin() - expanding window for walk-forward validation",
+            "sliding_window() - fixed-size windows",
+            "sliding_period() - period-based windows (hourly, daily)"
+          ],
+          "principle": "Training data never contains future information relative to test data",
+          "benefit": "Realistic performance estimates for real-time detection scenarios"
+        }
+      },
+      {
+        "pattern": "Metric Collections",
+        "description": "Bundled performance metrics computed together",
+        "application_to_signals": {
+          "concept": "Define custom metric sets for different signal types",
+          "examples": [
+            "detection_metrics = MetricSet(precision, recall, f1, latency)",
+            "quality_metrics = MetricSet(snr, thd, noise_floor)"
+          ],
+          "benefit": "Evaluate multiple aspects of detector performance in single call"
+        }
+      },
+      {
+        "pattern": "Grouped Operations (Split-Apply-Combine)",
+        "description": "Apply detectors across multiple signal groups simultaneously",
+        "application_to_signals": {
+          "use_case": "Process multiple channels, sensors, or signal types in parallel",
+          "workflow": "signals.group_by('channel').detect(detector).summarize(metrics)",
+          "benefit": "Scale single-signal analysis to multi-sensor arrays effortlessly"
+        },
+        "python_implementation": "Leverage pandas groupby or custom grouping mechanism"
+      },
+      {
+        "pattern": "Fluent Interface with Method Chaining",
+        "description": "Compose complex signal processing pipelines through chaining",
+        "application_to_signals": {
+          "example": "(signal\n  .filter(freq_range=(10, 100))\n  .normalize(method='zscore')\n  .detect(detector='wavelet', threshold=0.5)\n  .extract_features(['amplitude', 'duration'])\n  .evaluate(metrics=['precision', 'recall']))",
+          "benefit": "Readable, maintainable analysis code that flows left-to-right"
+        },
+        "python_consideration": "Return new objects (immutable) or self (mutable) - be consistent and document clearly"
+      },
+      {
+        "pattern": "Selector Functions for Feature/Channel Selection",
+        "description": "Role-based or pattern-based selection of signal components",
+        "application_to_signals": {
+          "selectors": [
+            "all_channels()",
+            "frequency_bands(low=10, high=100)",
+            "matches_pattern('EEG_*')",
+            "by_type('acoustic')"
+          ],
+          "benefit": "Avoid hardcoding channel names; make pipelines adaptable to different datasets"
+        }
+      },
+      {
+        "pattern": "Custom Step/Detector Extensibility",
+        "description": "Template-based approach for adding new operations",
+        "application_to_signals": {
+          "components": [
+            "Detector constructor function",
+            "Minimal methods: fit(), detect(), extract_outputs()",
+            "Optional methods: validate(), tune()",
+            "Registration via decorator"
+          ],
+          "benefit": "Users can extend library with domain-specific detectors following standard interface"
+        }
+      }
+    ]
+  },
+
+  "implementation_recommendations": [
+    {
+      "scenario": "Building unified API for signal detection library",
+      "recommended_solution": "Adopt parsnip-style specification pattern with detector types, engines, and modes",
+      "rationale": "Separates 'what to detect' from 'how to detect', enabling algorithm comparison without code changes. Supports multiple backend implementations (scipy, custom, ML-based).",
+      "specific_steps": [
+        "Define detector types (peak_detector, event_detector, anomaly_detector)",
+        "Implement engine registry for different algorithms",
+        "Use frozen dataclasses for immutable specifications",
+        "Provide translate() method showing parameter mapping to backend"
+      ]
+    },
+    {
+      "scenario": "Preprocessing pipeline for signal data",
+      "recommended_solution": "Implement recipes-style prep/apply pattern with composable steps",
+      "rationale": "Prevents data leakage by computing statistics on training data only. Ensures consistent preprocessing between training and deployment.",
+      "specific_steps": [
+        "Create Pipeline class with step_*() methods",
+        "Implement prep() to compute transformation parameters on training signals",
+        "Implement apply() to use stored parameters on new signals",
+        "Support method chaining for composability"
+      ]
+    },
+    {
+      "scenario": "Standardizing outputs across diverse detection algorithms",
+      "recommended_solution": "Adopt broom's three-function pattern (detection-level, parameter-level, metrics-level)",
+      "rationale": "Enables consistent downstream analysis regardless of detection algorithm. Facilitates comparison across methods.",
+      "specific_steps": [
+        "Always return three DataFrames: detections, parameters, metrics",
+        "Use dot-prefix for added columns",
+        "Include metadata columns (detector_type, engine, group)",
+        "Document column naming conventions"
+      ]
+    },
+    {
+      "scenario": "Time series validation for real-time detection",
+      "recommended_solution": "Implement rsample-style sliding window cross-validation",
+      "rationale": "Respects temporal ordering - training never contains future information. Provides realistic performance estimates.",
+      "specific_steps": [
+        "Implement rolling_origin() for expanding windows",
+        "Support sliding_index() for irregular time series",
+        "Make time-based resampling deterministic",
+        "Integrate with detector evaluation framework"
+      ]
+    },
+    {
+      "scenario": "Making library intuitive for signal processing practitioners",
+      "recommended_solution": "Design verb-based API with domain-specific vocabulary",
+      "rationale": "Reduces cognitive load by matching mental model of signal processing workflow. Familiar to tidyverse users transitioning to Python.",
+      "specific_steps": [
+        "Define 5-7 core verbs (detect, filter, transform, extract, aggregate, validate)",
+        "Use descriptive, unambiguous function names",
+        "Enable method chaining for pipeline composition",
+        "Provide selector functions (all_channels(), frequency_range())"
+      ]
+    },
+    {
+      "scenario": "Enabling extensibility for custom algorithms",
+      "recommended_solution": "Registry pattern with decorator-based registration",
+      "rationale": "Users can add domain-specific detectors without modifying library code. Maintains consistent interface.",
+      "specific_steps": [
+        "Define abstract base class (DetectorEngine)",
+        "Create @register_detector decorator",
+        "Document required methods (fit, detect, extract_outputs)",
+        "Provide template and examples in documentation"
+      ]
+    }
+  ],
+
+  "key_insights_for_python_signal_library": {
+    "composability": "The pipe operator is central to tidyverse's power. In Python, method chaining achieves similar composability. Design API to support fluent chaining.",
+
+    "immutability_vs_mutability": "R naturally encourages immutability (copy-on-write). Python is more mutable. Consider immutable specifications (frozen dataclasses) for configurations, but allow efficient in-place operations for large signal arrays.",
+
+    "human_centered_design": "Invest heavily in naming. Use autocomplete-friendly prefixes (step_*, tq_*, all_*). Write for humans first, computers second.",
+
+    "separation_of_concerns": "Keep specification separate from execution (parsnip), preprocessing separate from modeling (recipes), outputs standardized across implementations (broom).",
+
+    "time_aware_validation": "For signal detection, temporal ordering matters. Adopt rsample's time-based resampling patterns to prevent lookahead bias.",
+
+    "extensibility_first": "Registry patterns and abstract base classes allow users to extend library. Document extension points clearly.",
+
+    "consistent_outputs": "Standardized output structure (like broom) is highly valuable. Makes downstream analysis predictable and enables building ecosystems of compatible tools.",
+
+    "leverage_existing_structures": "Use pandas DataFrames as primary data structure (analogous to tibbles). Don't create custom data types unless absolutely necessary.",
+
+    "grouped_operations": "Signal processing often involves multiple channels/sensors. Design for grouped operations from the start (like dplyr's group_by).",
+
+    "performance_considerations": "Tidyverse prioritizes readability over performance. For signal processing, performance may matter more. Consider offering both fluent and optimized APIs."
+  },
+
+  "community_insights": {
+    "popular_solutions": [
+      "Method chaining in pandas is well-established",
+      "PyJanitor brings tidyverse-style to pandas",
+      "Siuba ports dplyr syntax to Python",
+      "Polars emerging as performant alternative with lazy evaluation"
+    ],
+
+    "controversial_topics": [
+      "Fluent interfaces considered 'unpythonic' by some (Guido van Rossum discourages returning self)",
+      "Trade-off between readability and debuggability in long chains",
+      "NSE-like behavior difficult in Python without metaprogramming"
+    ],
+
+    "expert_opinions": [
+      "Tom Augspurger (pandas core dev): Method chaining valuable for data transformations",
+      "Martin Fowler: Fluent interfaces require more design effort but pay off in readability",
+      "Hadley Wickham: Quality of the glue determines system power - invest in composition mechanisms"
+    ]
+  },
+
+  "python_specific_considerations": {
+    "method_chaining": {
+      "status": "Well-supported in pandas via dot notation",
+      "enablers": [
+        "assign() method (like mutate)",
+        "pipe() method for custom functions",
+        "query() method for filtering"
+      ],
+      "limitation": "Debugging long chains can be harder - no intermediate objects to inspect",
+      "recommendation": "Support both chaining and step-by-step for different use cases"
+    },
+
+    "nse_equivalent": {
+      "challenge": "Python lacks R-style NSE; explicit quoting required",
+      "alternatives": [
+        "String-based column references",
+        "Lambda functions",
+        "Delayed evaluation via Polars-style expressions"
+      ],
+      "recommendation": "Accept both string names and callable selectors"
+    },
+
+    "immutability": {
+      "default": "Python mutable by default",
+      "options": [
+        "dataclasses with frozen=True",
+        "attrs library with frozen instances",
+        "Return new objects in chain (copy-on-write)"
+      ],
+      "performance_tradeoff": "Immutability creates copies - expensive for large signals",
+      "recommendation": "Immutable specs, mutable data arrays with clear documentation"
+    },
+
+    "type_hints": {
+      "opportunity": "Python type hints can make APIs more discoverable than R",
+      "benefit": "IDE autocomplete and static checking not available in R",
+      "recommendation": "Full type annotations for all public APIs"
+    }
+  },
+
+  "citations": [
+    {
+      "id": 1,
+      "citation": "Wickham, H. 'The tidy tools manifesto.' tidyverse, https://tidyverse.tidyverse.org/articles/manifesto.html"
+    },
+    {
+      "id": 2,
+      "citation": "Wickham, H. et al. 'A Grammar of Data Manipulation.' dplyr, https://dplyr.tidyverse.org/"
+    },
+    {
+      "id": 3,
+      "citation": "Bache, S. and Wickham, H. 'magrittr: A Forward-Pipe Operator for R.' CRAN"
+    },
+    {
+      "id": 4,
+      "citation": "Wickham, H. 'Programming with dplyr.' dplyr, https://dplyr.tidyverse.org/articles/programming.html"
+    },
+    {
+      "id": 5,
+      "citation": "Kuhn, M. and Silge, J. 'Tidy Modeling with R.' tmwr.org, https://www.tmwr.org/"
+    },
+    {
+      "id": 6,
+      "citation": "Robinson, D. 'How parsnip works.' Tidyverse Blog, https://tidyverse.org/blog/2019/04/parsnip-internals/"
+    },
+    {
+      "id": 7,
+      "citation": "tidymodels. 'How to build a parsnip model.' tidymodels, https://www.tidymodels.org/learn/develop/models/"
+    },
+    {
+      "id": 8,
+      "citation": "tidymodels. 'Preprocess your data with recipes.' tidymodels, https://www.tidymodels.org/start/recipes/"
+    },
+    {
+      "id": 9,
+      "citation": "Kuhn, M. and Silge, J. 'A Model Workflow.' Tidy Modeling with R, https://www.tmwr.org/workflows.html"
+    },
+    {
+      "id": 10,
+      "citation": "Robinson, D. et al. 'Convert Statistical Objects into Tidy Tibbles.' broom, https://broom.tidymodels.org/"
+    },
+    {
+      "id": 11,
+      "citation": "tidymodels. 'Common Resampling Patterns.' rsample, https://rsample.tidymodels.org/articles/Common_Patterns.html"
+    },
+    {
+      "id": 12,
+      "citation": "tidymodels. 'Tidy Characterizations of Model Performance.' yardstick, https://yardstick.tidymodels.org/"
+    },
+    {
+      "id": 13,
+      "citation": "Dancho, M. and Vaughan, D. 'Tidy Quantitative Financial Analysis.' tidyquant, https://business-science.github.io/tidyquant/"
+    },
+    {
+      "id": 14,
+      "citation": "Wickham, H. et al. 'Welcome to the Tidyverse.' Journal of Open Source Software, 2019"
+    },
+    {
+      "id": 15,
+      "citation": "Morse, S. 'Tidyverse pipes in Pandas.' https://stmorse.github.io/journal/tidyverse-style-pandas.html"
+    },
+    {
+      "id": 16,
+      "citation": "Lee, C. 'PyJanitor and Pandas Method Chaining.' https://changhsinlee.com/pyjanitor/"
+    },
+    {
+      "id": 17,
+      "citation": "Fowler, M. 'Fluent Interface.' https://martinfowler.com/bliki/FluentInterface.html"
+    },
+    {
+      "id": 18,
+      "citation": "Augspurger, T. 'Modern Pandas (Part 2): Method Chaining.' https://tomaugspurger.net/posts/method-chaining/"
+    }
+  ]
+}
