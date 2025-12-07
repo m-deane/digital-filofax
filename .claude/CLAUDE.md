@@ -2,22 +2,21 @@
 
 ## Project Overview
 
-This repository is a Python implementation of the R tidymodels ecosystem for time series modeling. The primary focus is on the `py-modeltime-resample` package located in `reference/py-modeltime-resample/`, which provides time series cross-validation, resampling, model fitting, and evaluation capabilities.
+<!-- CUSTOMIZE: Replace this section with your project description -->
+[Brief description of your project, its purpose, and primary components]
 
-The `reference/` directory contains source code from various R tidymodels packages (broom, recipes, workflows, parsnip, yardstick, etc.) that serve as reference implementations for Python ports.
-
-**Technology Stack**: [Python]
-**Architecture**: [Monolith]
+**Technology Stack**: [Specify: Python, TypeScript, Go, etc.]
+**Architecture**: [Specify: Monolith, Microservices, Serverless, etc.]
 
 ## WORKFLOW - Core guidelines
 
-- Never use mock data, results or workarounds 
+- Never use mock data, results or workarounds
 - Implement tests after every checkpoint and then check that all tests are passing even if this takes longer to run
 - Only update progress and create progress .md files and project plans in the ".claude_plans" directory
 - Update the projectplan.md after each step and stage
 - Write all tests to the "tests/" folder
-- Do not leave files in the root directory - everything should be saved and sorted into the appropriate folder location in the folder structure, regular check and clean up orphan, old or unnneeded files
-- Create a new python environment called "py-tidymodels2" and manage the dependencies in this environment as you progress
+- Do not leave files in the root directory - everything should be saved and sorted into the appropriate folder location in the folder structure, regularly check and clean up orphan, old or unneeded files
+- Use a dedicated virtual environment or package manager for dependency management
 
 ## SYSTEM-LEVEL OPERATING PRINCIPLES
 
