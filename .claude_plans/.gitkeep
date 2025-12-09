@@ -1,0 +1,41 @@
+# .claude_plans Directory
+
+This directory stores project planning documents.
+
+## Recommended Files
+
+- `projectplan.md` - Main project roadmap and task tracking
+- `phase1_plan.md`, `phase2_plan.md`, etc. - Phase-specific detailed plans
+- `architecture_decisions.md` - Architecture Decision Records (ADRs)
+- `research_notes.md` - Research findings and analysis
+
+## Usage
+
+1. Create `projectplan.md` before starting any significant work
+2. Break down work into checkpoints with measurable success criteria
+3. Update plans as tasks are completed
+4. Add review sections after each phase
+
+## Template
+
+```markdown
+# Project Plan: [Feature/Project Name]
+
+## Overview
+[Brief description of what we're building]
+
+## Phase 1: [Phase Name]
+
+### Checkpoint 1.1: [Name]
+- [ ] Task 1
+- [ ] Task 2
+
+**Success Criteria:**
+- [Measurable criterion]
+
+### Checkpoint 1.2: [Name]
+- [ ] Task 3
+
+## Review
+[Added after completion with summary of changes]
+```

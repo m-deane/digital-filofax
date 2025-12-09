@@ -104,12 +104,27 @@ Eliminate patterns that consume tokens without advancing implementation:
 - `/.env` files - Environment variables (reference only)
 
 ### Code Style & Architecture Standards
-**Naming Conventions**:
+**Naming Conventions** (customize per language):
+
+*Python:*
+- Variables: snake_case
+- Functions: snake_case with descriptive verbs
+- Classes: PascalCase
+- Constants: SCREAMING_SNAKE_CASE
+- Files: snake_case.py
+
+*TypeScript/JavaScript:*
 - Variables: camelCase
 - Functions: camelCase with descriptive verbs
 - Classes: PascalCase
 - Constants: SCREAMING_SNAKE_CASE
-- Files: kebab-case or camelCase (specify your preference)
+- Files: camelCase.ts or kebab-case.ts
+
+*Go:*
+- Variables: camelCase (unexported) or PascalCase (exported)
+- Functions: camelCase (unexported) or PascalCase (exported)
+- Constants: PascalCase or camelCase
+- Files: snake_case.go
 
 **Architecture Patterns**:
 - [Your preferred patterns: MVC, Clean Architecture, etc.]
