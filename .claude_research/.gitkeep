@@ -1,0 +1,42 @@
+# .claude_research Directory
+
+This directory stores research documents and findings.
+
+## Recommended Files
+
+- `[topic]_research.md` - Research summaries
+- `[topic]_research.json` - Structured research data
+- `api_analysis.md` - API documentation analysis
+- `library_comparison.md` - Library/tool comparisons
+
+## Usage
+
+1. Store research findings for reference during implementation
+2. Document API patterns from external libraries
+3. Keep architecture decision research separate from decisions
+4. Use JSON for structured data that may be parsed programmatically
+
+## Template
+
+```markdown
+# Research: [Topic]
+
+## Objective
+[What we're researching and why]
+
+## Findings
+
+### [Subtopic 1]
+- Finding 1
+- Finding 2
+
+### [Subtopic 2]
+- Finding 1
+
+## Recommendations
+[Based on research, what should we do?]
+
+## Sources
+- [Source 1](url)
+- [Source 2](url)
+```

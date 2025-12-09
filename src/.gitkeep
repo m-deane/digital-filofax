@@ -1,0 +1,36 @@
+# src Directory
+
+This directory contains the main source code for the project.
+
+## Structure Example
+
+```
+src/
+├── __init__.py           # Package initialization
+├── main.py               # Entry point
+├── config/               # Configuration
+│   ├── __init__.py
+│   └── settings.py
+├── core/                 # Core business logic
+│   ├── __init__.py
+│   └── ...
+├── api/                  # API endpoints (if applicable)
+│   ├── __init__.py
+│   └── routes/
+├── models/               # Data models
+│   ├── __init__.py
+│   └── ...
+├── services/             # Business services
+│   ├── __init__.py
+│   └── ...
+└── utils/                # Utility functions
+    ├── __init__.py
+    └── ...
+```
+
+## Guidelines
+
+1. Keep modules focused and single-purpose
+2. Use clear, descriptive names
+3. Document public interfaces
+4. Write tests for all business logic

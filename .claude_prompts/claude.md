@@ -1,8 +1,32 @@
-Standard Workflow
-1. First think through the problem, read the codebase for relevant files, and write a plan to projectplan.md.
-2. The plan should have a list of todo items that you can check off as you complete them
-3. Before you begin working, check in with me and I will verify the plan.
-4. Then, begin working on the todo items, marking them as complete as you go.
-5. Please every step of the way just give me a high level explanation of what changes you made
-6. Make every task and code change you do as simple as possible. We want to avoid making any massive or complex changes. Every change should impact as little code as possible. Everything is about simplicity.
-7. Finally, add a review section to the projectplan.md file with a summary of the changes you made and any other relevant information.
+# Standard Workflow
+
+Follow this workflow for all implementation tasks:
+
+## Planning Phase
+
+1. **Analyze the task** - Read relevant files and understand the requirements
+2. **Create a plan** - Write to `.claude_plans/projectplan.md` with:
+   - High-level checkpoints
+   - Broken down tasks per checkpoint
+   - Success criteria
+3. **Get approval** - Check in with the user before starting implementation
+
+## Implementation Phase
+
+4. **Work incrementally** - Complete one small task at a time
+5. **Keep it simple** - Make minimal changes; avoid over-engineering
+6. **Test continuously** - Run tests after each significant change
+7. **Explain changes** - Provide high-level summaries of what you modified
+
+## Completion Phase
+
+8. **Update the plan** - Mark completed tasks; add a review section
+9. **Document** - Update relevant documentation if needed
+10. **Verify** - Ensure all tests pass and the feature works end-to-end
+
+## Key Principles
+
+- **Simplicity**: Every change should impact as little code as possible
+- **No shortcuts**: Never use mock data, stubs, or placeholder implementations
+- **Test always**: Verify functionality works before marking complete
+- **Stay organized**: Keep files in appropriate directories; clean up orphans

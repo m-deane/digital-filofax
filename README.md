@@ -1,166 +1,124 @@
-# Bayesian Forecasting Course - Prompt Engineering Package
+# Claude Code Project Template
 
-This repository contains a comprehensive prompt engineering solution for generating an interactive course on "Bayesian Regression and Time Series Forecasting for Commodities Trading".
+A comprehensive project template optimized for use with [Claude Code](https://claude.ai/code).
 
-## What's Included
+## Features
 
-### 1. Main Course Generation Prompt (`bayesian-course-generation-prompt.md`)
-A detailed, 600+ line prompt that instructs an AI to generate a complete 10-module course including:
-- Theoretical foundations of Bayesian statistics
-- Practical implementations with PyMC and ArviZ
-- Real commodities market data integration
-- Interactive Jupyter notebooks with exercises
-- Trading strategy development and backtesting
-- Progressive learning from basics to advanced applications
+- **Pre-configured Claude Code integration** with optimized directives
+- **Slash commands** for code review, testing, architecture documentation
+- **Specialized agents** for Python, debugging, research, and more
+- **Workflow templates** for consistent development practices
+- **Multi-language support** (Python, TypeScript, Go)
 
-### 2. Implementation Guide (`implementation-guide.md`)
-Step-by-step instructions for using the prompt effectively:
-- Phased generation approach (foundation → modules → projects)
-- Quality assurance checklists
-- Testing procedures for generated content
-- Deployment options (local, cloud, Docker)
-- Maintenance and update schedules
+## Quick Start
 
-### 3. Sample Module Output (`sample-module-01-output.ipynb`)
-A complete example of what Module 1 looks like when generated, featuring:
-- Interactive Bayesian updating demonstrations
-- Real WTI crude oil data analysis
-- Trading signal generation using Bayesian methods
-- Exercises with solutions
-- Comprehensive visualizations
+### 1. Clone or Copy This Template
 
-## Key Features of the Generated Course
-
-### Pedagogical Approach
-- **Learning by Doing**: Each concept immediately applied to real trading scenarios
-- **Visual First**: Intuitive visualizations before mathematical formalism
-- **Progressive Complexity**: Each module builds on previous knowledge
-- **Practical Focus**: Every topic connected to actual trading applications
-
-### Technical Coverage
-- **Bayesian Fundamentals**: Prior selection, MCMC, posterior inference
-- **Time Series Models**: BSTS, Gaussian Processes, hierarchical models
-- **Commodities Focus**: Energy, metals, agriculture with real market data
-- **Risk Management**: Uncertainty quantification, portfolio optimization
-- **Production Ready**: Proper backtesting, avoiding common pitfalls
-
-### Interactive Elements
-- Fill-in-the-blank code exercises
-- Multiple choice quizzes with explanations
-- Parameter exploration widgets
-- Mini-projects and capstone project
-- Real-time data integration
-
-## How to Use This Package
-
-### Quick Start
-1. Take the complete prompt from `bayesian-course-generation-prompt.md`
-2. Provide it to an AI assistant (Claude 3.5, GPT-4, etc.)
-3. Request generation of specific modules or the entire course
-4. Follow the implementation guide for best results
-
-### Example Generation Request
-```
-"Using the provided prompt, please generate Module 1 of the Bayesian
-commodities trading course, including all code examples, exercises,
-and visualizations. Ensure all code is executable and uses real
-WTI crude oil data."
+```bash
+git clone https://github.com/your-username/claude-template.git my-project
+cd my-project
+rm -rf .git
+git init
 ```
 
-### Expected Output Structure
+### 2. Customize for Your Project
+
+1. **Edit `CLAUDE.md`** - Update project overview, setup instructions, architecture
+2. **Copy `.claude/example_prompt.md`** - Use as a starting point for project requirements
+3. **Update `.gitignore`** - Uncomment lines relevant to your language/framework
+
+### 3. Set Up Your Environment
+
+```bash
+# Python
+python -m venv venv
+source venv/bin/activate
+pip install -e ".[dev]"
+
+# Node.js
+npm install
+
+# Go
+go mod init your-module-name
 ```
-bayesian-commodities-course/
-├── requirements.txt          # All Python dependencies
-├── modules/                  # 10 progressive modules
-│   ├── 01_bayesian_foundations/
-│   ├── 02_prior_selection/
-│   └── ...
-├── datasets/                 # Data download utilities
-├── projects/                 # Capstone projects
-└── utils/                    # Shared utilities
+
+### 4. Start Building
+
+```bash
+# Open with Claude Code
+claude
+
+# Or use with your IDE's Claude Code extension
 ```
 
-## Quality Criteria
+## Template Structure
 
-The prompt is designed to generate content that meets these standards:
+```
+your-project/
+├── CLAUDE.md                 # Project-specific context (CUSTOMIZE THIS)
+├── README.md                 # This file
+├── .gitignore                # Multi-language gitignore
+├── .claude/
+│   ├── CLAUDE.md             # Core directives (rarely modify)
+│   ├── TEMPLATE_GUIDE.md     # Customization guide (delete after setup)
+│   ├── example_prompt.md     # Project prompt template
+│   ├── agents/               # Specialized agents
+│   ├── commands/             # Slash commands
+│   ├── scripts/              # Utility scripts
+│   └── skills/               # MCP skills
+├── .claude_plans/            # Project planning documents
+├── .claude_prompts/          # Workflow prompts
+├── .claude_research/         # Research documents
+├── src/                      # Source code
+└── tests/                    # Test files
+```
 
-### Code Quality
-- ✅ All code executable without errors
-- ✅ Type hints and comprehensive docstrings
-- ✅ Error handling for data downloads
-- ✅ Reproducible with seed management
+## Available Commands
 
-### Educational Quality
-- ✅ Clear learning objectives per module
-- ✅ 3+ worked examples per concept
-- ✅ Exercises with varying difficulty
-- ✅ Solutions provided but hidden by default
+| Command | Description |
+|---------|-------------|
+| `/ultra-think [problem]` | Deep multi-dimensional analysis |
+| `/code-review [file]` | Comprehensive code review |
+| `/generate-tests [component]` | Generate test suite |
+| `/architecture-review` | Review architecture patterns |
+| `/create-architecture-documentation` | Generate architecture docs |
+| `/update-docs` | Update documentation |
+| `/todo [action]` | Manage project todos |
+| `/security-scan [scope]` | Security audit for vulnerabilities |
+| `/explain-code [file]` | Detailed code explanation |
+| `/create-pr [branch]` | Create PR with auto-generated description |
+| `/dependency-update` | Check and update dependencies |
 
-### Practical Relevance
-- ✅ Recent market data (< 2 years old)
-- ✅ Transaction costs and slippage included
-- ✅ Proper backtesting methodology
-- ✅ Direct application to trading
+## Available Agents
 
-## Customization Options
+| Agent | Use For |
+|-------|---------|
+| `python-pro` | Python optimization, best practices |
+| `typescript-pro` | TypeScript type system, strict mode |
+| `sql-expert` | Database design, query optimization |
+| `ml-engineer` | ML pipelines, model training, MLOps |
+| `test-engineer` | Test strategy, automation |
+| `code-reviewer` | Code quality, security |
+| `debugger` | Error investigation |
+| `technical-researcher` | Technical research |
 
-The prompt can be modified for:
-- **Different Markets**: Crypto, FX, equities
-- **Skill Levels**: Beginner to advanced
-- **Time Horizons**: Intraday to long-term
-- **Focus Areas**: More theory or more practice
-- **Programming Languages**: R, Julia adaptations
+## Customization Guide
 
-## Testing the Generated Content
+See [`.claude/TEMPLATE_GUIDE.md`](.claude/TEMPLATE_GUIDE.md) for detailed customization instructions.
 
-The implementation guide includes automated testing scripts to verify:
-- Notebook execution without errors
-- Data source availability
-- Package compatibility
-- Performance benchmarks
+### Key Files to Customize
 
-## Maintenance
+1. **`CLAUDE.md`** (root) - Your project's main context file
+2. **`.claude/example_prompt.md`** - Comprehensive project requirements template
+3. **`.gitignore`** - Enable/disable language-specific patterns
 
-Regular updates needed for:
-- Market data sources (APIs may change)
-- Package versions (especially PyMC)
-- Market events (use recent examples)
-- Regulatory changes
+## Best Practices
 
-## Benefits of This Approach
+1. **Keep `CLAUDE.md` updated** as your project evolves
+2. **Use `.claude_plans/`** for all project planning
+3. **Leverage slash commands** for consistent workflows
+4. **Store research** in `.claude_research/` for reference
 
-### For Course Creators
-- **Comprehensive**: Complete course from single prompt
-- **Consistent**: Uniform quality across modules
-- **Maintainable**: Clear update procedures
-- **Scalable**: Easy to extend or modify
+## License
 
-### For Learners
-- **Practical**: Immediately applicable skills
-- **Interactive**: Hands-on learning experience
-- **Progressive**: Clear learning path
-- **Professional**: Industry-ready knowledge
-
-## Next Steps
-
-1. **Generate the Course**: Use the prompt with your preferred AI
-2. **Test First Module**: Verify quality meets expectations
-3. **Iterate**: Refine prompt based on output quality
-4. **Deploy**: Choose deployment option from guide
-5. **Maintain**: Follow update schedule
-
-## Support
-
-This prompt engineering package provides everything needed to generate a production-ready Bayesian forecasting course for commodities trading. The combination of comprehensive specifications, quality criteria, and practical examples ensures consistent, high-quality output.
-
-For questions or improvements, consider:
-- Testing with different AI models
-- Adding domain-specific requirements
-- Extending to other asset classes
-- Incorporating latest research
-
----
-
-**Created by**: Expert Prompt Engineer
-**Purpose**: Generate comprehensive Bayesian trading course
-**Output**: 40+ hours of interactive learning content
+[Your License Here]

@@ -1,0 +1,64 @@
+# tests Directory
+
+This directory contains all test files for the project.
+
+## Structure
+
+```
+tests/
+├── __init__.py           # Make tests a package (Python)
+├── conftest.py           # Shared fixtures (pytest)
+├── unit/                 # Unit tests
+│   └── test_*.py
+├── integration/          # Integration tests
+│   └── test_*.py
+└── e2e/                  # End-to-end tests
+    └── test_*.py
+```
+
+## Running Tests
+
+### Python (pytest)
+```bash
+# All tests
+pytest tests/ -v
+
+# With coverage
+pytest tests/ --cov=src --cov-report=html
+
+# Specific test file
+pytest tests/unit/test_module.py -v
+
+# Run tests matching pattern
+pytest tests/ -k "test_function_name"
+```
+
+### Node.js (Jest)
+```bash
+# All tests
+npm test
+
+# With coverage
+npm run test:coverage
+
+# Watch mode
+npm run test:watch
+```
+
+### Go
+```bash
+# All tests
+go test ./...
+
+# With coverage
+go test -cover ./...
+
+# Verbose
+go test -v ./...
+```
+
+## Test Naming Convention
+
+- Test files: `test_<module>.py` (Python) or `<module>.test.ts` (TS)
+- Test functions: `test_<function>_<scenario>` (Python) or `it('should <behavior>')` (TS)
+- Test classes: `Test<ClassName>` (Python) or `describe('<ClassName>')` (TS)
