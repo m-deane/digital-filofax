@@ -1,0 +1,1179 @@
+{
+  "search_summary": {
+    "platforms_searched": [
+      "github",
+      "npm",
+      "developer documentation",
+      "technical blogs",
+      "stackoverflow",
+      "dev.to"
+    ],
+    "repositories_analyzed": 15,
+    "docs_reviewed": 45,
+    "research_date": "2026-01-16"
+  },
+  "repositories": [
+    {
+      "citation": "[1] ilyaizen. 'streak-calendar - Productivity app for habit tracking, task timing, and progress visualization.' GitHub, 2024. https://github.com/ilyaizen/streak-calendar",
+      "platform": "github",
+      "stats": {
+        "technology": "Next.js App Router",
+        "key_libraries": [
+          "shadcn/ui",
+          "Chart.js",
+          "Framer Motion",
+          "date-fns",
+          "TypeScript"
+        ]
+      },
+      "key_features": [
+        "Habit tracking with calendar visualization",
+        "Task timing",
+        "Progress charts",
+        "Modern UI with shadcn/ui",
+        "Internationalization support"
+      ],
+      "architecture": "Next.js app router with client-side state management, Chart.js for visualizations, shadcn/ui for UI components",
+      "code_quality": {
+        "testing": "not specified",
+        "documentation": "good",
+        "maintenance": "active"
+      },
+      "usage_example": "Full-featured habit tracker with calendar views, progress visualization, and task management",
+      "limitations": [
+        "No explicit offline support mentioned",
+        "No backend/database integration shown",
+        "Limited multi-user support"
+      ],
+      "alternatives": [
+        "habitat (GraphQL + Next.js)",
+        "NextJS-Habit-Tracker (Apollo + MongoDB)"
+      ]
+    },
+    {
+      "citation": "[2] gnoem. 'habitat - A digital habit tracker built with Next.js and GraphQL.' GitHub. https://github.com/gnoem/habitat",
+      "platform": "github",
+      "stats": {
+        "technology": "Next.js + GraphQL",
+        "key_libraries": [
+          "Apollo",
+          "GraphQL",
+          "TypeScript"
+        ]
+      },
+      "key_features": [
+        "Complex/scalar habits support",
+        "Multiple view types (timeline, calendar, graph)",
+        "Habit retirement feature",
+        "Data preservation",
+        "GraphQL API"
+      ],
+      "architecture": "Next.js frontend with GraphQL API layer, supports both simple boolean habits and complex quantitative habits",
+      "code_quality": {
+        "testing": "not specified",
+        "documentation": "good",
+        "maintenance": "moderate"
+      },
+      "usage_example": "Demonstrates GraphQL integration for complex habit data models",
+      "limitations": [
+        "More complex setup than simpler alternatives",
+        "Requires GraphQL knowledge"
+      ],
+      "alternatives": [
+        "REST-based alternatives with similar features"
+      ]
+    }
+  ],
+  "framework_analysis": {
+    "react_ecosystem": {
+      "platform": "React + Next.js 15",
+      "maturity": "excellent",
+      "strengths": [
+        "Largest component library ecosystem",
+        "Excellent calendar components (FullCalendar, react-big-calendar)",
+        "Best-in-class drag-drop libraries (dnd-kit)",
+        "Strong TypeScript support",
+        "Extensive dashboard templates available",
+        "SEO-friendly with SSR/SSG",
+        "Vercel deployment integration",
+        "Active community and maintenance"
+      ],
+      "weaknesses": [
+        "Can be complex for simple projects",
+        "Bundle size can be large without optimization",
+        "Requires careful state management decisions"
+      ],
+      "component_libraries": {
+        "shadcn_ui": {
+          "description": "Copy-paste component library built on Radix UI + Tailwind",
+          "pros": [
+            "Full code ownership",
+            "Highly customizable",
+            "Excellent TypeScript support",
+            "Modern, accessible components",
+            "Can now choose between Radix or Base UI"
+          ],
+          "cons": [
+            "React-only",
+            "Manual updates required",
+            "Radix UI maintenance concerns (not actively maintained as of 2026)"
+          ],
+          "use_case": "Best for custom design systems with full control"
+        },
+        "headless_ui": {
+          "description": "Unstyled accessible components by Tailwind Labs",
+          "pros": [
+            "Full styling control",
+            "Vue support available",
+            "WAI-ARIA compliant",
+            "Small bundle size"
+          ],
+          "cons": [
+            "More work to style",
+            "Limited pre-built components"
+          ],
+          "use_case": "Custom designs requiring accessibility"
+        }
+      },
+      "calendar_components": {
+        "fullcalendar": {
+          "downloads_weekly": 176014,
+          "github_stars": 20185,
+          "pros": [
+            "Framework-agnostic (React, Vue, Angular)",
+            "Extensive features",
+            "Drag-and-drop support",
+            "Plugin architecture",
+            "Professional documentation"
+          ],
+          "cons": [
+            "Dated default UI requires custom CSS",
+            "Premium features expensive",
+            "Performance issues with 5000+ resources (no virtual rendering)",
+            "Missing Excel/ICS export",
+            "No built-in event editor"
+          ],
+          "pricing": "Free (basic) / Premium (expensive for 3 additional features)"
+        },
+        "react_big_calendar": {
+          "downloads_weekly": 521785,
+          "github_stars": 8594,
+          "pros": [
+            "Fully open source",
+            "Google Calendar styling",
+            "React-optimized with virtual DOM",
+            "Good performance with large datasets",
+            "Simpler API than FullCalendar",
+            "Drag-and-drop support"
+          ],
+          "cons": [
+            "React-only",
+            "Less extensive than FullCalendar",
+            "Fewer plugins available"
+          ],
+          "pricing": "Free"
+        },
+        "recommendation": "react-big-calendar for React projects prioritizing simplicity and performance; FullCalendar if framework-agnostic or need premium features"
+      },
+      "drag_drop_libraries": {
+        "dnd_kit": {
+          "status": "recommended",
+          "bundle_size": "~10kb minified",
+          "pros": [
+            "Modern, actively maintained",
+            "Lightweight with zero dependencies",
+            "Highly customizable",
+            "Accessibility built-in",
+            "Supports virtualized lists",
+            "TypeScript support",
+            "Touch-friendly"
+          ],
+          "cons": [
+            "No HTML5 drag-drop (can't drag from desktop/between windows)",
+            "Steeper learning curve",
+            "More boilerplate than opinionated solutions"
+          ],
+          "use_case": "Kanban boards, sortable lists, complex drag interactions"
+        },
+        "react_beautiful_dnd": {
+          "status": "deprecated (2022)",
+          "maintenance": "No longer maintained by Atlassian",
+          "alternatives": [
+            "hello-pangea/dnd (community fork)",
+            "pragmatic-drag-and-drop (Atlassian's new headless solution)"
+          ]
+        },
+        "pragmatic_drag_and_drop": {
+          "status": "emerging",
+          "bundle_size": "smaller than dnd-kit",
+          "pros": [
+            "Headless approach",
+            "Framework-agnostic",
+            "Performance-focused",
+            "Smaller bundle"
+          ],
+          "cons": [
+            "Newer, less ecosystem",
+            "Requires more setup"
+          ]
+        },
+        "recommendation": "dnd-kit for new projects; consider pragmatic-drag-and-drop for bundle-size-critical apps"
+      },
+      "state_management": {
+        "zustand": {
+          "bundle_size": "~3kb (1kb core)",
+          "complexity": "low",
+          "pros": [
+            "Minimal boilerplate",
+            "No provider hierarchy",
+            "Perfect for micro-frontends",
+            "Simple API",
+            "Fast learning curve"
+          ],
+          "cons": [
+            "Less structure than Redux",
+            "Not ideal for very large applications"
+          ],
+          "use_case": "Small to medium projects, client state management"
+        },
+        "redux_toolkit": {
+          "complexity": "medium",
+          "pros": [
+            "Structured patterns",
+            "Excellent DevTools",
+            "Great for large teams",
+            "Predictable state",
+            "RTK Query for API calls"
+          ],
+          "cons": [
+            "More boilerplate",
+            "Steeper learning curve",
+            "Overkill for small projects"
+          ],
+          "use_case": "Large-scale applications, complex state"
+        },
+        "tanstack_query": {
+          "purpose": "server state management",
+          "pros": [
+            "Excellent caching",
+            "Auto-refetching",
+            "Optimistic updates",
+            "DevTools included",
+            "Reduces boilerplate significantly"
+          ],
+          "cons": [
+            "Not for client state",
+            "Learning curve for advanced features"
+          ],
+          "use_case": "API data fetching, caching, synchronization"
+        },
+        "recommendation": "TanStack Query for server state + Zustand for client state (filters, UI state)"
+      },
+      "full_stack_options": {
+        "t3_stack": {
+          "components": [
+            "Next.js",
+            "tRPC",
+            "Prisma",
+            "NextAuth.js",
+            "Tailwind CSS",
+            "TypeScript"
+          ],
+          "pros": [
+            "End-to-end type safety",
+            "No API layer needed",
+            "Fast MVP development",
+            "Great for solo/small teams",
+            "Active community",
+            "Prisma ORM excellent TypeScript support"
+          ],
+          "cons": [
+            "Opinionated stack",
+            "tRPC learning curve",
+            "Less suitable for public APIs"
+          ],
+          "use_case": "Full-stack TypeScript apps, productivity tools, internal dashboards",
+          "deployment": "Vercel (recommended)"
+        },
+        "remix": {
+          "pros": [
+            "Nested routing",
+            "Progressive enhancement",
+            "Forms work without JS",
+            "Fast page loads",
+            "Standard Web APIs",
+            "Great for SEO"
+          ],
+          "cons": [
+            "Different mental model",
+            "Smaller ecosystem than Next.js",
+            "Less mature than Next.js"
+          ],
+          "use_case": "Content-heavy apps, forms-based workflows, edge deployment"
+        },
+        "blitz_js": {
+          "philosophy": "Zero-API data layer",
+          "pros": [
+            "Rails-like DX",
+            "Built-in auth",
+            "40% faster MVP vs Next.js (reported)",
+            "Import server code directly"
+          ],
+          "cons": [
+            "Smaller community",
+            "Less mature",
+            "Built on Next.js (indirect dependency)"
+          ],
+          "use_case": "Rapid prototyping, Rails developers transitioning to React"
+        },
+        "recommendation": "T3 Stack for best balance of type safety, productivity, and ecosystem"
+      }
+    },
+    "vue_ecosystem": {
+      "platform": "Vue 3 + Nuxt 3",
+      "maturity": "excellent",
+      "strengths": [
+        "Progressive framework (can start small)",
+        "Excellent documentation",
+        "Great component libraries (PrimeVue, Vuetify)",
+        "Composition API similar to React Hooks",
+        "Smaller bundle sizes than React",
+        "Nuxt 3 excellent SSR/SSG support"
+      ],
+      "weaknesses": [
+        "Smaller ecosystem than React",
+        "Fewer job opportunities",
+        "Less third-party integrations",
+        "Calendar components less mature"
+      ],
+      "component_libraries": {
+        "primevue": {
+          "components": "90+",
+          "icons": "200+",
+          "pros": [
+            "Comprehensive",
+            "Tailwind CSS integration",
+            "SSR support",
+            "Tree-shaking",
+            "Auto-import with Nuxt",
+            "Data tables, charts, forms included"
+          ],
+          "cons": [
+            "Larger bundle if using many components",
+            "Learning curve for customization"
+          ],
+          "downloads_weekly": 211500,
+          "use_case": "Enterprise applications, data-heavy dashboards"
+        },
+        "vuetify": {
+          "components": "180+",
+          "github_stars": 38000,
+          "downloads_weekly": 211500,
+          "pros": [
+            "Material Design",
+            "Extremely popular",
+            "Highly customizable",
+            "Comprehensive",
+            "Active community"
+          ],
+          "cons": [
+            "Material Design might not fit all designs",
+            "Large bundle size"
+          ],
+          "use_case": "Material Design apps, rapid prototyping"
+        },
+        "nuxt_ui": {
+          "maintained_by": "Nuxt team",
+          "downloads_weekly": 460000,
+          "pros": [
+            "Native Nuxt integration",
+            "SSR/SSG optimized",
+            "Lightweight",
+            "Growing ecosystem"
+          ],
+          "cons": [
+            "Nuxt-specific",
+            "Newer than alternatives"
+          ],
+          "use_case": "Nuxt 3 applications"
+        }
+      },
+      "recommendation": "Good alternative if team prefers Vue, but React ecosystem more mature for productivity apps"
+    },
+    "svelte_ecosystem": {
+      "platform": "Svelte + SvelteKit",
+      "maturity": "good",
+      "strengths": [
+        "No virtual DOM (compiles to vanilla JS)",
+        "Smallest bundle sizes",
+        "Simplest syntax",
+        "Great performance",
+        "Built-in animations",
+        "Stores for state management"
+      ],
+      "weaknesses": [
+        "Smallest ecosystem",
+        "Fewer component libraries",
+        "Less enterprise adoption",
+        "Fewer calendar/complex components",
+        "Smaller job market"
+      ],
+      "kanban_components": {
+        "svar_svelte_kanban": {
+          "features": [
+            "Drag-and-drop",
+            "Touch screen support",
+            "Card search",
+            "Sorting"
+          ],
+          "pros": [
+            "Responsive",
+            "Modern UI",
+            "Good documentation"
+          ]
+        },
+        "svelte_kanban_libraries": [
+          "svelte-kanban by V-Py",
+          "svelte-dnd (ThisUX)",
+          "Various community projects"
+        ]
+      },
+      "recommendation": "Best for performance-critical apps or developers who prefer simplicity, but limited ecosystem for complex productivity features"
+    },
+    "cross_platform_desktop": {
+      "tauri": {
+        "language": "Rust + Web (HTML/CSS/JS)",
+        "bundle_size": "3-10MB",
+        "memory_usage": "30-50MB",
+        "startup_time": "<0.5s",
+        "pros": [
+          "Extremely lightweight",
+          "70% faster cold-start than Electron",
+          "Uses system WebView",
+          "Better security (Rust)",
+          "Cross-platform (Windows, macOS, Linux, iOS, Android in v2)",
+          "Smaller installer (2.5MB vs 85MB)"
+        ],
+        "cons": [
+          "Rust learning curve",
+          "Different WebView per OS (Edge, WebKit, WebKitGTK)",
+          "Smaller ecosystem",
+          "Newer, less battle-tested"
+        ],
+        "use_case": "Performance-critical desktop apps, resource-constrained environments, cross-platform desktop + mobile",
+        "webview_renderers": {
+          "windows": "Edge WebView2 (Chromium)",
+          "macos": "WebKit",
+          "linux": "WebKitGTK"
+        }
+      },
+      "electron": {
+        "language": "Node.js + Web",
+        "bundle_size": "50-120MB",
+        "memory_usage": "150-300MB",
+        "startup_time": "1-2s",
+        "pros": [
+          "Mature ecosystem",
+          "Consistent Chromium across platforms",
+          "Huge Node.js ecosystem",
+          "Battle-tested (VS Code, Slack, Discord)",
+          "Hot reloading, debugging",
+          "No Rust knowledge needed"
+        ],
+        "cons": [
+          "Large bundle size",
+          "High memory usage",
+          "Slower startup",
+          "Each app bundles Chromium"
+        ],
+        "use_case": "Node.js-heavy apps, need consistent rendering, large teams, proven at scale",
+        "notable_apps": [
+          "VS Code",
+          "Slack",
+          "Discord",
+          "Notion"
+        ]
+      },
+      "recommendation": "Tauri for personal productivity app (better performance, smaller size); Electron if need Node.js ecosystem or proven stability"
+    },
+    "cross_platform_mobile": {
+      "react_native_expo": {
+        "platforms": [
+          "iOS",
+          "Android",
+          "Web (via external libs)"
+        ],
+        "pros": [
+          "JavaScript/React knowledge",
+          "Large ecosystem",
+          "Expo managed workflow",
+          "Fast development",
+          "Good web integration"
+        ],
+        "cons": [
+          "Web/desktop support less mature",
+          "Native look/feel requires work",
+          "Bridge performance overhead"
+        ],
+        "use_case": "React developers, mobile-first with web secondary"
+      },
+      "flutter": {
+        "platforms": [
+          "iOS",
+          "Android",
+          "Web",
+          "Windows",
+          "macOS",
+          "Linux"
+        ],
+        "pros": [
+          "True cross-platform single codebase",
+          "Consistent UI across platforms",
+          "Excellent performance (Impeller renderer)",
+          "Hot reload",
+          "Rich widget library"
+        ],
+        "cons": [
+          "Dart language learning curve",
+          "Web/desktop still maturing",
+          "Doesn't look platform-native",
+          "Larger app size than native"
+        ],
+        "use_case": "True multi-platform from single codebase, custom-branded UI"
+      },
+      "recommendation": "Neither ideal for personal productivity app; focus on web-first with PWA capabilities"
+    },
+    "low_code_platforms": {
+      "notion_api": {
+        "capabilities": [
+          "Pages CRUD",
+          "Databases and schemas",
+          "Users and permissions",
+          "Comments",
+          "Search",
+          "Webhooks (real-time changes)"
+        ],
+        "limitations": [
+          "Rate limits: 3 requests/second",
+          "File upload: 5MB max",
+          "No webhook support for user changes",
+          "One-way calendar sync (can subscribe, not push)",
+          "No bidirectional CRM sync without third-party",
+          "API rate limits restrictive for heavy automation"
+        ],
+        "integration_types": {
+          "internal": "Single workspace, custom workflows",
+          "public": "OAuth 2.0, requires security review"
+        },
+        "pros": [
+          "Quick setup for basic CRUD",
+          "No custom UI needed",
+          "Built-in collaboration",
+          "Webhooks for real-time updates"
+        ],
+        "cons": [
+          "Limited customization",
+          "Dependent on Notion ecosystem",
+          "Rate limits problematic",
+          "Not truly 'local-first'",
+          "Vendor lock-in"
+        ],
+        "use_case": "Quick prototypes, Notion-heavy workflows, simple databases"
+      },
+      "obsidian_plugins": {
+        "relevant_plugins": [
+          "Dataview (query engine)",
+          "Tasks (task management)",
+          "Calendar",
+          "Tasks Calendar (FullCalendar integration)",
+          "Tasks Calendar Wrapper",
+          "Obsidian-ICS (calendar import)",
+          "Heatmap Calendar"
+        ],
+        "architecture": "Markdown files + frontmatter + plugins",
+        "pros": [
+          "Local-first by default",
+          "Markdown files (portable)",
+          "Extensible plugin system",
+          "Dataview for powerful queries",
+          "No vendor lock-in",
+          "Privacy-focused"
+        ],
+        "cons": [
+          "Plugin development learning curve (TypeScript)",
+          "Limited mobile experience",
+          "No built-in backend/sync (requires third-party)",
+          "Manual setup",
+          "Not suitable for complex web apps"
+        ],
+        "use_case": "Personal knowledge management, note-taking heavy workflows, markdown enthusiasts",
+        "dataview_capabilities": [
+          "Query markdown files",
+          "Generate tables, lists, tasks, calendars",
+          "JavaScript API for advanced queries",
+          "Integration with other plugins"
+        ]
+      },
+      "recommendation": "Not recommended for custom productivity app; better to build custom solution with full control"
+    }
+  },
+  "technical_insights": {
+    "common_patterns": [
+      "Separate 'Habits' (definition) and 'HabitLogs/Completions' (daily records) tables",
+      "Calendar views using react-big-calendar or FullCalendar",
+      "Kanban boards with dnd-kit for task management",
+      "TanStack Query for server state + Zustand for client state",
+      "Shadcn/ui for rapid UI development with Tailwind",
+      "IndexedDB for local-first storage with PouchDB or RxDB for sync",
+      "Service Workers for offline support and background sync",
+      "Next.js App Router for full-stack capabilities",
+      "Octokit.js for GitHub API integration",
+      "Google Calendar API with OAuth 2.0 for calendar sync"
+    ],
+    "best_practices": [
+      "Use TanStack Query for all server data fetching (caching, refetching, optimistic updates)",
+      "Implement optimistic UI updates for better perceived performance",
+      "Local-first architecture: IndexedDB as source of truth, sync to server when online",
+      "Separate server state (TanStack Query) from client state (Zustand)",
+      "Use dnd-kit for all drag-and-drop interactions (modern, maintained)",
+      "Type safety end-to-end with TypeScript + tRPC or GraphQL CodeGen",
+      "Component composition with shadcn/ui (copy-paste, full control)",
+      "Recurring tasks: separate 'template' from 'instances' with RRule or cron patterns",
+      "Habit tracking: timestamp-based logs with calculated streaks",
+      "Use Service Workers + Background Sync for offline mutations",
+      "Implement conflict resolution for offline sync (last-write-wins or CRDT)",
+      "Use Web Workers for heavy computations (chart generation, large data processing)"
+    ],
+    "pitfalls": [
+      "Don't use react-beautiful-dnd (deprecated since 2022)",
+      "Avoid mixing calendar libraries (pick one: FullCalendar OR react-big-calendar)",
+      "Don't ignore offline scenarios for productivity apps",
+      "Radix UI maintenance concerns (consider Base UI alternative)",
+      "Rate limits with third-party APIs (Google Calendar: quota limits, Notion: 3 req/s)",
+      "IndexedDB browser eviction policies (Safari 7-day limit, quota management)",
+      "Don't use Redux for server state (use TanStack Query instead)",
+      "Avoid client-side only for productivity data (risk of data loss)",
+      "Don't skip authentication if integrating with GitHub/Google Calendar",
+      "Performance with large datasets (use virtualization: react-window, react-virtual)"
+    ],
+    "emerging_trends": [
+      "Local-first software movement (CRDTs, Automerge, Yjs)",
+      "WASM for performance-critical operations",
+      "Edge computing with Next.js Edge Runtime",
+      "AI integration for productivity insights",
+      "Cross-platform with single codebase (Tauri v2)",
+      "Headless UI components over pre-styled libraries",
+      "tRPC 'Zero-API' pattern gaining adoption",
+      "Progressive Web Apps with advanced offline capabilities",
+      "Background Sync API for reliable offline mutations",
+      "File System Access API for local file operations"
+    ]
+  },
+  "database_considerations": {
+    "local_first_options": {
+      "indexeddb": {
+        "type": "Browser built-in",
+        "pros": [
+          "No library needed",
+          "Transactional",
+          "Large storage (browser-dependent)",
+          "Indexed queries"
+        ],
+        "cons": [
+          "Low-level API",
+          "Browser eviction policies",
+          "Safari limitations (1GB, 7-day eviction)"
+        ],
+        "storage_limits": {
+          "chrome": "60% of total disk",
+          "firefox": "50% of total disk",
+          "safari": "1GB with 200MB increments (user prompt)"
+        }
+      },
+      "pouchdb": {
+        "type": "Library wrapper",
+        "backend": "IndexedDB (browser), SQLite (Node/mobile)",
+        "pros": [
+          "CouchDB-compatible",
+          "Built-in sync",
+          "Familiar API",
+          "Multi-platform"
+        ],
+        "cons": [
+          "Multiple abstraction layers (performance overhead)",
+          "Limited query capabilities vs SQL",
+          "Larger bundle size"
+        ],
+        "use_case": "Need CouchDB sync, document-oriented data"
+      },
+      "rxdb": {
+        "type": "Reactive database",
+        "backend": "IndexedDB, SQLite, Memory",
+        "pros": [
+          "Reactive (Observable streams)",
+          "Multi-tab support",
+          "Schema validation",
+          "Replication",
+          "Great for React/Vue/Angular"
+        ],
+        "cons": [
+          "Learning curve",
+          "Bundle size larger than IndexedDB",
+          "Paid plugins for some features"
+        ],
+        "use_case": "Reactive frameworks, real-time UI updates"
+      },
+      "sqlite_wasm": {
+        "type": "SQLite in browser",
+        "pros": [
+          "Full SQL",
+          "Familiar API",
+          "Better query performance",
+          "Larger storage"
+        ],
+        "cons": [
+          "WASM -> JS -> Storage indirection (slower than IndexedDB)",
+          "Newer, less tested",
+          "Larger initial bundle"
+        ],
+        "use_case": "Complex queries, SQL familiarity, large datasets"
+      },
+      "localforage": {
+        "type": "Simple storage abstraction",
+        "pros": [
+          "Simple promise-based API",
+          "Auto-selects best storage",
+          "localStorage-like API",
+          "Small bundle"
+        ],
+        "cons": [
+          "Key-value only (no complex queries)",
+          "No schema",
+          "No transactions"
+        ],
+        "use_case": "Simple key-value storage"
+      }
+    },
+    "cloud_database_options": {
+      "supabase": {
+        "type": "PostgreSQL-based BaaS",
+        "pros": [
+          "Real-time subscriptions",
+          "Built-in auth",
+          "RESTful API + GraphQL",
+          "Row-level security",
+          "Open source"
+        ],
+        "cons": [
+          "Requires internet",
+          "Cold start latency (free tier)",
+          "Learning curve for RLS"
+        ],
+        "offline_strategy": "IndexedDB cache + Supabase sync"
+      },
+      "firebase": {
+        "type": "NoSQL BaaS",
+        "pros": [
+          "Real-time sync",
+          "Offline persistence built-in",
+          "Easy setup",
+          "Great mobile SDKs"
+        ],
+        "cons": [
+          "NoSQL limitations",
+          "Vendor lock-in",
+          "Expensive at scale",
+          "Complex queries difficult"
+        ]
+      },
+      "planetscale": {
+        "type": "MySQL-based serverless",
+        "pros": [
+          "Branching workflows",
+          "Great Prisma integration",
+          "Generous free tier",
+          "Fast edge network"
+        ],
+        "cons": [
+          "No foreign keys (branching limitation)",
+          "MySQL not PostgreSQL"
+        ],
+        "use_case": "T3 Stack, Prisma ORM"
+      }
+    },
+    "recommendation": "IndexedDB + PouchDB for offline-first with optional Supabase for cloud sync and collaboration"
+  },
+  "api_integration_patterns": {
+    "github_api": {
+      "library": "Octokit.js",
+      "features": [
+        "REST API requests",
+        "GraphQL queries",
+        "Webhooks",
+        "GitHub Apps",
+        "OAuth",
+        "100% test coverage",
+        "TypeScript declarations"
+      ],
+      "authentication_methods": [
+        "Personal Access Token",
+        "OAuth App",
+        "GitHub App",
+        "GitHub Actions (GITHUB_TOKEN)"
+      ],
+      "use_cases_for_productivity_app": [
+        "List user repositories",
+        "Fetch issues/PRs",
+        "Create/update issues",
+        "Webhook for repository events",
+        "Automate workflows (GitHub Actions trigger)",
+        "Display repository metrics"
+      ],
+      "rate_limits": {
+        "authenticated": "5000 requests/hour",
+        "unauthenticated": "60 requests/hour"
+      },
+      "implementation_example": "Fetch repos, display in dashboard, create issues from tasks, webhook notifications for PR/issue updates"
+    },
+    "google_calendar_api": {
+      "libraries": [
+        "react-google-calendar-api (npm)",
+        "@ericz1803/react-google-calendar (GitHub)",
+        "gapi-script (direct)"
+      ],
+      "oauth_scopes": [
+        "https://www.googleapis.com/auth/calendar",
+        "https://www.googleapis.com/auth/calendar.events",
+        "https://www.googleapis.com/auth/calendar.readonly"
+      ],
+      "capabilities": [
+        "List calendars",
+        "CRUD events",
+        "Recurring events",
+        "Attendees/invitations",
+        "Reminders",
+        "Multiple calendar support"
+      ],
+      "limitations": [
+        "Rate limits (quota management)",
+        "OAuth consent screen setup",
+        "Sync complexity for recurring events",
+        "Deleted events handling"
+      ],
+      "implementation_strategy": "OAuth 2.0 flow, fetch events, display in react-big-calendar, two-way sync (create events from app, import from Google Calendar)"
+    }
+  },
+  "offline_first_architecture": {
+    "recommended_stack": {
+      "persistence": "IndexedDB (primary source of truth)",
+      "sync_queue": "Custom queue in IndexedDB",
+      "background_sync": "Service Worker + Background Sync API",
+      "orchestration": "TanStack Query (cache invalidation, refetching)",
+      "connectivity_state": "Zustand (online/offline, sync status)",
+      "conflict_resolution": "Last-write-wins or timestamp-based"
+    },
+    "data_flow": "UI → IndexedDB (optimistic write) → Sync Queue → Background Sync → Server API → IndexedDB reconciliation",
+    "caching_strategies": {
+      "app_shell": "cache-first",
+      "static_assets": "cache-first with version",
+      "api_data": "network-first with fallback",
+      "user_content": "cache-first, sync in background"
+    },
+    "service_worker_responsibilities": [
+      "Intercept network requests",
+      "Serve from cache when offline",
+      "Queue mutations in IndexedDB",
+      "Background Sync when online",
+      "Push notifications",
+      "Cache invalidation"
+    ],
+    "sync_considerations": [
+      "Unique transaction IDs (prevent duplication)",
+      "Timestamp-based conflict resolution",
+      "Merge strategies (last-write-wins, custom merge)",
+      "User notification for conflicts",
+      "Retry logic with exponential backoff",
+      "Handle server errors gracefully"
+    ]
+  },
+  "habit_tracking_data_model": {
+    "tables": {
+      "users": {
+        "fields": [
+          "id (UUID)",
+          "email",
+          "name",
+          "created_at",
+          "timezone"
+        ]
+      },
+      "habits": {
+        "fields": [
+          "id (UUID)",
+          "user_id (FK)",
+          "name",
+          "description",
+          "habit_type (boolean|numeric|duration)",
+          "frequency (daily|weekly|monthly)",
+          "target_value (for numeric habits)",
+          "created_at",
+          "archived_at (for retired habits)"
+        ],
+        "notes": "Habit definition/template"
+      },
+      "habit_completions": {
+        "fields": [
+          "id (UUID)",
+          "habit_id (FK)",
+          "user_id (FK)",
+          "completed_at (timestamp with timezone)",
+          "value (for numeric/duration habits)",
+          "notes (optional)"
+        ],
+        "notes": "Daily records of habit completion",
+        "indexes": [
+          "habit_id, completed_at",
+          "user_id, completed_at"
+        ]
+      },
+      "tasks": {
+        "fields": [
+          "id (UUID)",
+          "user_id (FK)",
+          "title",
+          "description",
+          "category",
+          "status (todo|in_progress|done)",
+          "priority (low|medium|high)",
+          "due_date",
+          "recurrence_rule (RRule format)",
+          "parent_task_id (FK, for recurring instances)",
+          "created_at",
+          "completed_at"
+        ]
+      },
+      "memos": {
+        "fields": [
+          "id (UUID)",
+          "user_id (FK)",
+          "title",
+          "content (markdown)",
+          "tags (array or separate table)",
+          "created_at",
+          "updated_at"
+        ]
+      }
+    },
+    "recurring_tasks_pattern": {
+      "approach_1": "Template + Instances",
+      "description": "Store recurring task template, generate instances on-demand or ahead of time",
+      "pros": [
+        "Can modify individual instances",
+        "Can delete specific occurrences",
+        "Full control over each instance"
+      ],
+      "cons": [
+        "More complex",
+        "Database growth with many instances"
+      ]
+    },
+    "recurring_tasks_pattern_2": {
+      "approach_2": "RRule with completions",
+      "description": "Store RRule string, calculate occurrences on-the-fly, store only completions",
+      "pros": [
+        "Less storage",
+        "Simpler for infinite recurrence"
+      ],
+      "cons": [
+        "Can't modify individual instances easily",
+        "RRule parsing overhead"
+      ],
+      "library": "rrule.js"
+    },
+    "streak_calculation": "Query habit_completions, count consecutive days with completions, handle timezones carefully"
+  },
+  "implementation_recommendations": [
+    {
+      "scenario": "Solo developer, personal use, desktop + web",
+      "recommended_solution": "Next.js 15 + T3 Stack (tRPC, Prisma, NextAuth) + Tauri",
+      "rationale": "T3 Stack provides end-to-end type safety and rapid development. Next.js for web deployment, Tauri wrapper for desktop with minimal overhead. tRPC eliminates API layer. Prisma simplifies database. Can deploy web version to Vercel for free.",
+      "architecture": "Next.js (web) + Tauri (desktop wrapper) + Supabase (database) + IndexedDB (offline cache)",
+      "estimated_setup_time": "2-3 days for basic scaffold",
+      "complexity": "Medium"
+    },
+    {
+      "scenario": "Web-only, needs offline-first, mobile-responsive",
+      "recommended_solution": "Next.js 15 + PWA + IndexedDB + PouchDB + Supabase",
+      "rationale": "PWA provides offline capabilities and mobile responsiveness. IndexedDB + PouchDB for local-first storage with sync. Supabase for cloud backend. Next.js for SEO and performance.",
+      "architecture": "Next.js PWA + Service Worker + IndexedDB (PouchDB) + Supabase (PostgreSQL) + Background Sync",
+      "estimated_setup_time": "3-4 days for offline architecture",
+      "complexity": "Medium-High"
+    },
+    {
+      "scenario": "Quick prototype, minimal coding, familiar with Obsidian",
+      "recommended_solution": "Obsidian + Dataview + Tasks Plugin + Calendar Plugins",
+      "rationale": "Zero backend setup, local markdown files, powerful querying with Dataview, existing plugin ecosystem. Can build custom plugin if needed.",
+      "architecture": "Markdown files + Obsidian Plugins + Custom Plugin (optional)",
+      "estimated_setup_time": "1-2 hours for basic setup",
+      "complexity": "Low",
+      "limitations": "Not a web app, limited customization, mobile experience poor"
+    },
+    {
+      "scenario": "Team collaboration, need authentication, scaling considerations",
+      "recommended_solution": "Next.js 15 + Redux Toolkit + RTK Query + PostgreSQL + NextAuth",
+      "rationale": "Redux Toolkit for complex state management needed in team collaboration. RTK Query for API caching. PostgreSQL for reliable data storage. NextAuth for authentication. Scales well.",
+      "architecture": "Next.js + Redux Toolkit + PostgreSQL (Supabase or PlanetScale) + NextAuth + Vercel deployment",
+      "estimated_setup_time": "5-7 days for production-ready setup",
+      "complexity": "High"
+    },
+    {
+      "scenario": "Vue developer, prefer Vue ecosystem",
+      "recommended_solution": "Nuxt 3 + PrimeVue + Pinia + Supabase",
+      "rationale": "Nuxt 3 excellent SSR/SSG support, PrimeVue comprehensive components (data tables, charts), Pinia for state management (official Vue state library), Supabase for backend.",
+      "architecture": "Nuxt 3 + PrimeVue + Pinia + Supabase + Vercel/Netlify",
+      "estimated_setup_time": "3-4 days",
+      "complexity": "Medium",
+      "tradeoff": "Smaller ecosystem than React for productivity-specific components"
+    }
+  ],
+  "final_recommendation": {
+    "platform": "Next.js 15 + T3 Stack (tRPC, Prisma, NextAuth, Tailwind)",
+    "ui_components": "shadcn/ui (with Base UI backend instead of Radix)",
+    "calendar": "react-big-calendar",
+    "drag_drop": "dnd-kit",
+    "state_management": "TanStack Query (server) + Zustand (client)",
+    "database": "Supabase (PostgreSQL) for cloud + IndexedDB for offline cache",
+    "offline_support": "PWA + Service Worker + Background Sync",
+    "github_integration": "Octokit.js",
+    "calendar_integration": "Google Calendar API with OAuth 2.0",
+    "desktop_option": "Tauri (optional, if desktop app needed)",
+    "deployment": "Vercel (web) + GitHub Actions (CI/CD)",
+    "rationale": [
+      "End-to-end type safety with TypeScript + tRPC",
+      "Fastest development with T3 Stack (no API layer, Prisma ORM)",
+      "Excellent component ecosystem (shadcn/ui, react-big-calendar, dnd-kit all actively maintained)",
+      "Strong offline-first capabilities with PWA + IndexedDB",
+      "Easy integration with GitHub API (Octokit) and Google Calendar API",
+      "Free deployment on Vercel",
+      "Mature, battle-tested stack with large community",
+      "Can add Tauri for desktop with minimal changes",
+      "Supabase provides auth, real-time, and PostgreSQL",
+      "TanStack Query + Zustand optimal for complex state (server + client separation)",
+      "PWA gives mobile-responsive experience without separate mobile app"
+    ],
+    "estimated_timeline": {
+      "basic_scaffold": "2-3 days",
+      "core_features": "2-3 weeks",
+      "integrations": "1 week",
+      "offline_support": "3-5 days",
+      "polish_and_testing": "1 week",
+      "total": "5-7 weeks for full-featured app"
+    },
+    "cost": {
+      "development": "Free (all tools open source)",
+      "hosting_vercel": "Free tier sufficient for personal use",
+      "supabase": "Free tier (500MB database, 2GB bandwidth)",
+      "domain": "$10-15/year (optional)",
+      "total_monthly": "$0 (free tier) or $10-20 with paid tiers"
+    }
+  },
+  "community_insights": {
+    "popular_solutions": [
+      "Next.js + tRPC + Prisma (T3 Stack) - most popular full-stack TypeScript stack 2026",
+      "shadcn/ui - becoming standard for React component libraries",
+      "dnd-kit - replacing react-beautiful-dnd as go-to drag-drop",
+      "TanStack Query - standard for server state management",
+      "Zustand - growing popularity for client state (simpler than Redux)",
+      "Tauri - gaining traction as Electron alternative",
+      "Supabase - popular BaaS alternative to Firebase"
+    ],
+    "controversial_topics": [
+      "Server Components in Next.js 15 - some love, some find confusing",
+      "tRPC vs GraphQL - tRPC gaining for internal apps, GraphQL for public APIs",
+      "Radix UI maintenance concerns - community moving to Base UI or alternatives",
+      "Local-first vs Cloud-first - philosophical divide in productivity app space",
+      "Notion/Obsidian extensibility - debate on building on top vs custom solution"
+    ],
+    "expert_opinions": [
+      "Theo (T3 Stack creator): 'tRPC eliminates entire class of bugs by removing API layer'",
+      "Kent C. Dodds: 'Remix mental model closer to web fundamentals than Next.js'",
+      "Lee Robinson (Vercel): 'React Server Components biggest shift since hooks'",
+      "DHH (Basecamp): 'Local-first software is future of productivity tools'",
+      "Many developers: 'Start with Zustand, upgrade to Redux only if necessary'"
+    ]
+  },
+  "references": [
+    {
+      "title": "Building a Full-Stack Task Management and Calendar App with Next.js and Express.js",
+      "url": "https://medium.com/@saurabh.solanke_6285/building-a-full-stack-task-management-and-calendar-app-with-next-js-and-express-js-064b64286388"
+    },
+    {
+      "title": "21+ Best Next.js Admin Dashboard Templates - 2026",
+      "url": "https://nextjstemplates.com/blog/admin-dashboard-templates"
+    },
+    {
+      "title": "SVAR Svelte Kanban",
+      "url": "https://svar.dev/svelte/kanban/"
+    },
+    {
+      "title": "Tauri vs. Electron: performance, bundle size, and the real trade-offs",
+      "url": "https://www.gethopp.app/blog/tauri-vs-electron"
+    },
+    {
+      "title": "React FullCalendar vs Big Calendar - Bryntum",
+      "url": "https://bryntum.com/blog/react-fullcalendar-vs-big-calendar/"
+    },
+    {
+      "title": "Offline-first frontend apps in 2025: IndexedDB and SQLite in the browser and beyond",
+      "url": "https://blog.logrocket.com/offline-first-frontend-apps-2025-indexeddb-sqlite/"
+    },
+    {
+      "title": "Top 5 Drag-and-Drop Libraries for React in 2026",
+      "url": "https://puckeditor.com/blog/top-5-drag-and-drop-libraries-for-react"
+    },
+    {
+      "title": "Octokit.js - The all-batteries-included GitHub SDK",
+      "url": "https://github.com/octokit/octokit.js"
+    },
+    {
+      "title": "Why I chose T3 stack as the full-stack to build the react app",
+      "url": "https://dev.to/zenstack/why-i-choose-t3-stack-as-the-fullstack-to-build-the-react-app-1e1k"
+    },
+    {
+      "title": "Zustand vs. RTK Query vs. TanStack Query",
+      "url": "https://medium.com/@imranrafeek/zustand-vs-rtk-query-vs-tanstack-query-unpacking-the-react-state-management-toolbox-d47893479742"
+    },
+    {
+      "title": "How to Build a Personal Habit Tracker App with Custom DB Queries in Strapi",
+      "url": "https://strapi.io/blog/building-a-personal-habit-tracker-app-with-custom-db-queries-in-strapi"
+    },
+    {
+      "title": "Top UI Libraries for Building Stunning UIs in Vue 3 and Nuxt 3",
+      "url": "https://dev.to/parthprajapatispan/top-ui-libraries-for-building-stunning-uis-in-vue-3-and-nuxt-3-37n4"
+    },
+    {
+      "title": "Notion API - Start building with the Notion API",
+      "url": "https://developers.notion.com/docs/getting-started"
+    },
+    {
+      "title": "Expo vs. Flutter: How to Choose the Right Mobile Framework",
+      "url": "https://thenewstack.io/expo-vs-flutter-how-to-choose-the-right-mobile-framework/"
+    },
+    {
+      "title": "Radix UI vs shadcn/ui: A Clear Comparison",
+      "url": "https://shadcnstudio.com/blog/radix-ui-vs-shadcn-ui"
+    },
+    {
+      "title": "Obsidian Tasks Calendar - Custom view with Dataview",
+      "url": "https://github.com/702573N/Obsidian-Tasks-Calendar"
+    },
+    {
+      "title": "Building an Offline-First PWA Notes App with Next.js, IndexedDB, and Supabase",
+      "url": "https://oluwadaprof.medium.com/building-an-offline-first-pwa-notes-app-with-next-js-indexeddb-and-supabase-f861aa3a06f9"
+    },
+    {
+      "title": "Using the Google Calendar API in React.js: An In-Depth Guide",
+      "url": "https://stateful.com/blog/google-calendar-react"
+    }
+  ]
+}
