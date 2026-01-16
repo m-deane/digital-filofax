@@ -13,7 +13,7 @@ import {
   Calendar,
   Target,
 } from "lucide-react";
-import { format, startOfMonth, endOfMonth, addMonths, subMonths } from "date-fns";
+import { format, addMonths, subMonths } from "date-fns";
 import { cn } from "@/lib/utils";
 
 interface MonthlyTask {
@@ -53,9 +53,6 @@ const mockMonthlyGoals: MonthlyGoal[] = [
 export default function MonthlyTasksPage() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [tasks, setTasks] = useState<MonthlyTask[]>(mockMonthlyTasks);
-
-  const monthStart = startOfMonth(currentMonth);
-  const monthEnd = endOfMonth(currentMonth);
 
   const toggleTask = (taskId: string) => {
     setTasks((prev) =>

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { TRPCError } from "@trpc/server";
-import { startOfDay, endOfDay, startOfMonth, endOfMonth, eachDayOfInterval, subDays, isSameDay } from "date-fns";
+import { startOfDay, endOfDay, subDays, isSameDay } from "date-fns";
 
 export const habitsRouter = createTRPCRouter({
   getAll: protectedProcedure

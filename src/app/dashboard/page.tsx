@@ -17,7 +17,6 @@ import {
   ArrowRight,
 } from "lucide-react";
 import Link from "next/link";
-import { api } from "@/lib/trpc";
 import { format } from "date-fns";
 
 function TodayAgendaWidget() {
