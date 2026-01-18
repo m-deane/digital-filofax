@@ -15,6 +15,13 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -33,75 +40,29 @@ import {
   BookOpen,
   Lightbulb,
   MessageSquare,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDate } from "@/lib/utils";
+import { api } from "@/lib/trpc";
 
 type MemoType = "NOTE" | "ANECDOTE" | "JOURNAL" | "MEETING" | "QUICK_THOUGHT";
+
+interface Tag {
+  id: string;
+  name: string;
+}
 
 interface Memo {
   id: string;
   title: string;
   content: string;
   memoType: MemoType;
-  tags: string[];
+  tags: Tag[];
   isPinned: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
-
-const mockMemos: Memo[] = [
-  {
-    id: "1",
-    title: "Project Ideas for Q2",
-    content: "Consider building a habit tracking feature with gamification elements. Users could earn badges and compete on leaderboards...",
-    memoType: "NOTE",
-    tags: ["work", "ideas"],
-    isPinned: true,
-    createdAt: new Date("2026-01-15"),
-    updatedAt: new Date("2026-01-16"),
-  },
-  {
-    id: "2",
-    title: "Meeting with Design Team",
-    content: "Discussed the new dashboard layout. Key points: simplify navigation, add quick actions, improve mobile experience...",
-    memoType: "MEETING",
-    tags: ["work", "design"],
-    isPinned: false,
-    createdAt: new Date("2026-01-14"),
-    updatedAt: new Date("2026-01-14"),
-  },
-  {
-    id: "3",
-    title: "Great conversation with Sarah",
-    content: "Had coffee with Sarah today. She mentioned an interesting book about productivity systems...",
-    memoType: "ANECDOTE",
-    tags: ["personal"],
-    isPinned: false,
-    createdAt: new Date("2026-01-13"),
-    updatedAt: new Date("2026-01-13"),
-  },
-  {
-    id: "4",
-    title: "Weekly reflection",
-    content: "This week was productive overall. Completed the main feature, fixed several bugs. Need to focus more on documentation...",
-    memoType: "JOURNAL",
-    tags: ["personal", "reflection"],
-    isPinned: false,
-    createdAt: new Date("2026-01-12"),
-    updatedAt: new Date("2026-01-12"),
-  },
-  {
-    id: "5",
-    title: "API optimization idea",
-    content: "What if we cache the most frequently accessed endpoints?",
-    memoType: "QUICK_THOUGHT",
-    tags: ["work", "tech"],
-    isPinned: false,
-    createdAt: new Date("2026-01-11"),
-    updatedAt: new Date("2026-01-11"),
-  },
-];
 
 function getMemoIcon(type: MemoType) {
   switch (type) {
@@ -133,7 +94,19 @@ function getMemoTypeLabel(type: MemoType) {
   }
 }
 
-function MemoCard({ memo, onTogglePin }: { memo: Memo; onTogglePin: () => void }) {
+function MemoCard({
+  memo,
+  onTogglePin,
+  onArchive,
+  onDelete,
+  isPinning,
+}: {
+  memo: Memo;
+  onTogglePin: () => void;
+  onArchive: () => void;
+  onDelete: () => void;
+  isPinning: boolean;
+}) {
   const Icon = getMemoIcon(memo.memoType);
 
   return (
@@ -154,7 +127,7 @@ function MemoCard({ memo, onTogglePin }: { memo: Memo; onTogglePin: () => void }
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={onTogglePin}>
+              <DropdownMenuItem onClick={onTogglePin} disabled={isPinning}>
                 {memo.isPinned ? (
                   <>
                     <PinOff className="h-4 w-4 mr-2" />
@@ -171,11 +144,11 @@ function MemoCard({ memo, onTogglePin }: { memo: Memo; onTogglePin: () => void }
                 <Edit className="h-4 w-4 mr-2" />
                 Edit
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={onArchive}>
                 <Archive className="h-4 w-4 mr-2" />
                 Archive
               </DropdownMenuItem>
-              <DropdownMenuItem className="text-destructive">
+              <DropdownMenuItem className="text-destructive" onClick={onDelete}>
                 <Trash2 className="h-4 w-4 mr-2" />
                 Delete
               </DropdownMenuItem>
@@ -191,13 +164,13 @@ function MemoCard({ memo, onTogglePin }: { memo: Memo; onTogglePin: () => void }
         <div className="flex items-center justify-between">
           <div className="flex gap-1 flex-wrap">
             {memo.tags.map((tag) => (
-              <Badge key={tag} variant="outline" className="text-xs">
-                {tag}
+              <Badge key={tag.id} variant="outline" className="text-xs">
+                {tag.name}
               </Badge>
             ))}
           </div>
           <span className="text-xs text-muted-foreground">
-            {formatDate(memo.updatedAt, "MMM d")}
+            {formatDate(new Date(memo.updatedAt), "MMM d")}
           </span>
         </div>
       </CardContent>
@@ -206,28 +179,90 @@ function MemoCard({ memo, onTogglePin }: { memo: Memo; onTogglePin: () => void }
 }
 
 export default function MemosPage() {
-  const [memos] = useState<Memo[]>(mockMemos);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedType, setSelectedType] = useState<MemoType | "ALL">("ALL");
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [newMemoTitle, setNewMemoTitle] = useState("");
+  const [newMemoContent, setNewMemoContent] = useState("");
+  const [newMemoType, setNewMemoType] = useState<MemoType>("NOTE");
+  const [pinningMemoId, setPinningMemoId] = useState<string | null>(null);
 
-  const filteredMemos = memos
-    .filter((memo) => {
-      if (selectedType !== "ALL" && memo.memoType !== selectedType) return false;
-      if (searchQuery) {
-        return (
-          memo.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          memo.content.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-      }
-      return true;
-    })
-    .sort((a, b) => {
-      if (a.isPinned && !b.isPinned) return -1;
-      if (!a.isPinned && b.isPinned) return 1;
-      return b.updatedAt.getTime() - a.updatedAt.getTime();
+  const utils = api.useUtils();
+
+  // Fetch memos from API with filters
+  const { data, isLoading, error } = api.memos.getAll.useQuery({
+    memoType: selectedType === "ALL" ? undefined : [selectedType],
+    search: searchQuery || undefined,
+  });
+
+  // Create memo mutation
+  const createMemo = api.memos.create.useMutation({
+    onSuccess: () => {
+      utils.memos.getAll.invalidate();
+      setIsCreateOpen(false);
+      setNewMemoTitle("");
+      setNewMemoContent("");
+      setNewMemoType("NOTE");
+    },
+  });
+
+  // Toggle pin mutation
+  const togglePin = api.memos.togglePin.useMutation({
+    onSuccess: () => {
+      utils.memos.getAll.invalidate();
+      setPinningMemoId(null);
+    },
+    onError: () => {
+      setPinningMemoId(null);
+    },
+  });
+
+  // Archive mutation
+  const archiveMemo = api.memos.archive.useMutation({
+    onSuccess: () => {
+      utils.memos.getAll.invalidate();
+    },
+  });
+
+  // Delete mutation
+  const deleteMemo = api.memos.delete.useMutation({
+    onSuccess: () => {
+      utils.memos.getAll.invalidate();
+    },
+  });
+
+  const handleCreateMemo = () => {
+    if (!newMemoTitle.trim()) return;
+    createMemo.mutate({
+      title: newMemoTitle,
+      content: newMemoContent,
+      memoType: newMemoType,
     });
+  };
 
+  const handleTogglePin = (memoId: string) => {
+    setPinningMemoId(memoId);
+    togglePin.mutate({ id: memoId });
+  };
+
+  const handleArchive = (memoId: string) => {
+    archiveMemo.mutate({ id: memoId });
+  };
+
+  const handleDelete = (memoId: string) => {
+    deleteMemo.mutate({ id: memoId });
+  };
+
+  const memos = (data?.memos ?? []) as Memo[];
   const memoTypes: (MemoType | "ALL")[] = ["ALL", "NOTE", "ANECDOTE", "JOURNAL", "MEETING", "QUICK_THOUGHT"];
+
+  if (error) {
+    return (
+      <div className="p-8 text-center">
+        <p className="text-destructive">Error loading memos: {error.message}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -239,7 +274,7 @@ export default function MemosPage() {
             Capture notes, thoughts, and memories
           </p>
         </div>
-        <Dialog>
+        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
             <Button className="gap-2">
               <Plus className="h-4 w-4" />
@@ -254,15 +289,36 @@ export default function MemosPage() {
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
-              <Input placeholder="Title" />
+              <Input
+                placeholder="Title"
+                value={newMemoTitle}
+                onChange={(e) => setNewMemoTitle(e.target.value)}
+              />
+              <Select value={newMemoType} onValueChange={(v) => setNewMemoType(v as MemoType)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Memo type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="NOTE">Note</SelectItem>
+                  <SelectItem value="ANECDOTE">Anecdote</SelectItem>
+                  <SelectItem value="JOURNAL">Journal</SelectItem>
+                  <SelectItem value="MEETING">Meeting</SelectItem>
+                  <SelectItem value="QUICK_THOUGHT">Quick Thought</SelectItem>
+                </SelectContent>
+              </Select>
               <textarea
                 className="flex min-h-[200px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 placeholder="Start writing..."
+                value={newMemoContent}
+                onChange={(e) => setNewMemoContent(e.target.value)}
               />
             </div>
             <DialogFooter>
-              <Button variant="outline">Cancel</Button>
-              <Button>Save Memo</Button>
+              <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
+              <Button onClick={handleCreateMemo} disabled={createMemo.isPending || !newMemoTitle.trim()}>
+                {createMemo.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Save Memo
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -293,18 +349,43 @@ export default function MemosPage() {
         </div>
       </div>
 
-      {/* Memos Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {filteredMemos.map((memo) => (
-          <MemoCard key={memo.id} memo={memo} onTogglePin={() => {}} />
-        ))}
-      </div>
+      {/* Loading State */}
+      {isLoading && (
+        <div className="flex items-center justify-center p-8">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      )}
 
-      {filteredMemos.length === 0 && (
+      {/* Memos Grid */}
+      {!isLoading && memos.length > 0 && (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {memos.map((memo) => (
+            <MemoCard
+              key={memo.id}
+              memo={memo}
+              onTogglePin={() => handleTogglePin(memo.id)}
+              onArchive={() => handleArchive(memo.id)}
+              onDelete={() => handleDelete(memo.id)}
+              isPinning={pinningMemoId === memo.id}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Empty State */}
+      {!isLoading && memos.length === 0 && (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <FileText className="h-12 w-12 text-muted-foreground mb-4" />
-            <p className="text-muted-foreground">No memos found</p>
+            <p className="text-muted-foreground mb-4">
+              {searchQuery || selectedType !== "ALL" ? "No memos found" : "No memos yet. Create your first memo!"}
+            </p>
+            {!searchQuery && selectedType === "ALL" && (
+              <Button onClick={() => setIsCreateOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                New Memo
+              </Button>
+            )}
           </CardContent>
         </Card>
       )}

@@ -4,11 +4,21 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   ChevronLeft,
   ChevronRight,
   Plus,
   Calendar,
+  Loader2,
 } from "lucide-react";
 import {
   format,
@@ -22,42 +32,34 @@ import {
   addMonths,
   subMonths,
   isSameDay,
+  setHours,
+  addHours,
 } from "date-fns";
 import { cn } from "@/lib/utils";
+import { api } from "@/lib/trpc";
 
 interface CalendarEvent {
   id: string;
   title: string;
-  date: Date;
-  color: string;
-  allDay?: boolean;
+  startDate: Date;
+  endDate: Date;
+  color: string | null;
 }
 
 interface Task {
   id: string;
   title: string;
-  dueDate: Date;
-  completed: boolean;
+  dueDate: Date | null;
+  status: string;
 }
-
-const mockEvents: CalendarEvent[] = [
-  { id: "1", title: "Team Meeting", date: new Date(2026, 0, 16), color: "#3b82f6" },
-  { id: "2", title: "Project Deadline", date: new Date(2026, 0, 20), color: "#ef4444" },
-  { id: "3", title: "Sprint Review", date: new Date(2026, 0, 17), color: "#8b5cf6" },
-  { id: "4", title: "Client Presentation", date: new Date(2026, 0, 22), color: "#f59e0b" },
-  { id: "5", title: "Team Lunch", date: new Date(2026, 0, 24), color: "#10b981" },
-  { id: "6", title: "Conference", date: new Date(2026, 0, 28), color: "#ec4899", allDay: true },
-  { id: "7", title: "Conference", date: new Date(2026, 0, 29), color: "#ec4899", allDay: true },
-];
-
-const mockTasks: Task[] = [
-  { id: "1", title: "Review PRs", dueDate: new Date(2026, 0, 16), completed: false },
-  { id: "2", title: "Update docs", dueDate: new Date(2026, 0, 18), completed: true },
-  { id: "3", title: "Fix bugs", dueDate: new Date(2026, 0, 20), completed: false },
-];
 
 export default function MonthlyPlannerPage() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [newEventTitle, setNewEventTitle] = useState("");
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+
+  const utils = api.useUtils();
 
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
@@ -65,13 +67,64 @@ export default function MonthlyPlannerPage() {
   const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
   const calendarDays = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
 
+  // Fetch events for the month
+  const { data: eventsData, isLoading: eventsLoading, error: eventsError } = api.calendar.getEvents.useQuery({
+    startDate: calendarStart,
+    endDate: calendarEnd,
+  });
+
+  // Fetch tasks for the month (those with due dates)
+  const { data: tasksData, isLoading: tasksLoading } = api.tasks.getAll.useQuery({});
+
+  // Create event mutation
+  const createEvent = api.calendar.create.useMutation({
+    onSuccess: () => {
+      utils.calendar.getEvents.invalidate();
+      setIsCreateOpen(false);
+      setNewEventTitle("");
+    },
+  });
+
+  const handleCreateEvent = () => {
+    if (!newEventTitle.trim()) return;
+    const startDate = setHours(selectedDate, 9);
+    const endDate = addHours(startDate, 1);
+    createEvent.mutate({
+      title: newEventTitle,
+      startDate,
+      endDate,
+      color: "#3b82f6",
+    });
+  };
+
+  const openCreateForDay = (day: Date) => {
+    setSelectedDate(day);
+    setIsCreateOpen(true);
+  };
+
+  const events = (eventsData ?? []) as CalendarEvent[];
+  const allTasks = (tasksData?.tasks ?? []) as Task[];
+
+  // Filter tasks to only those with due dates
+  const tasks = allTasks.filter((t) => t.dueDate !== null);
+
   const getEventsForDay = (date: Date) =>
-    mockEvents.filter((event) => isSameDay(event.date, date));
+    events.filter((event) => isSameDay(new Date(event.startDate), date));
 
   const getTasksForDay = (date: Date) =>
-    mockTasks.filter((task) => isSameDay(task.dueDate, date));
+    tasks.filter((task) => task.dueDate && isSameDay(new Date(task.dueDate), date));
 
   const weekDayHeaders = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+  const isLoading = eventsLoading || tasksLoading;
+
+  if (eventsError) {
+    return (
+      <div className="p-8 text-center">
+        <p className="text-destructive">Error loading calendar: {eventsError.message}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -93,7 +146,10 @@ export default function MonthlyPlannerPage() {
           <Button variant="outline" size="icon" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>
             <ChevronRight className="h-4 w-4" />
           </Button>
-          <Button className="gap-2 ml-2">
+          <Button className="gap-2 ml-2" onClick={() => {
+            setSelectedDate(new Date());
+            setIsCreateOpen(true);
+          }}>
             <Plus className="h-4 w-4" />
             Add Event
           </Button>
@@ -110,82 +166,94 @@ export default function MonthlyPlannerPage() {
         </CardHeader>
       </Card>
 
+      {/* Loading State */}
+      {isLoading && (
+        <div className="flex items-center justify-center p-8">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      )}
+
       {/* Calendar Grid */}
-      <Card>
-        <CardContent className="p-4">
-          {/* Week Day Headers */}
-          <div className="grid grid-cols-7 mb-2">
-            {weekDayHeaders.map((day) => (
-              <div key={day} className="p-2 text-center text-sm font-medium text-muted-foreground">
-                {day}
-              </div>
-            ))}
-          </div>
-
-          {/* Calendar Days */}
-          <div className="grid grid-cols-7 gap-1">
-            {calendarDays.map((day, index) => {
-              const events = getEventsForDay(day);
-              const tasks = getTasksForDay(day);
-              const isCurrentMonth = isSameMonth(day, currentMonth);
-              const dayIsToday = isToday(day);
-
-              return (
-                <div
-                  key={index}
-                  className={cn(
-                    "min-h-[100px] p-2 rounded-lg border cursor-pointer hover:bg-muted/50 transition-colors",
-                    !isCurrentMonth && "opacity-40",
-                    dayIsToday && "ring-2 ring-primary bg-primary/5"
-                  )}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className={cn(
-                      "text-sm font-medium",
-                      dayIsToday && "text-primary"
-                    )}>
-                      {format(day, "d")}
-                    </span>
-                    {(events.length > 0 || tasks.length > 0) && (
-                      <Badge variant="secondary" className="text-xs h-5">
-                        {events.length + tasks.length}
-                      </Badge>
-                    )}
-                  </div>
-
-                  <div className="space-y-1">
-                    {events.slice(0, 2).map((event) => (
-                      <div
-                        key={event.id}
-                        className="text-xs px-1.5 py-0.5 rounded truncate text-white"
-                        style={{ backgroundColor: event.color }}
-                      >
-                        {event.title}
-                      </div>
-                    ))}
-                    {tasks.slice(0, 2 - events.length).map((task) => (
-                      <div
-                        key={task.id}
-                        className={cn(
-                          "text-xs px-1.5 py-0.5 rounded truncate border",
-                          task.completed ? "line-through text-muted-foreground" : ""
-                        )}
-                      >
-                        {task.title}
-                      </div>
-                    ))}
-                    {events.length + tasks.length > 2 && (
-                      <div className="text-xs text-muted-foreground px-1">
-                        +{events.length + tasks.length - 2} more
-                      </div>
-                    )}
-                  </div>
+      {!isLoading && (
+        <Card>
+          <CardContent className="p-4">
+            {/* Week Day Headers */}
+            <div className="grid grid-cols-7 mb-2">
+              {weekDayHeaders.map((day) => (
+                <div key={day} className="p-2 text-center text-sm font-medium text-muted-foreground">
+                  {day}
                 </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
+              ))}
+            </div>
+
+            {/* Calendar Days */}
+            <div className="grid grid-cols-7 gap-1">
+              {calendarDays.map((day, index) => {
+                const dayEvents = getEventsForDay(day);
+                const dayTasks = getTasksForDay(day);
+                const isCurrentMonth = isSameMonth(day, currentMonth);
+                const dayIsToday = isToday(day);
+
+                return (
+                  <div
+                    key={index}
+                    className={cn(
+                      "min-h-[100px] p-2 rounded-lg border cursor-pointer hover:bg-muted/50 transition-colors",
+                      !isCurrentMonth && "opacity-40",
+                      dayIsToday && "ring-2 ring-primary bg-primary/5"
+                    )}
+                    onClick={() => openCreateForDay(day)}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className={cn(
+                        "text-sm font-medium",
+                        dayIsToday && "text-primary"
+                      )}>
+                        {format(day, "d")}
+                      </span>
+                      {(dayEvents.length > 0 || dayTasks.length > 0) && (
+                        <Badge variant="secondary" className="text-xs h-5">
+                          {dayEvents.length + dayTasks.length}
+                        </Badge>
+                      )}
+                    </div>
+
+                    <div className="space-y-1">
+                      {dayEvents.slice(0, 2).map((event) => (
+                        <div
+                          key={event.id}
+                          className="text-xs px-1.5 py-0.5 rounded truncate text-white"
+                          style={{ backgroundColor: event.color || "#3b82f6" }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {event.title}
+                        </div>
+                      ))}
+                      {dayTasks.slice(0, 2 - dayEvents.length).map((task) => (
+                        <div
+                          key={task.id}
+                          className={cn(
+                            "text-xs px-1.5 py-0.5 rounded truncate border",
+                            task.status === "DONE" ? "line-through text-muted-foreground" : ""
+                          )}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {task.title}
+                        </div>
+                      ))}
+                      {dayEvents.length + dayTasks.length > 2 && (
+                        <div className="text-xs text-muted-foreground px-1">
+                          +{dayEvents.length + dayTasks.length - 2} more
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Legend */}
       <Card>
@@ -193,15 +261,7 @@ export default function MonthlyPlannerPage() {
           <div className="flex items-center gap-6 flex-wrap">
             <div className="flex items-center gap-2 text-sm">
               <div className="w-3 h-3 rounded bg-blue-500" />
-              <span>Meetings</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm">
-              <div className="w-3 h-3 rounded bg-red-500" />
-              <span>Deadlines</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm">
-              <div className="w-3 h-3 rounded bg-purple-500" />
-              <span>Reviews</span>
+              <span>Events</span>
             </div>
             <div className="flex items-center gap-2 text-sm">
               <div className="w-3 h-3 rounded border" />
@@ -210,6 +270,32 @@ export default function MonthlyPlannerPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Create Event Dialog */}
+      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Event</DialogTitle>
+            <DialogDescription>
+              Add an event for {format(selectedDate, "EEEE, MMMM d, yyyy")}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <Input
+              placeholder="Event title"
+              value={newEventTitle}
+              onChange={(e) => setNewEventTitle(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
+            <Button onClick={handleCreateEvent} disabled={createEvent.isPending || !newEventTitle.trim()}>
+              {createEvent.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Add Event
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

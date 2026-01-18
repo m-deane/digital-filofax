@@ -1,12 +1,48 @@
 "use client";
 
 import { signIn } from "next-auth/react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Github, Mail } from "lucide-react";
+import { Github, Mail, Zap } from "lucide-react";
 import Link from "next/link";
 
 export default function LoginPage() {
+  const [isDevMode, setIsDevMode] = useState(false);
+  const [isAutoLogging, setIsAutoLogging] = useState(false);
+
+  useEffect(() => {
+    // Check if we're in dev auth bypass mode
+    fetch("/api/auth/dev-check")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.devAuthBypass) {
+          setIsDevMode(true);
+          // Auto sign in for dev mode
+          setIsAutoLogging(true);
+          signIn("credentials", { callbackUrl: "/dashboard" });
+        }
+      })
+      .catch(() => {
+        // Not in dev mode or endpoint doesn't exist
+      });
+  }, []);
+
+  if (isAutoLogging) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl">Signing in...</CardTitle>
+            <CardDescription>
+              Dev mode auto-login in progress
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
       <Card className="w-full max-w-md">
@@ -22,6 +58,16 @@ export default function LoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {isDevMode && (
+            <Button
+              variant="default"
+              className="w-full gap-2 bg-amber-600 hover:bg-amber-700"
+              onClick={() => signIn("credentials", { callbackUrl: "/dashboard" })}
+            >
+              <Zap className="h-5 w-5" />
+              Dev Login (No Database)
+            </Button>
+          )}
           <Button
             variant="outline"
             className="w-full gap-2"

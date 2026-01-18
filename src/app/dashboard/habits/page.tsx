@@ -17,6 +17,13 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Plus,
   TrendingUp,
   Flame,
@@ -25,6 +32,7 @@ import {
   Edit,
   Trash2,
   BarChart2,
+  Loader2,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -33,102 +41,127 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { api } from "@/lib/trpc";
+import { startOfDay, subDays, isSameDay } from "date-fns";
+
+type HabitType = "BOOLEAN" | "NUMERIC" | "DURATION";
+
+interface HabitLog {
+  id: string;
+  date: Date;
+  value: number | null;
+}
 
 interface Habit {
   id: string;
   name: string;
-  description?: string;
-  habitType: "BOOLEAN" | "NUMERIC" | "DURATION";
-  targetValue?: number;
-  unit?: string;
+  description: string | null;
+  habitType: HabitType;
+  targetValue: number | null;
+  unit: string | null;
   color: string;
-  completedToday: boolean;
-  currentStreak: number;
-  longestStreak: number;
-  completionRate: number;
-  weekData: boolean[];
+  logs: HabitLog[];
+  completedToday?: boolean;
 }
-
-const mockHabits: Habit[] = [
-  {
-    id: "1",
-    name: "Exercise",
-    description: "30 minutes of physical activity",
-    habitType: "BOOLEAN",
-    color: "#ef4444",
-    completedToday: true,
-    currentStreak: 7,
-    longestStreak: 14,
-    completionRate: 85,
-    weekData: [true, true, true, false, true, true, true],
-  },
-  {
-    id: "2",
-    name: "Read",
-    description: "Read for at least 30 minutes",
-    habitType: "DURATION",
-    targetValue: 30,
-    unit: "minutes",
-    color: "#3b82f6",
-    completedToday: true,
-    currentStreak: 14,
-    longestStreak: 21,
-    completionRate: 92,
-    weekData: [true, true, true, true, true, true, true],
-  },
-  {
-    id: "3",
-    name: "Meditate",
-    description: "Morning meditation session",
-    habitType: "DURATION",
-    targetValue: 10,
-    unit: "minutes",
-    color: "#8b5cf6",
-    completedToday: false,
-    currentStreak: 3,
-    longestStreak: 10,
-    completionRate: 70,
-    weekData: [true, true, true, false, false, false, false],
-  },
-  {
-    id: "4",
-    name: "Drink Water",
-    description: "8 glasses of water per day",
-    habitType: "NUMERIC",
-    targetValue: 8,
-    unit: "glasses",
-    color: "#06b6d4",
-    completedToday: false,
-    currentStreak: 0,
-    longestStreak: 7,
-    completionRate: 60,
-    weekData: [true, true, false, true, false, true, false],
-  },
-  {
-    id: "5",
-    name: "No Social Media",
-    description: "Avoid social media before noon",
-    habitType: "BOOLEAN",
-    color: "#f59e0b",
-    completedToday: true,
-    currentStreak: 5,
-    longestStreak: 12,
-    completionRate: 75,
-    weekData: [true, true, true, true, true, false, false],
-  },
-];
 
 const weekDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-function HabitCard({ habit, onToggle }: { habit: Habit; onToggle: () => void }) {
+function calculateStreakInfo(logs: HabitLog[]) {
+  const logDates = logs.map((log) => startOfDay(new Date(log.date)));
+  const today = startOfDay(new Date());
+
+  // Calculate current streak
+  let currentStreak = 0;
+  let checkDate = today;
+
+  const todayCompleted = logDates.some((d) => isSameDay(d, today));
+  const yesterdayCompleted = logDates.some((d) => isSameDay(d, subDays(today, 1)));
+
+  if (todayCompleted) {
+    currentStreak = 1;
+    checkDate = subDays(today, 1);
+  } else if (yesterdayCompleted) {
+    currentStreak = 1;
+    checkDate = subDays(today, 2);
+  }
+
+  if (currentStreak > 0) {
+    while (logDates.some((d) => isSameDay(d, checkDate))) {
+      currentStreak++;
+      checkDate = subDays(checkDate, 1);
+    }
+  }
+
+  // Calculate longest streak
+  let longestStreak = 0;
+  let tempStreak = 0;
+  const sortedDates = [...logDates].sort((a, b) => a.getTime() - b.getTime());
+
+  for (let i = 0; i < sortedDates.length; i++) {
+    if (i === 0) {
+      tempStreak = 1;
+    } else {
+      const diff = Math.round(
+        (sortedDates[i].getTime() - sortedDates[i - 1].getTime()) / (1000 * 60 * 60 * 24)
+      );
+      if (diff === 1) {
+        tempStreak++;
+      } else {
+        longestStreak = Math.max(longestStreak, tempStreak);
+        tempStreak = 1;
+      }
+    }
+  }
+  longestStreak = Math.max(longestStreak, tempStreak, currentStreak);
+
+  // Calculate completion rate for last 30 days
+  const thirtyDaysAgo = subDays(today, 30);
+  const last30DaysLogs = logDates.filter((d) => d >= thirtyDaysAgo);
+  const completionRate = Math.round((last30DaysLogs.length / 30) * 100);
+
+  return { currentStreak, longestStreak, completionRate };
+}
+
+function getWeekData(logs: HabitLog[]): boolean[] {
+  const today = startOfDay(new Date());
+  const dayOfWeek = today.getDay();
+  // Convert to Monday-based week (0 = Monday, 6 = Sunday)
+  const mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  const monday = subDays(today, mondayOffset);
+
+  const weekData: boolean[] = [];
+  for (let i = 0; i < 7; i++) {
+    const checkDate = subDays(monday, -i); // Add days
+    const completed = logs.some((log) => isSameDay(startOfDay(new Date(log.date)), checkDate));
+    weekData.push(completed);
+  }
+  return weekData;
+}
+
+function HabitCard({
+  habit,
+  onToggle,
+  onDelete,
+  isToggling
+}: {
+  habit: Habit;
+  onToggle: () => void;
+  onDelete: () => void;
+  isToggling: boolean;
+}) {
+  const streakInfo = calculateStreakInfo(habit.logs);
+  const weekData = getWeekData(habit.logs);
+  const completedToday = habit.completedToday ?? weekData[weekData.length - 1];
+
   return (
     <Card>
       <CardContent className="p-4">
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3">
             <Checkbox
-              checked={habit.completedToday}
+              checked={completedToday}
               onCheckedChange={onToggle}
+              disabled={isToggling}
               className="h-6 w-6"
               style={{ borderColor: habit.color }}
             />
@@ -154,7 +187,7 @@ function HabitCard({ habit, onToggle }: { habit: Habit; onToggle: () => void }) 
                 <BarChart2 className="h-4 w-4 mr-2" />
                 Analytics
               </DropdownMenuItem>
-              <DropdownMenuItem className="text-destructive">
+              <DropdownMenuItem className="text-destructive" onClick={onDelete}>
                 <Trash2 className="h-4 w-4 mr-2" />
                 Delete
               </DropdownMenuItem>
@@ -170,13 +203,13 @@ function HabitCard({ habit, onToggle }: { habit: Habit; onToggle: () => void }) 
               <div
                 className={cn(
                   "w-6 h-6 rounded-full flex items-center justify-center text-xs",
-                  habit.weekData[i]
+                  weekData[i]
                     ? "text-white"
                     : "bg-muted text-muted-foreground"
                 )}
-                style={{ backgroundColor: habit.weekData[i] ? habit.color : undefined }}
+                style={{ backgroundColor: weekData[i] ? habit.color : undefined }}
               >
-                {habit.weekData[i] ? "✓" : ""}
+                {weekData[i] ? "✓" : ""}
               </div>
             </div>
           ))}
@@ -187,17 +220,17 @@ function HabitCard({ habit, onToggle }: { habit: Habit; onToggle: () => void }) 
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-1">
               <Flame className="h-4 w-4 text-orange-500" />
-              <span className="font-medium">{habit.currentStreak}</span>
+              <span className="font-medium">{streakInfo.currentStreak}</span>
               <span className="text-muted-foreground">day streak</span>
             </div>
             <div className="flex items-center gap-1">
               <Target className="h-4 w-4 text-green-500" />
-              <span className="font-medium">{habit.completionRate}%</span>
+              <span className="font-medium">{streakInfo.completionRate}%</span>
             </div>
           </div>
           <Badge variant="secondary" className="gap-1">
             <TrendingUp className="h-3 w-3" />
-            Best: {habit.longestStreak}
+            Best: {streakInfo.longestStreak}
           </Badge>
         </div>
       </CardContent>
@@ -206,9 +239,20 @@ function HabitCard({ habit, onToggle }: { habit: Habit; onToggle: () => void }) 
 }
 
 function TodayOverview({ habits }: { habits: Habit[] }) {
-  const completed = habits.filter((h) => h.completedToday).length;
+  const completed = habits.filter((h) => {
+    const weekData = getWeekData(h.logs);
+    return h.completedToday ?? weekData[weekData.length - 1];
+  }).length;
   const total = habits.length;
-  const progress = (completed / total) * 100;
+  const progress = total > 0 ? (completed / total) * 100 : 0;
+
+  const streakInfos = habits.map((h) => calculateStreakInfo(h.logs));
+  const bestStreak = streakInfos.length > 0
+    ? Math.max(...streakInfos.map((s) => s.currentStreak))
+    : 0;
+  const avgCompletion = streakInfos.length > 0
+    ? Math.round(streakInfos.reduce((acc, s) => acc + s.completionRate, 0) / streakInfos.length)
+    : 0;
 
   return (
     <Card>
@@ -223,13 +267,13 @@ function TodayOverview({ habits }: { habits: Habit[] }) {
         <div className="grid grid-cols-2 gap-4 text-center">
           <div className="p-3 rounded-lg bg-muted">
             <div className="text-2xl font-bold text-orange-500">
-              {Math.max(...habits.map((h) => h.currentStreak))}
+              {bestStreak}
             </div>
             <div className="text-xs text-muted-foreground">Best Active Streak</div>
           </div>
           <div className="p-3 rounded-lg bg-muted">
             <div className="text-2xl font-bold text-green-500">
-              {Math.round(habits.reduce((acc, h) => acc + h.completionRate, 0) / habits.length)}%
+              {avgCompletion}%
             </div>
             <div className="text-xs text-muted-foreground">Avg Completion</div>
           </div>
@@ -240,7 +284,103 @@ function TodayOverview({ habits }: { habits: Habit[] }) {
 }
 
 export default function HabitsPage() {
-  const [habits] = useState<Habit[]>(mockHabits);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [newHabitName, setNewHabitName] = useState("");
+  const [newHabitDescription, setNewHabitDescription] = useState("");
+  const [newHabitType, setNewHabitType] = useState<HabitType>("BOOLEAN");
+  const [newHabitColor, setNewHabitColor] = useState("#10b981");
+  const [togglingHabitId, setTogglingHabitId] = useState<string | null>(null);
+
+  const utils = api.useUtils();
+
+  // Fetch habits from API
+  const { data, isLoading, error } = api.habits.getAll.useQuery({});
+
+  // Create habit mutation
+  const createHabit = api.habits.create.useMutation({
+    onSuccess: () => {
+      utils.habits.getAll.invalidate();
+      setIsCreateOpen(false);
+      setNewHabitName("");
+      setNewHabitDescription("");
+      setNewHabitType("BOOLEAN");
+      setNewHabitColor("#10b981");
+    },
+  });
+
+  // Delete habit mutation
+  const deleteHabit = api.habits.delete.useMutation({
+    onSuccess: () => {
+      utils.habits.getAll.invalidate();
+    },
+  });
+
+  // Log completion mutation (for checking off today)
+  const logCompletion = api.habits.logCompletion.useMutation({
+    onSuccess: () => {
+      utils.habits.getAll.invalidate();
+      setTogglingHabitId(null);
+    },
+    onError: () => {
+      setTogglingHabitId(null);
+    },
+  });
+
+  // Remove log mutation (for unchecking today)
+  const removeLog = api.habits.removeLog.useMutation({
+    onSuccess: () => {
+      utils.habits.getAll.invalidate();
+      setTogglingHabitId(null);
+    },
+    onError: () => {
+      setTogglingHabitId(null);
+    },
+  });
+
+  const handleCreateHabit = () => {
+    if (!newHabitName.trim()) return;
+    createHabit.mutate({
+      name: newHabitName,
+      description: newHabitDescription || undefined,
+      habitType: newHabitType,
+      color: newHabitColor,
+    });
+  };
+
+  const handleToggleHabit = (habit: Habit) => {
+    setTogglingHabitId(habit.id);
+    const today = new Date();
+    const weekData = getWeekData(habit.logs);
+    const completedToday = habit.completedToday ?? weekData[weekData.length - 1];
+
+    if (completedToday) {
+      // Uncomplete - remove today's log
+      removeLog.mutate({
+        habitId: habit.id,
+        date: today,
+      });
+    } else {
+      // Complete - add today's log
+      logCompletion.mutate({
+        habitId: habit.id,
+        date: today,
+      });
+    }
+  };
+
+  const handleDeleteHabit = (habitId: string) => {
+    deleteHabit.mutate({ id: habitId });
+  };
+
+  const habits = (data ?? []) as Habit[];
+
+  if (error) {
+    return (
+      <div className="p-8 text-center">
+        <p className="text-destructive">Error loading habits: {error.message}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -252,7 +392,7 @@ export default function HabitsPage() {
             Track and build consistent daily habits
           </p>
         </div>
-        <Dialog>
+        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
             <Button className="gap-2">
               <Plus className="h-4 w-4" />
@@ -267,28 +407,86 @@ export default function HabitsPage() {
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
-              <Input placeholder="Habit name" />
-              <Input placeholder="Description (optional)" />
+              <Input
+                placeholder="Habit name"
+                value={newHabitName}
+                onChange={(e) => setNewHabitName(e.target.value)}
+              />
+              <Input
+                placeholder="Description (optional)"
+                value={newHabitDescription}
+                onChange={(e) => setNewHabitDescription(e.target.value)}
+              />
+              <Select value={newHabitType} onValueChange={(v) => setNewHabitType(v as HabitType)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Habit type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="BOOLEAN">Yes/No (Simple)</SelectItem>
+                  <SelectItem value="NUMERIC">Numeric (Count)</SelectItem>
+                  <SelectItem value="DURATION">Duration (Time)</SelectItem>
+                </SelectContent>
+              </Select>
+              <div className="flex items-center gap-2">
+                <label className="text-sm text-muted-foreground">Color:</label>
+                <input
+                  type="color"
+                  value={newHabitColor}
+                  onChange={(e) => setNewHabitColor(e.target.value)}
+                  className="w-10 h-10 rounded cursor-pointer"
+                />
+              </div>
             </div>
             <DialogFooter>
-              <Button variant="outline">Cancel</Button>
-              <Button>Create Habit</Button>
+              <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
+              <Button onClick={handleCreateHabit} disabled={createHabit.isPending || !newHabitName.trim()}>
+                {createHabit.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Create Habit
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
 
+      {/* Loading State */}
+      {isLoading && (
+        <div className="flex items-center justify-center p-8">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      )}
+
+      {/* Empty State */}
+      {!isLoading && habits.length === 0 && (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center p-8">
+            <p className="text-muted-foreground mb-4">No habits yet. Create your first habit!</p>
+            <Button onClick={() => setIsCreateOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Habit
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Overview and Habits Grid */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-1">
-          <TodayOverview habits={habits} />
+      {!isLoading && habits.length > 0 && (
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-1">
+            <TodayOverview habits={habits} />
+          </div>
+          <div className="lg:col-span-2 space-y-4">
+            {habits.map((habit) => (
+              <HabitCard
+                key={habit.id}
+                habit={habit}
+                onToggle={() => handleToggleHabit(habit)}
+                onDelete={() => handleDeleteHabit(habit.id)}
+                isToggling={togglingHabitId === habit.id}
+              />
+            ))}
+          </div>
         </div>
-        <div className="lg:col-span-2 space-y-4">
-          {habits.map((habit) => (
-            <HabitCard key={habit.id} habit={habit} onToggle={() => {}} />
-          ))}
-        </div>
-      </div>
+      )}
     </div>
   );
 }

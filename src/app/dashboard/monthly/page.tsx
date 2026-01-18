@@ -6,74 +6,138 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   ChevronLeft,
   ChevronRight,
   Plus,
   Calendar,
   Target,
+  Loader2,
 } from "lucide-react";
-import { format, addMonths, subMonths } from "date-fns";
+import { format, addMonths, subMonths, startOfMonth } from "date-fns";
 import { cn } from "@/lib/utils";
+import { api } from "@/lib/trpc";
 
-interface MonthlyTask {
+type Priority = "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+type TaskStatus = "TODO" | "IN_PROGRESS" | "DONE";
+
+interface Category {
   id: string;
-  title: string;
-  completed: boolean;
-  category: string;
-  categoryColor: string;
+  name: string;
+  color: string;
 }
 
-interface MonthlyGoal {
+interface Task {
   id: string;
   title: string;
-  progress: number;
-  target: number;
-  unit: string;
+  status: TaskStatus;
+  priority: Priority;
+  category: Category | null;
 }
-
-const mockMonthlyTasks: MonthlyTask[] = [
-  { id: "1", title: "Complete Q1 planning", completed: true, category: "Work", categoryColor: "#3b82f6" },
-  { id: "2", title: "Launch new feature", completed: false, category: "Work", categoryColor: "#3b82f6" },
-  { id: "3", title: "Read 2 books", completed: false, category: "Personal", categoryColor: "#10b981" },
-  { id: "4", title: "Complete online course", completed: true, category: "Learning", categoryColor: "#8b5cf6" },
-  { id: "5", title: "Organize home office", completed: false, category: "Personal", categoryColor: "#10b981" },
-  { id: "6", title: "Review and update resume", completed: false, category: "Career", categoryColor: "#f59e0b" },
-  { id: "7", title: "Schedule annual checkup", completed: true, category: "Health", categoryColor: "#ef4444" },
-  { id: "8", title: "Plan family vacation", completed: false, category: "Personal", categoryColor: "#10b981" },
-];
-
-const mockMonthlyGoals: MonthlyGoal[] = [
-  { id: "1", title: "Exercise sessions", progress: 12, target: 20, unit: "sessions" },
-  { id: "2", title: "Books read", progress: 1, target: 2, unit: "books" },
-  { id: "3", title: "Savings target", progress: 750, target: 1000, unit: "dollars" },
-  { id: "4", title: "Learning hours", progress: 15, target: 30, unit: "hours" },
-];
 
 export default function MonthlyTasksPage() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [tasks, setTasks] = useState<MonthlyTask[]>(mockMonthlyTasks);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [newTaskPriority, setNewTaskPriority] = useState<Priority>("MEDIUM");
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
 
-  const toggleTask = (taskId: string) => {
-    setTasks((prev) =>
-      prev.map((task) =>
-        task.id === taskId ? { ...task, completed: !task.completed } : task
-      )
-    );
+  const utils = api.useUtils();
+
+  const monthStart = startOfMonth(currentMonth);
+
+  // Fetch tasks for the month
+  const { data, isLoading, error } = api.tasks.getMonthlyTasks.useQuery({
+    monthOf: monthStart,
+  });
+
+  // Fetch categories
+  const { data: categoriesData } = api.categories.getAll.useQuery();
+
+  // Create task mutation
+  const createTask = api.tasks.create.useMutation({
+    onSuccess: () => {
+      utils.tasks.getMonthlyTasks.invalidate();
+      setIsCreateOpen(false);
+      setNewTaskTitle("");
+      setNewTaskPriority("MEDIUM");
+      setSelectedCategoryId(null);
+    },
+  });
+
+  // Update task mutation
+  const updateTask = api.tasks.update.useMutation({
+    onSuccess: () => {
+      utils.tasks.getMonthlyTasks.invalidate();
+    },
+  });
+
+  const handleCreateTask = () => {
+    if (!newTaskTitle.trim()) return;
+    createTask.mutate({
+      title: newTaskTitle,
+      priority: newTaskPriority,
+      monthOf: monthStart,
+      categoryId: selectedCategoryId || undefined,
+    });
   };
 
-  const completedTasks = tasks.filter((t) => t.completed).length;
+  const handleToggleTask = (task: Task) => {
+    const newStatus: TaskStatus = task.status === "DONE" ? "TODO" : "DONE";
+    updateTask.mutate({
+      id: task.id,
+      status: newStatus,
+    });
+  };
+
+  const openCreateForCategory = (categoryId: string | null) => {
+    setSelectedCategoryId(categoryId);
+    setIsCreateOpen(true);
+  };
+
+  const tasks = (data ?? []) as Task[];
+  const categories = (categoriesData ?? []) as Category[];
+
+  const completedTasks = tasks.filter((t) => t.status === "DONE").length;
   const totalTasks = tasks.length;
-  const completionPercentage = Math.round((completedTasks / totalTasks) * 100);
+  const completionPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
   // Group tasks by category
   const tasksByCategory = tasks.reduce((acc, task) => {
-    if (!acc[task.category]) {
-      acc[task.category] = { tasks: [], color: task.categoryColor };
+    const categoryKey = task.category?.id ?? "uncategorized";
+    const categoryName = task.category?.name ?? "Uncategorized";
+    const categoryColor = task.category?.color ?? "#6b7280";
+
+    if (!acc[categoryKey]) {
+      acc[categoryKey] = { tasks: [], name: categoryName, color: categoryColor };
     }
-    acc[task.category].tasks.push(task);
+    acc[categoryKey].tasks.push(task);
     return acc;
-  }, {} as Record<string, { tasks: MonthlyTask[]; color: string }>);
+  }, {} as Record<string, { tasks: Task[]; name: string; color: string }>);
+
+  if (error) {
+    return (
+      <div className="p-8 text-center">
+        <p className="text-destructive">Error loading tasks: {error.message}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -114,46 +178,34 @@ export default function MonthlyTasksPage() {
         </CardHeader>
       </Card>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Monthly Goals */}
-        <div className="lg:col-span-1 space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Target className="h-5 w-5" />
-                Monthly Goals
-              </CardTitle>
-              <CardDescription>Track your monthly targets</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {mockMonthlyGoals.map((goal) => {
-                const percentage = Math.round((goal.progress / goal.target) * 100);
-                return (
-                  <div key={goal.id} className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="font-medium">{goal.title}</span>
-                      <span className="text-muted-foreground">
-                        {goal.progress}/{goal.target} {goal.unit}
-                      </span>
-                    </div>
-                    <Progress value={percentage} className="h-2" />
-                  </div>
-                );
-              })}
-              <Button variant="outline" size="sm" className="w-full mt-2">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Goal
-              </Button>
-            </CardContent>
-          </Card>
+      {/* Loading State */}
+      {isLoading && (
+        <div className="flex items-center justify-center p-8">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
+      )}
 
-        {/* Tasks by Category */}
-        <div className="lg:col-span-2 space-y-4">
-          {Object.entries(tasksByCategory).map(([category, { tasks: categoryTasks, color }]) => {
-            const categoryCompleted = categoryTasks.filter((t) => t.completed).length;
+      {/* Empty State */}
+      {!isLoading && tasks.length === 0 && (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Target className="h-12 w-12 text-muted-foreground mb-4" />
+            <p className="text-muted-foreground mb-4">No monthly tasks yet. Add your first task!</p>
+            <Button onClick={() => setIsCreateOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Task
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Tasks by Category */}
+      {!isLoading && tasks.length > 0 && (
+        <div className="grid gap-6 lg:grid-cols-2">
+          {Object.entries(tasksByCategory).map(([categoryId, { tasks: categoryTasks, name, color }]) => {
+            const categoryCompleted = categoryTasks.filter((t) => t.status === "DONE").length;
             return (
-              <Card key={category}>
+              <Card key={categoryId}>
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-base flex items-center gap-2">
@@ -161,7 +213,7 @@ export default function MonthlyTasksPage() {
                         className="w-3 h-3 rounded-full"
                         style={{ backgroundColor: color }}
                       />
-                      {category}
+                      {name}
                     </CardTitle>
                     <Badge variant="secondary">
                       {categoryCompleted}/{categoryTasks.length}
@@ -175,18 +227,23 @@ export default function MonthlyTasksPage() {
                       className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50"
                     >
                       <Checkbox
-                        checked={task.completed}
-                        onCheckedChange={() => toggleTask(task.id)}
+                        checked={task.status === "DONE"}
+                        onCheckedChange={() => handleToggleTask(task)}
                       />
                       <span className={cn(
                         "text-sm",
-                        task.completed && "line-through text-muted-foreground"
+                        task.status === "DONE" && "line-through text-muted-foreground"
                       )}>
                         {task.title}
                       </span>
                     </div>
                   ))}
-                  <Button variant="ghost" size="sm" className="w-full justify-start text-muted-foreground">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-start text-muted-foreground"
+                    onClick={() => openCreateForCategory(categoryId === "uncategorized" ? null : categoryId)}
+                  >
                     <Plus className="h-4 w-4 mr-2" />
                     Add task
                   </Button>
@@ -194,8 +251,79 @@ export default function MonthlyTasksPage() {
               </Card>
             );
           })}
+
+          {/* Add new category card */}
+          {Object.keys(tasksByCategory).length === 0 && (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-8">
+                <Button
+                  variant="ghost"
+                  className="text-muted-foreground"
+                  onClick={() => setIsCreateOpen(true)}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add your first task
+                </Button>
+              </CardContent>
+            </Card>
+          )}
         </div>
-      </div>
+      )}
+
+      {/* Create Task Dialog */}
+      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Monthly Task</DialogTitle>
+            <DialogDescription>
+              Add a task for {format(currentMonth, "MMMM yyyy")}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <Input
+              placeholder="Task title"
+              value={newTaskTitle}
+              onChange={(e) => setNewTaskTitle(e.target.value)}
+            />
+            <Select value={newTaskPriority} onValueChange={(v) => setNewTaskPriority(v as Priority)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Priority" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="LOW">Low</SelectItem>
+                <SelectItem value="MEDIUM">Medium</SelectItem>
+                <SelectItem value="HIGH">High</SelectItem>
+                <SelectItem value="URGENT">Urgent</SelectItem>
+              </SelectContent>
+            </Select>
+            {categories.length > 0 && (
+              <Select
+                value={selectedCategoryId ?? "none"}
+                onValueChange={(v) => setSelectedCategoryId(v === "none" ? null : v)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Category (optional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No Category</SelectItem>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
+            <Button onClick={handleCreateTask} disabled={createTask.isPending || !newTaskTitle.trim()}>
+              {createTask.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Add Task
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

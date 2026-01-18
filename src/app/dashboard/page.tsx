@@ -15,11 +15,16 @@ import {
   Clock,
   Plus,
   ArrowRight,
+  Loader2,
 } from "lucide-react";
 import Link from "next/link";
-import { format } from "date-fns";
+import { format, startOfDay, isSameDay, subDays } from "date-fns";
+import { api } from "@/lib/trpc";
 
 function TodayAgendaWidget() {
+  const { data, isLoading } = api.calendar.getToday.useQuery();
+  const events = data ?? [];
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -34,39 +39,75 @@ function TodayAgendaWidget() {
         </Link>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <div className="flex items-center gap-3 p-2 rounded-lg bg-muted/50">
-            <Clock className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">9:00 AM</span>
-            <span className="text-sm">Team standup meeting</span>
+        {isLoading && (
+          <div className="flex justify-center p-4">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
-          <div className="flex items-center gap-3 p-2 rounded-lg bg-muted/50">
-            <Clock className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">2:00 PM</span>
-            <span className="text-sm">Project review</span>
+        )}
+        {!isLoading && events.length === 0 && (
+          <p className="text-sm text-muted-foreground text-center py-4">No events scheduled for today</p>
+        )}
+        {!isLoading && events.length > 0 && (
+          <div className="space-y-2">
+            {events.slice(0, 3).map((event) => (
+              <div key={event.id} className="flex items-center gap-3 p-2 rounded-lg bg-muted/50">
+                <Clock className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">
+                  {format(new Date(event.startDate), "h:mm a")}
+                </span>
+                <span className="text-sm">{event.title}</span>
+              </div>
+            ))}
           </div>
-          <div className="flex items-center gap-3 p-2 rounded-lg bg-muted/50">
-            <Clock className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">5:00 PM</span>
-            <span className="text-sm">Gym workout</span>
-          </div>
-        </div>
-        <Button variant="outline" size="sm" className="w-full gap-2">
-          <Plus className="h-4 w-4" />
-          Add Event
-        </Button>
+        )}
+        <Link href="/dashboard/planner/weekly">
+          <Button variant="outline" size="sm" className="w-full gap-2">
+            <Plus className="h-4 w-4" />
+            Add Event
+          </Button>
+        </Link>
       </CardContent>
     </Card>
   );
 }
 
 function TasksWidget() {
+  const utils = api.useUtils();
+  const { data, isLoading } = api.tasks.getDueSoon.useQuery({ days: 7 });
+  const updateTask = api.tasks.update.useMutation({
+    onSuccess: () => {
+      utils.tasks.getDueSoon.invalidate();
+      utils.tasks.getAll.invalidate();
+    },
+  });
+
+  const tasks = data ?? [];
+
+  const getPriorityVariant = (priority: string) => {
+    switch (priority) {
+      case "URGENT":
+      case "HIGH":
+        return "destructive";
+      case "MEDIUM":
+        return "secondary";
+      default:
+        return "outline";
+    }
+  };
+
+  const handleToggle = (taskId: string, currentStatus: string) => {
+    updateTask.mutate({
+      id: taskId,
+      status: currentStatus === "DONE" ? "TODO" : "DONE",
+    });
+  };
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <div>
           <CardTitle className="text-lg font-semibold">Tasks</CardTitle>
-          <CardDescription>Due today and upcoming</CardDescription>
+          <CardDescription>Due soon</CardDescription>
         </div>
         <Link href="/dashboard/tasks">
           <Button variant="ghost" size="sm">
@@ -75,55 +116,101 @@ function TasksWidget() {
         </Link>
       </CardHeader>
       <CardContent className="space-y-3">
-        <div className="flex items-start gap-3">
-          <Checkbox id="task-1" />
-          <div className="flex-1">
-            <label htmlFor="task-1" className="text-sm font-medium cursor-pointer">
-              Review pull request
-            </label>
-            <p className="text-xs text-muted-foreground">Work</p>
+        {isLoading && (
+          <div className="flex justify-center p-4">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
-          <Badge variant="destructive" className="text-xs">High</Badge>
-        </div>
-        <div className="flex items-start gap-3">
-          <Checkbox id="task-2" />
-          <div className="flex-1">
-            <label htmlFor="task-2" className="text-sm font-medium cursor-pointer">
-              Update documentation
-            </label>
-            <p className="text-xs text-muted-foreground">Work</p>
+        )}
+        {!isLoading && tasks.length === 0 && (
+          <p className="text-sm text-muted-foreground text-center py-4">No upcoming tasks</p>
+        )}
+        {!isLoading && tasks.slice(0, 3).map((task) => (
+          <div key={task.id} className="flex items-start gap-3">
+            <Checkbox
+              checked={task.status === "DONE"}
+              onCheckedChange={() => handleToggle(task.id, task.status)}
+            />
+            <div className="flex-1">
+              <span className="text-sm font-medium">{task.title}</span>
+              {task.category && (
+                <p className="text-xs text-muted-foreground">{task.category.name}</p>
+              )}
+            </div>
+            <Badge variant={getPriorityVariant(task.priority)} className="text-xs">
+              {task.priority}
+            </Badge>
           </div>
-          <Badge variant="secondary" className="text-xs">Medium</Badge>
-        </div>
-        <div className="flex items-start gap-3">
-          <Checkbox id="task-3" />
-          <div className="flex-1">
-            <label htmlFor="task-3" className="text-sm font-medium cursor-pointer">
-              Buy groceries
-            </label>
-            <p className="text-xs text-muted-foreground">Personal</p>
-          </div>
-          <Badge variant="outline" className="text-xs">Low</Badge>
-        </div>
-        <Button variant="outline" size="sm" className="w-full gap-2">
-          <Plus className="h-4 w-4" />
-          Add Task
-        </Button>
+        ))}
+        <Link href="/dashboard/tasks">
+          <Button variant="outline" size="sm" className="w-full gap-2">
+            <Plus className="h-4 w-4" />
+            Add Task
+          </Button>
+        </Link>
       </CardContent>
     </Card>
   );
 }
 
 function HabitsWidget() {
-  const habits = [
-    { name: "Exercise", completed: true, streak: 7 },
-    { name: "Read 30 min", completed: true, streak: 14 },
-    { name: "Meditate", completed: false, streak: 3 },
-    { name: "Drink 8 glasses", completed: false, streak: 0 },
-  ];
+  const utils = api.useUtils();
+  const { data, isLoading } = api.habits.getAll.useQuery({});
 
-  const completedCount = habits.filter((h) => h.completed).length;
-  const progress = (completedCount / habits.length) * 100;
+  const logCompletion = api.habits.logCompletion.useMutation({
+    onSuccess: () => {
+      utils.habits.getAll.invalidate();
+    },
+  });
+
+  const removeLog = api.habits.removeLog.useMutation({
+    onSuccess: () => {
+      utils.habits.getAll.invalidate();
+    },
+  });
+
+  const habits = data ?? [];
+  const today = startOfDay(new Date());
+
+  const getCompletedToday = (habit: { logs: { date: Date }[] }) => {
+    return habit.logs.some((log) => isSameDay(new Date(log.date), today));
+  };
+
+  const getStreak = (habit: { logs: { date: Date }[] }) => {
+    const logDates = habit.logs.map((log) => startOfDay(new Date(log.date)));
+    let streak = 0;
+    let checkDate = today;
+
+    const todayCompleted = logDates.some((d) => isSameDay(d, today));
+    const yesterdayCompleted = logDates.some((d) => isSameDay(d, subDays(today, 1)));
+
+    if (todayCompleted) {
+      streak = 1;
+      checkDate = subDays(today, 1);
+    } else if (yesterdayCompleted) {
+      streak = 1;
+      checkDate = subDays(today, 2);
+    }
+
+    if (streak > 0) {
+      while (logDates.some((d) => isSameDay(d, checkDate))) {
+        streak++;
+        checkDate = subDays(checkDate, 1);
+      }
+    }
+
+    return streak;
+  };
+
+  const handleToggle = (habitId: string, completedToday: boolean) => {
+    if (completedToday) {
+      removeLog.mutate({ habitId, date: new Date() });
+    } else {
+      logCompletion.mutate({ habitId, date: new Date() });
+    }
+  };
+
+  const completedCount = habits.filter((h) => getCompletedToday(h)).length;
+  const progress = habits.length > 0 ? (completedCount / habits.length) * 100 : 0;
 
   return (
     <Card>
@@ -139,37 +226,66 @@ function HabitsWidget() {
         </Link>
       </CardHeader>
       <CardContent className="space-y-4">
-        <Progress value={progress} className="h-2" />
-        <div className="space-y-2">
-          {habits.map((habit) => (
-            <div
-              key={habit.name}
-              className="flex items-center justify-between p-2 rounded-lg bg-muted/50"
-            >
-              <div className="flex items-center gap-3">
-                <Checkbox checked={habit.completed} />
-                <span className="text-sm">{habit.name}</span>
-              </div>
-              {habit.streak > 0 && (
-                <Badge variant="secondary" className="gap-1">
-                  <TrendingUp className="h-3 w-3" />
-                  {habit.streak}
-                </Badge>
-              )}
+        {isLoading && (
+          <div className="flex justify-center p-4">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        )}
+        {!isLoading && habits.length === 0 && (
+          <p className="text-sm text-muted-foreground text-center py-4">No habits tracked yet</p>
+        )}
+        {!isLoading && habits.length > 0 && (
+          <>
+            <Progress value={progress} className="h-2" />
+            <div className="space-y-2">
+              {habits.slice(0, 4).map((habit) => {
+                const completedToday = getCompletedToday(habit);
+                const streak = getStreak(habit);
+                return (
+                  <div
+                    key={habit.id}
+                    className="flex items-center justify-between p-2 rounded-lg bg-muted/50"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Checkbox
+                        checked={completedToday}
+                        onCheckedChange={() => handleToggle(habit.id, completedToday)}
+                      />
+                      <span className="text-sm">{habit.name}</span>
+                    </div>
+                    {streak > 0 && (
+                      <Badge variant="secondary" className="gap-1">
+                        <TrendingUp className="h-3 w-3" />
+                        {streak}
+                      </Badge>
+                    )}
+                  </div>
+                );
+              })}
             </div>
-          ))}
-        </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );
 }
 
 function QuickStatsWidget() {
+  const { data: tasksData } = api.tasks.getDueSoon.useQuery({ days: 1 });
+  const { data: habitsData } = api.habits.getAll.useQuery({});
+  const { data: eventsData } = api.calendar.getThisWeek.useQuery();
+  const { data: memosData } = api.memos.getAll.useQuery({});
+
+  const tasksDueToday = tasksData?.length ?? 0;
+  const activeHabits = habitsData?.length ?? 0;
+  const eventsThisWeek = eventsData?.length ?? 0;
+  const totalMemos = memosData?.memos?.length ?? 0;
+
   const stats = [
-    { label: "Tasks Due Today", value: 5, icon: CheckSquare, color: "text-blue-500" },
-    { label: "Active Habits", value: 4, icon: Target, color: "text-green-500" },
-    { label: "Events This Week", value: 8, icon: Calendar, color: "text-purple-500" },
-    { label: "Notes Created", value: 23, icon: FileText, color: "text-orange-500" },
+    { label: "Tasks Due Today", value: tasksDueToday, icon: CheckSquare, color: "text-blue-500" },
+    { label: "Active Habits", value: activeHabits, icon: Target, color: "text-green-500" },
+    { label: "Events This Week", value: eventsThisWeek, icon: Calendar, color: "text-purple-500" },
+    { label: "Notes Created", value: totalMemos, icon: FileText, color: "text-orange-500" },
   ];
 
   return (
@@ -192,6 +308,9 @@ function QuickStatsWidget() {
 }
 
 function IdeasWidget() {
+  const { data, isLoading } = api.ideas.getAll.useQuery({ limit: 5 });
+  const ideas = data?.ideas ?? [];
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -206,28 +325,33 @@ function IdeasWidget() {
         </Link>
       </CardHeader>
       <CardContent className="space-y-3">
-        <div className="p-3 rounded-lg border">
-          <div className="flex items-center gap-2 mb-1">
-            <Lightbulb className="h-4 w-4 text-yellow-500" />
-            <span className="text-sm font-medium">Mobile app redesign</span>
+        {isLoading && (
+          <div className="flex justify-center p-4">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
-          <p className="text-xs text-muted-foreground">
-            Consider a bottom navigation bar for better UX...
-          </p>
-        </div>
-        <div className="p-3 rounded-lg border">
-          <div className="flex items-center gap-2 mb-1">
-            <Lightbulb className="h-4 w-4 text-yellow-500" />
-            <span className="text-sm font-medium">Automation workflow</span>
+        )}
+        {!isLoading && ideas.length === 0 && (
+          <p className="text-sm text-muted-foreground text-center py-4">No ideas captured yet</p>
+        )}
+        {!isLoading && ideas.slice(0, 2).map((idea) => (
+          <div key={idea.id} className="p-3 rounded-lg border">
+            <div className="flex items-center gap-2 mb-1">
+              <Lightbulb className="h-4 w-4 text-yellow-500" />
+              <span className="text-sm font-medium">{idea.title}</span>
+            </div>
+            {idea.description && (
+              <p className="text-xs text-muted-foreground line-clamp-2">
+                {idea.description}
+              </p>
+            )}
           </div>
-          <p className="text-xs text-muted-foreground">
-            Set up automatic meal plan generation...
-          </p>
-        </div>
-        <Button variant="outline" size="sm" className="w-full gap-2">
-          <Plus className="h-4 w-4" />
-          Capture Idea
-        </Button>
+        ))}
+        <Link href="/dashboard/ideas">
+          <Button variant="outline" size="sm" className="w-full gap-2">
+            <Plus className="h-4 w-4" />
+            Capture Idea
+          </Button>
+        </Link>
       </CardContent>
     </Card>
   );

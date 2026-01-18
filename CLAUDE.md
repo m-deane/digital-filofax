@@ -4,93 +4,85 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a **Claude Code project template** - a reusable starting point for new projects optimized for Claude Code workflows. It includes pre-configured slash commands, specialized agents, workflow templates, and directory structure conventions.
+**Personal Organization App** - A comprehensive web-based personal organization system (digital Filofax) for managing tasks, habits, calendar events, memos, and ideas.
 
-## Repository Structure
+**Stack**: Next.js 15 (App Router) + TypeScript + tRPC + Prisma + NextAuth + Tailwind/shadcn + PostgreSQL (Supabase)
 
-```
-.claude/                    # Claude Code configuration (core of this template)
-├── CLAUDE.md               # Core behavioral directives
-├── TEMPLATE_GUIDE.md       # Customization instructions
-├── example_prompt.md       # Project requirements template
-├── agents/                 # 16 specialized agents
-├── commands/               # 14 slash commands
-├── scripts/                # Utility scripts
-└── skills/                 # MCP skills (webapp-testing, mcp-builder)
+## Development Commands
 
-.claude_plans/              # Project planning documents
-.claude_prompts/            # Workflow prompt templates
-.claude_research/           # Research document storage
-src/                        # Source code placeholder
-tests/                      # Test files placeholder
+```bash
+npm run dev          # Start dev server (localhost:3000)
+npm run build        # Production build
+npm run lint         # ESLint check
+
+# Database
+npm run db:generate  # Generate Prisma client after schema changes
+npm run db:push      # Push schema to database (use for development)
+npm run db:studio    # Open Prisma Studio GUI
+npm run db:seed      # Seed database (tsx prisma/seed.ts)
 ```
 
-## Key Slash Commands
+## Architecture
 
-| Command | Purpose |
-|---------|---------|
-| `/ultra-think [problem]` | Deep multi-dimensional analysis |
-| `/code-review [file]` | Comprehensive code review |
-| `/generate-tests [component]` | Generate test suite |
-| `/security-scan [scope]` | Security audit |
-| `/explain-code [file]` | Detailed code explanation |
-| `/create-pr [branch]` | Auto-generate PR description |
-| `/dependency-update` | Check/update dependencies |
-| `/architecture-review` | Review architecture patterns |
-| `/create-architecture-documentation` | Generate architecture docs |
-
-## Key Agents
-
-| Agent | Use For |
-|-------|---------|
-| `python-pro` | Python best practices, optimization |
-| `typescript-pro` | TypeScript type system, strict mode |
-| `sql-expert` | Schema design, query optimization |
-| `ml-engineer` | ML pipelines, MLOps |
-| `test-engineer` | Test strategy, coverage |
-| `code-reviewer` | Code quality, security |
-| `debugger` | Error investigation |
-
-## Template Customization Workflow
-
-When using this template for a new project:
-
-1. Clone/copy this repository
-2. Edit root `CLAUDE.md` - replace `<!-- CUSTOMIZE -->` sections with project specifics
-3. Copy `.claude/example_prompt.md` to `.claude_prompts/` and customize
-4. Delete `.claude/TEMPLATE_GUIDE.md` after setup
-5. Update `.gitignore` for your language/framework
-
-## Core Directives (from .claude/CLAUDE.md)
-
-The template enforces these behavioral patterns:
-
-- **No partial implementations** - Complete working code, no mocks/stubs/TODOs
-- **Direct implementation** - Skip hedging language and excessive explanation
-- **File organization** - Use `.claude_plans/` for planning, `tests/` for tests
-- **Testing discipline** - Run tests after each checkpoint
-
-## Adding New Commands
-
-Create a markdown file in `.claude/commands/` with frontmatter:
-
-```yaml
----
-description: Brief description
-argument-hint: [arg] | --flag
-allowed-tools: Read, Write, Edit, Bash
----
+### Data Flow
+```
+React Components → tRPC hooks → tRPC routers → Prisma → PostgreSQL
 ```
 
-## Adding New Agents
+### Key Directories
+- `src/app/` - Next.js App Router pages and API routes
+- `src/components/ui/` - shadcn/ui components (card, dialog, button, etc.)
+- `src/server/api/routers/` - tRPC routers (tasks, habits, memos, ideas, calendar, categories, tags)
+- `src/server/auth.ts` - NextAuth configuration (GitHub, Google OAuth)
+- `src/server/db.ts` - Prisma client singleton
+- `src/types/` - Shared TypeScript types
+- `prisma/schema.prisma` - Database schema
 
-Create a markdown file in `.claude/agents/` with frontmatter:
-
-```yaml
----
-name: agent-name
-description: When to use this agent
-tools: Read, Write, Edit, Bash
-model: sonnet
----
+### tRPC Pattern
+Routers in `src/server/api/routers/` follow this pattern:
+```typescript
+export const tasksRouter = createTRPCRouter({
+  getAll: protectedProcedure.query(async ({ ctx }) => {
+    return ctx.db.task.findMany({ where: { userId: ctx.session.user.id } });
+  }),
+  create: protectedProcedure
+    .input(z.object({ title: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      return ctx.db.task.create({ data: { ...input, userId: ctx.session.user.id } });
+    }),
+});
 ```
+
+### Database Models
+Core models: `User`, `Task`, `Subtask`, `Category`, `Habit`, `HabitLog`, `Memo`, `Tag`, `Idea`, `CalendarEvent`, `GitHubRepo`, `UserPreferences`
+
+Key enums: `TaskStatus` (TODO/IN_PROGRESS/DONE), `Priority` (LOW/MEDIUM/HIGH/URGENT), `HabitType`, `MemoType`, `IdeaStatus`, `EventSource`
+
+### State Management
+- **Server state**: tRPC + React Query (automatic caching, invalidation)
+- **Client state**: Zustand stores
+- **UI state**: React hooks (useState, useReducer)
+
+## Working with This Codebase
+
+### Adding a New Feature
+1. Define/update Prisma schema → `npm run db:generate` → `npm run db:push`
+2. Create/update tRPC router in `src/server/api/routers/`
+3. Add router to `src/server/api/root.ts`
+4. Build UI components in `src/app/dashboard/[feature]/`
+
+### Adding UI Components
+shadcn/ui components live in `src/components/ui/`. Install new ones with:
+```bash
+npx shadcn@latest add [component-name]
+```
+
+### Authentication
+All data is user-scoped. Protected procedures access `ctx.session.user.id` to filter queries.
+
+## Project Conventions
+
+- Planning documents go in `.claude_plans/`
+- Tests go in `tests/`
+- No mocks/stubs/TODOs - implement complete working code
+- Run `npm run lint` and `npm run build` to verify changes
