@@ -6,6 +6,7 @@ import { memosRouter } from "@/server/api/routers/memos";
 import { ideasRouter } from "@/server/api/routers/ideas";
 import { calendarRouter } from "@/server/api/routers/calendar";
 import { tagsRouter } from "@/server/api/routers/tags";
+import { expensesRouter } from "@/server/api/routers/expenses";
 
 export const appRouter = createTRPCRouter({
   tasks: tasksRouter,
@@ -15,6 +16,7 @@ export const appRouter = createTRPCRouter({
   ideas: ideasRouter,
   calendar: calendarRouter,
   tags: tagsRouter,
+  expenses: expensesRouter,
 });
 
 export type AppRouter = typeof appRouter;

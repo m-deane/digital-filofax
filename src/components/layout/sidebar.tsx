@@ -15,6 +15,7 @@ import {
   ChevronRight,
   FolderKanban,
   CalendarRange,
+  Receipt,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -79,6 +80,11 @@ const otherNavItems = [
     title: "Ideas",
     href: "/dashboard/ideas",
     icon: Lightbulb,
+  },
+  {
+    title: "Expenses",
+    href: "/dashboard/expenses",
+    icon: Receipt,
   },
 ];
 

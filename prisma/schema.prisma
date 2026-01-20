@@ -80,6 +80,12 @@ model User {
   events      CalendarEvent[]
   githubRepos GitHubRepo[]
   preferences UserPreferences?
+
+  // Expense tracking
+  expenses           Expense[]
+  expenseCategories  ExpenseCategory[]
+  expenseSplitConfig ExpenseSplitConfig?
+  expenseSettlements ExpenseSettlement[]
 }
 
 model Category {
@@ -360,4 +366,80 @@ enum EventSource {
   INTERNAL
   GOOGLE_CALENDAR
   GITHUB
+}
+
+// ============================================================================
+// EXPENSE TRACKING MODELS
+// ============================================================================
+
+enum PaymentAccount {
+  SELF
+  PARTNER
+  JOINT
+}
+
+model Expense {
+  id          String         @id @default(cuid())
+  amount      Decimal        @db.Decimal(10, 2)
+  description String
+  date        DateTime       @db.Date
+  paidFrom    PaymentAccount
+  notes       String?        @db.Text
+
+  userId     String
+  categoryId String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category ExpenseCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([date])
+  @@index([paidFrom])
+  @@index([categoryId])
+}
+
+model ExpenseCategory {
+  id    String  @id @default(cuid())
+  name  String
+  color String  @default("#6366f1")
+  icon  String?
+
+  userId    String
+  createdAt DateTime @default(now())
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expenses Expense[]
+
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+model ExpenseSplitConfig {
+  id             String @id @default(cuid())
+  selfPercent    Int    @default(65)
+  partnerPercent Int    @default(35)
+
+  userId String @unique
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ExpenseSettlement {
+  id        String   @id @default(cuid())
+  month     DateTime @db.Date // First day of month
+  amount    Decimal  @db.Decimal(10, 2) // Positive = self owes partner, negative = partner owes self
+  settled   Boolean  @default(false)
+  settledAt DateTime?
+  notes     String?
+
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, month])
+  @@index([userId])
 }
