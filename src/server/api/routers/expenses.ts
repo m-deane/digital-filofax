@@ -2,7 +2,9 @@ import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { TRPCError } from "@trpc/server";
 import { Decimal } from "@prisma/client/runtime/library";
-import { startOfMonth, endOfMonth } from "date-fns";
+import { startOfMonth, endOfMonth, subMonths, addWeeks, addMonths, addYears, format } from "date-fns";
+
+const RecurrenceFrequencyEnum = z.enum(["WEEKLY", "BIWEEKLY", "MONTHLY", "QUARTERLY", "YEARLY"]);
 
 export const expensesRouter = createTRPCRouter({
   // ============================================================================
@@ -80,9 +82,24 @@ export const expensesRouter = createTRPCRouter({
         paidFrom: z.enum(["SELF", "PARTNER", "JOINT"]),
         categoryId: z.string().optional(),
         notes: z.string().optional(),
+        isRecurring: z.boolean().optional(),
+        frequency: RecurrenceFrequencyEnum.optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
+      // Calculate next due date for recurring expenses
+      let nextDueDate: Date | null = null;
+      if (input.isRecurring && input.frequency) {
+        const baseDate = input.date;
+        switch (input.frequency) {
+          case "WEEKLY": nextDueDate = addWeeks(baseDate, 1); break;
+          case "BIWEEKLY": nextDueDate = addWeeks(baseDate, 2); break;
+          case "MONTHLY": nextDueDate = addMonths(baseDate, 1); break;
+          case "QUARTERLY": nextDueDate = addMonths(baseDate, 3); break;
+          case "YEARLY": nextDueDate = addYears(baseDate, 1); break;
+        }
+      }
+
       const expense = await ctx.db.expense.create({
         data: {
           amount: new Decimal(input.amount),
@@ -91,6 +108,9 @@ export const expensesRouter = createTRPCRouter({
           paidFrom: input.paidFrom,
           categoryId: input.categoryId,
           notes: input.notes,
+          isRecurring: input.isRecurring ?? false,
+          frequency: input.frequency,
+          nextDueDate,
           userId: ctx.session.user.id,
         },
         include: { category: true },
@@ -476,5 +496,212 @@ export const expensesRouter = createTRPCRouter({
           settledAt: null,
         },
       });
+    }),
+
+  // ============================================================================
+  // RECURRING EXPENSES
+  // ============================================================================
+
+  getRecurringExpenses: protectedProcedure.query(async ({ ctx }) => {
+    const expenses = await ctx.db.expense.findMany({
+      where: {
+        userId: ctx.session.user.id,
+        isRecurring: true,
+      },
+      include: { category: true },
+      orderBy: { nextDueDate: "asc" },
+    });
+
+    return expenses.map(e => ({
+      ...e,
+      amount: e.amount.toNumber(),
+    }));
+  }),
+
+  // ============================================================================
+  // ANALYTICS
+  // ============================================================================
+
+  getAnalytics: protectedProcedure
+    .input(z.object({ months: z.number().min(1).max(12).default(6) }))
+    .query(async ({ ctx, input }) => {
+      const now = new Date();
+      const startDate = startOfMonth(subMonths(now, input.months - 1));
+
+      // Get all expenses in the date range
+      const expenses = await ctx.db.expense.findMany({
+        where: {
+          userId: ctx.session.user.id,
+          date: { gte: startDate },
+        },
+        include: { category: true },
+        orderBy: { date: "asc" },
+      });
+
+      // Get categories with budgets
+      const categories = await ctx.db.expenseCategory.findMany({
+        where: { userId: ctx.session.user.id },
+      });
+
+      // Calculate monthly totals
+      const monthlyData: Record<string, {
+        month: string;
+        self: number;
+        partner: number;
+        joint: number;
+        total: number;
+      }> = {};
+
+      // Category totals for current month
+      const currentMonthStart = startOfMonth(now);
+      const categorySpending: Record<string, { name: string; color: string; spent: number; budget: number | null }> = {};
+
+      for (const expense of expenses) {
+        const monthKey = format(expense.date, "yyyy-MM");
+
+        if (!monthlyData[monthKey]) {
+          monthlyData[monthKey] = {
+            month: format(expense.date, "MMM yyyy"),
+            self: 0,
+            partner: 0,
+            joint: 0,
+            total: 0,
+          };
+        }
+
+        const amount = expense.amount.toNumber();
+        monthlyData[monthKey].total += amount;
+
+        if (expense.paidFrom === "SELF") monthlyData[monthKey].self += amount;
+        else if (expense.paidFrom === "PARTNER") monthlyData[monthKey].partner += amount;
+        else monthlyData[monthKey].joint += amount;
+
+        // Track current month category spending
+        if (expense.date >= currentMonthStart) {
+          const catId = expense.categoryId ?? "uncategorized";
+          if (!categorySpending[catId]) {
+            const cat = categories.find(c => c.id === catId);
+            categorySpending[catId] = {
+              name: expense.category?.name ?? "Uncategorized",
+              color: expense.category?.color ?? "#9ca3af",
+              spent: 0,
+              budget: cat?.budget?.toNumber() ?? null,
+            };
+          }
+          categorySpending[catId].spent += amount;
+        }
+      }
+
+      // Sort months chronologically
+      const monthlyTrend = Object.values(monthlyData).sort((a, b) =>
+        new Date(a.month).getTime() - new Date(b.month).getTime()
+      );
+
+      // Calculate totals and averages
+      const totalSpent = expenses.reduce((sum, e) => sum + e.amount.toNumber(), 0);
+      const avgMonthly = totalSpent / input.months;
+
+      return {
+        monthlyTrend,
+        categorySpending: Object.values(categorySpending).sort((a, b) => b.spent - a.spent),
+        summary: {
+          totalSpent,
+          avgMonthly,
+          expenseCount: expenses.length,
+          months: input.months,
+        },
+      };
+    }),
+
+  // ============================================================================
+  // BUDGET MANAGEMENT
+  // ============================================================================
+
+  updateCategoryBudget: protectedProcedure
+    .input(z.object({
+      categoryId: z.string(),
+      budget: z.number().positive().nullable(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const category = await ctx.db.expenseCategory.findFirst({
+        where: { id: input.categoryId, userId: ctx.session.user.id },
+      });
+
+      if (!category) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Category not found" });
+      }
+
+      return ctx.db.expenseCategory.update({
+        where: { id: input.categoryId },
+        data: {
+          budget: input.budget ? new Decimal(input.budget) : null,
+        },
+      });
+    }),
+
+  getCategoriesWithBudgets: protectedProcedure
+    .input(z.object({ month: z.date() }))
+    .query(async ({ ctx, input }) => {
+      const monthStart = startOfMonth(input.month);
+      const monthEnd = endOfMonth(input.month);
+
+      const categories = await ctx.db.expenseCategory.findMany({
+        where: { userId: ctx.session.user.id },
+        include: {
+          expenses: {
+            where: {
+              date: { gte: monthStart, lte: monthEnd },
+            },
+          },
+        },
+      });
+
+      return categories.map(cat => ({
+        id: cat.id,
+        name: cat.name,
+        color: cat.color,
+        budget: cat.budget?.toNumber() ?? null,
+        spent: cat.expenses.reduce((sum, e) => sum + e.amount.toNumber(), 0),
+      }));
+    }),
+
+  // ============================================================================
+  // EXPORT
+  // ============================================================================
+
+  exportToCSV: protectedProcedure
+    .input(z.object({
+      startDate: z.date(),
+      endDate: z.date(),
+    }))
+    .query(async ({ ctx, input }) => {
+      const expenses = await ctx.db.expense.findMany({
+        where: {
+          userId: ctx.session.user.id,
+          date: { gte: input.startDate, lte: input.endDate },
+        },
+        include: { category: true },
+        orderBy: { date: "asc" },
+      });
+
+      // Generate CSV content
+      const headers = ["Date", "Description", "Amount", "Category", "Paid From", "Notes", "Recurring"];
+      const rows = expenses.map(e => [
+        format(e.date, "yyyy-MM-dd"),
+        `"${e.description.replace(/"/g, '""')}"`,
+        e.amount.toNumber().toFixed(2),
+        e.category?.name ?? "",
+        e.paidFrom,
+        e.notes ? `"${e.notes.replace(/"/g, '""')}"` : "",
+        e.isRecurring ? "Yes" : "No",
+      ]);
+
+      const csv = [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+
+      return {
+        csv,
+        filename: `expenses_${format(input.startDate, "yyyy-MM-dd")}_to_${format(input.endDate, "yyyy-MM-dd")}.csv`,
+        count: expenses.length,
+      };
     }),
 });
