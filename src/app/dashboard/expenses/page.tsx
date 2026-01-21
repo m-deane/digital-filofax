@@ -65,6 +65,11 @@ import {
   RefreshCw,
   BarChart3,
   Target,
+  History,
+  Pause,
+  Play,
+  SkipForward,
+  AlertCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/trpc";
@@ -84,6 +89,13 @@ import {
 
 type PaymentAccount = "SELF" | "PARTNER" | "JOINT";
 type RecurrenceFrequency = "WEEKLY" | "BIWEEKLY" | "MONTHLY" | "QUARTERLY" | "YEARLY";
+
+// Validation constants (matching server-side)
+const MAX_EXPENSE_AMOUNT = 9999999.99;
+const MIN_EXPENSE_AMOUNT = 0.01;
+const MAX_DESCRIPTION_LENGTH = 500;
+const MAX_NOTES_LENGTH = 2000;
+const MAX_FUTURE_DAYS = 365;
 
 const ACCOUNT_LABELS: Record<PaymentAccount, string> = {
   SELF: "My Account",
@@ -111,6 +123,28 @@ const FREQUENCY_LABELS: Record<RecurrenceFrequency, string> = {
   YEARLY: "Yearly",
 };
 
+type Currency = "USD" | "EUR" | "GBP" | "CAD" | "AUD" | "JPY" | "CHF" | "CNY" | "INR" | "MXN" | "BRL" | "KRW";
+
+const CURRENCY_LABELS: Record<Currency, { name: string; symbol: string }> = {
+  USD: { name: "US Dollar", symbol: "$" },
+  EUR: { name: "Euro", symbol: "€" },
+  GBP: { name: "British Pound", symbol: "£" },
+  CAD: { name: "Canadian Dollar", symbol: "$" },
+  AUD: { name: "Australian Dollar", symbol: "$" },
+  JPY: { name: "Japanese Yen", symbol: "¥" },
+  CHF: { name: "Swiss Franc", symbol: "CHF" },
+  CNY: { name: "Chinese Yuan", symbol: "¥" },
+  INR: { name: "Indian Rupee", symbol: "₹" },
+  MXN: { name: "Mexican Peso", symbol: "$" },
+  BRL: { name: "Brazilian Real", symbol: "R$" },
+  KRW: { name: "Korean Won", symbol: "₩" },
+};
+
+const formatCurrency = (amount: number, currency: Currency = "USD") => {
+  const { symbol } = CURRENCY_LABELS[currency];
+  return `${symbol}${amount.toFixed(2)}`;
+};
+
 interface ExpenseCategory {
   id: string;
   name: string;
@@ -124,9 +158,132 @@ interface Expense {
   date: Date;
   paidFrom: PaymentAccount;
   notes: string | null;
+  currency: Currency;
   category: ExpenseCategory | null;
   isRecurring?: boolean;
   frequency?: RecurrenceFrequency | null;
+}
+
+// ============================================================================
+// SETTLEMENT CONFIRMATION DIALOG
+// ============================================================================
+
+function SettlementConfirmDialog({
+  month,
+  isOpen,
+  onOpenChange,
+  onConfirm,
+}: {
+  month: Date;
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: () => void;
+}) {
+  const { data: breakdown, isLoading } = api.expenses.getSettlementBreakdown.useQuery(
+    { month },
+    { enabled: isOpen }
+  );
+
+  if (!breakdown) return null;
+
+  const { calculation, breakdown: totals, splitConfig } = breakdown;
+  const direction = calculation.direction;
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Confirm Settlement</DialogTitle>
+          <DialogDescription>
+            Review the settlement breakdown for {format(month, "MMMM yyyy")}
+          </DialogDescription>
+        </DialogHeader>
+
+        {isLoading ? (
+          <div className="flex items-center justify-center p-8">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <div className="space-y-4 py-4">
+            {/* Expense Summary */}
+            <div className="space-y-2">
+              <h4 className="font-medium text-sm">Expense Summary</h4>
+              <div className="grid grid-cols-3 gap-2 text-sm">
+                <div className="p-2 rounded bg-blue-50 dark:bg-blue-950 text-center">
+                  <div className="text-xs text-muted-foreground">My Account</div>
+                  <div className="font-medium text-blue-600">${totals.selfPaid.toFixed(2)}</div>
+                  <div className="text-xs text-muted-foreground">{totals.selfCount} items</div>
+                </div>
+                <div className="p-2 rounded bg-purple-50 dark:bg-purple-950 text-center">
+                  <div className="text-xs text-muted-foreground">Partner</div>
+                  <div className="font-medium text-purple-600">${totals.partnerPaid.toFixed(2)}</div>
+                  <div className="text-xs text-muted-foreground">{totals.partnerCount} items</div>
+                </div>
+                <div className="p-2 rounded bg-green-50 dark:bg-green-950 text-center">
+                  <div className="text-xs text-muted-foreground">Joint</div>
+                  <div className="font-medium text-green-600">${totals.jointPaid.toFixed(2)}</div>
+                  <div className="text-xs text-muted-foreground">{totals.jointCount} items</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Calculation Breakdown */}
+            <div className="space-y-2 p-3 rounded border bg-muted/50">
+              <h4 className="font-medium text-sm">Calculation</h4>
+              <div className="space-y-1 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Total to split:</span>
+                  <span>${calculation.splitTotal.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Split ratio:</span>
+                  <span>{splitConfig.selfPercent}% / {splitConfig.partnerPercent}%</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">I should pay:</span>
+                  <span>${calculation.selfShouldPay.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">I actually paid:</span>
+                  <span>${totals.selfPaid.toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Settlement Amount */}
+            <div className={cn(
+              "p-4 rounded-lg border-2 text-center",
+              direction === "self_owes_partner" && "border-orange-300 bg-orange-50 dark:bg-orange-950",
+              direction === "partner_owes_self" && "border-green-300 bg-green-50 dark:bg-green-950",
+              direction === "settled" && "border-gray-300 bg-gray-50 dark:bg-gray-950"
+            )}>
+              {direction === "settled" ? (
+                <div className="font-medium">All settled up!</div>
+              ) : direction === "self_owes_partner" ? (
+                <>
+                  <div className="text-sm text-muted-foreground">You owe partner</div>
+                  <div className="text-2xl font-bold text-orange-600">${Math.abs(calculation.settlementAmount).toFixed(2)}</div>
+                </>
+              ) : (
+                <>
+                  <div className="text-sm text-muted-foreground">Partner owes you</div>
+                  <div className="text-2xl font-bold text-green-600">${Math.abs(calculation.settlementAmount).toFixed(2)}</div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button onClick={() => { onConfirm(); onOpenChange(false); }}>
+            <CheckCircle className="h-4 w-4 mr-2" />
+            Confirm Settlement
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 // ============================================================================
@@ -134,14 +291,23 @@ interface Expense {
 // ============================================================================
 
 function MonthlySummaryCard({ month }: { month: Date }) {
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const { data: summary, isLoading } = api.expenses.getMonthlySummary.useQuery({ month });
 
   const utils = api.useUtils();
   const markSettled = api.expenses.markSettled.useMutation({
-    onSuccess: () => utils.expenses.getMonthlySummary.invalidate({ month }),
+    onSuccess: () => {
+      utils.expenses.getMonthlySummary.invalidate({ month });
+      utils.expenses.getSettlements.invalidate();
+      utils.expenses.getUnsettledMonths.invalidate();
+    },
   });
   const unmarkSettled = api.expenses.unmarkSettled.useMutation({
-    onSuccess: () => utils.expenses.getMonthlySummary.invalidate({ month }),
+    onSuccess: () => {
+      utils.expenses.getMonthlySummary.invalidate({ month });
+      utils.expenses.getSettlements.invalidate();
+      utils.expenses.getUnsettledMonths.invalidate();
+    },
   });
 
   if (isLoading) {
@@ -246,7 +412,7 @@ function MonthlySummaryCard({ month }: { month: Date }) {
               )}
             </div>
             {!isSettled && Math.abs(settlementAmount) >= 0.01 ? (
-              <Button size="sm" onClick={() => markSettled.mutate({ month })} disabled={markSettled.isPending}>
+              <Button size="sm" onClick={() => setShowConfirmDialog(true)} disabled={markSettled.isPending}>
                 {markSettled.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : (
                   <>
                     <CheckCircle className="h-4 w-4 mr-1" />
@@ -261,6 +427,121 @@ function MonthlySummaryCard({ month }: { month: Date }) {
             ) : null}
           </div>
         </div>
+      </CardContent>
+
+      <SettlementConfirmDialog
+        month={month}
+        isOpen={showConfirmDialog}
+        onOpenChange={setShowConfirmDialog}
+        onConfirm={() => markSettled.mutate({ month })}
+      />
+    </Card>
+  );
+}
+
+// ============================================================================
+// SPENDING INSIGHTS CARD
+// ============================================================================
+
+function SpendingInsightsCard() {
+  const { data: insights, isLoading } = api.expenses.getSpendingInsights.useQuery({ months: 6 });
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center p-8">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!insights) return null;
+
+  const { comparison, topCategories, insights: stats } = insights;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-lg flex items-center gap-2">
+          <TrendingUp className="h-5 w-5" />
+          Spending Insights
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Month over Month Comparison */}
+        <div className={cn(
+          "p-4 rounded-lg border",
+          comparison.trending === "up" && "border-orange-300 bg-orange-50 dark:bg-orange-950",
+          comparison.trending === "down" && "border-green-300 bg-green-50 dark:bg-green-950",
+          comparison.trending === "stable" && "border-gray-300 bg-gray-50 dark:bg-gray-950"
+        )}>
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm text-muted-foreground">This Month vs Last</div>
+              <div className="text-2xl font-bold">${comparison.currentMonth.total.toFixed(0)}</div>
+            </div>
+            <div className="text-right">
+              <div className={cn(
+                "text-lg font-medium",
+                comparison.trending === "up" && "text-orange-600",
+                comparison.trending === "down" && "text-green-600"
+              )}>
+                {comparison.change > 0 ? "+" : ""}{comparison.change.toFixed(1)}%
+              </div>
+              <div className="text-xs text-muted-foreground">
+                vs ${comparison.previousMonth.total.toFixed(0)}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Top Categories */}
+        {topCategories.length > 0 && (
+          <div>
+            <h4 className="text-sm font-medium mb-2">Top Categories This Month</h4>
+            <div className="space-y-2">
+              {topCategories.map((cat, index) => (
+                <div key={cat.name} className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground">{index + 1}.</span>
+                    <span>{cat.name}</span>
+                    <span className="text-xs text-muted-foreground">({cat.count})</span>
+                  </div>
+                  <span className="font-medium">${cat.amount.toFixed(0)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Quick Stats */}
+        <div className="border-t pt-4 grid grid-cols-2 gap-4 text-sm">
+          <div>
+            <div className="text-muted-foreground">Avg. Expense</div>
+            <div className="font-medium">${stats.avgExpenseAmount.toFixed(2)}</div>
+          </div>
+          <div>
+            <div className="text-muted-foreground">Categories Used</div>
+            <div className="font-medium">{stats.uniqueCategories}</div>
+          </div>
+        </div>
+
+        {/* Largest Expense */}
+        {stats.largestExpense && (
+          <div className="border-t pt-4">
+            <div className="text-sm text-muted-foreground mb-1">Largest Expense This Month</div>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="font-medium">{stats.largestExpense.description}</div>
+                <div className="text-xs text-muted-foreground">
+                  {stats.largestExpense.category} • {format(new Date(stats.largestExpense.date), "MMM d")}
+                </div>
+              </div>
+              <div className="text-lg font-bold">${stats.largestExpense.amount.toFixed(2)}</div>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -366,6 +647,315 @@ function AnalyticsCard() {
         </Card>
       )}
     </div>
+  );
+}
+
+// ============================================================================
+// SETTLEMENT HISTORY CARD
+// ============================================================================
+
+function SettlementHistoryCard() {
+  const { data: settlements, isLoading } = api.expenses.getSettlements.useQuery({ limit: 12 });
+  const { data: unsettledMonths } = api.expenses.getUnsettledMonths.useQuery();
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center p-8">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const hasUnsettled = unsettledMonths && unsettledMonths.length > 0;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-lg flex items-center gap-2">
+          <CheckCircle className="h-5 w-5" />
+          Settlement History
+        </CardTitle>
+        <CardDescription>Past settlement records</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Unsettled Months Warning */}
+        {hasUnsettled && (
+          <div className="p-3 rounded-lg bg-orange-50 dark:bg-orange-950 border border-orange-200 dark:border-orange-800">
+            <div className="text-sm font-medium text-orange-700 dark:text-orange-300 mb-1">
+              Unsettled Months
+            </div>
+            <div className="text-xs text-orange-600 dark:text-orange-400">
+              {unsettledMonths.map(m => m.monthLabel).join(", ")}
+            </div>
+          </div>
+        )}
+
+        {/* Settlement Records */}
+        {!settlements || settlements.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-4">
+            No settlements recorded yet.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {settlements.map((settlement) => (
+              <div
+                key={settlement.id}
+                className="flex items-center justify-between p-3 rounded border"
+              >
+                <div>
+                  <div className="font-medium text-sm">
+                    {format(new Date(settlement.month), "MMMM yyyy")}
+                  </div>
+                  {settlement.settledAt && (
+                    <div className="text-xs text-muted-foreground">
+                      Settled on {format(new Date(settlement.settledAt), "MMM d, yyyy")}
+                    </div>
+                  )}
+                  {settlement.notes && (
+                    <div className="text-xs text-muted-foreground mt-1">{settlement.notes}</div>
+                  )}
+                </div>
+                <div className="text-right">
+                  <div className={cn(
+                    "font-medium",
+                    settlement.amount > 0 ? "text-orange-600" : settlement.amount < 0 ? "text-green-600" : "text-gray-600"
+                  )}>
+                    {settlement.amount > 0 ? "Paid" : settlement.amount < 0 ? "Received" : "Even"}
+                    {settlement.amount !== 0 && ` $${Math.abs(settlement.amount).toFixed(2)}`}
+                  </div>
+                  {settlement.settled && (
+                    <Badge variant="secondary" className="text-xs">
+                      <CheckCircle className="h-3 w-3 mr-1" />
+                      Settled
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ============================================================================
+// RECURRING EXPENSES CARD
+// ============================================================================
+
+function RecurringExpensesCard({ onRefresh }: { onRefresh: () => void }) {
+  const { data: recurring, isLoading } = api.expenses.getRecurringExpenses.useQuery();
+  const { data: upcoming } = api.expenses.getUpcomingRecurring.useQuery({ days: 14 });
+
+  const utils = api.useUtils();
+
+  const generateExpense = api.expenses.generateFromRecurring.useMutation({
+    onSuccess: () => {
+      utils.expenses.getRecurringExpenses.invalidate();
+      utils.expenses.getUpcomingRecurring.invalidate();
+      utils.expenses.getAll.invalidate();
+      utils.expenses.getMonthlySummary.invalidate();
+      onRefresh();
+    },
+  });
+
+  const togglePause = api.expenses.toggleRecurringPause.useMutation({
+    onSuccess: () => {
+      utils.expenses.getRecurringExpenses.invalidate();
+      utils.expenses.getUpcomingRecurring.invalidate();
+    },
+  });
+
+  const skipOccurrence = api.expenses.skipRecurringOccurrence.useMutation({
+    onSuccess: () => {
+      utils.expenses.getRecurringExpenses.invalidate();
+      utils.expenses.getUpcomingRecurring.invalidate();
+    },
+  });
+
+  const deleteExpense = api.expenses.delete.useMutation({
+    onSuccess: () => {
+      utils.expenses.getRecurringExpenses.invalidate();
+      utils.expenses.getUpcomingRecurring.invalidate();
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center p-8">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const dueSoonCount = upcoming?.filter(e => e.daysUntilDue !== null && e.daysUntilDue <= 3).length ?? 0;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-lg flex items-center gap-2">
+          <RefreshCw className="h-5 w-5" />
+          Recurring Expenses
+          {dueSoonCount > 0 && (
+            <Badge variant="destructive" className="ml-2">
+              {dueSoonCount} due soon
+            </Badge>
+          )}
+        </CardTitle>
+        <CardDescription>Manage recurring expense templates</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Upcoming Due */}
+        {upcoming && upcoming.length > 0 && (
+          <div className="space-y-2">
+            <h4 className="text-sm font-medium flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 text-orange-500" />
+              Coming Up (Next 14 Days)
+            </h4>
+            <div className="space-y-2">
+              {upcoming.map((expense) => (
+                <div
+                  key={expense.id}
+                  className={cn(
+                    "flex items-center justify-between p-3 rounded border",
+                    expense.daysUntilDue !== null && expense.daysUntilDue <= 3 && "border-orange-300 bg-orange-50 dark:bg-orange-950"
+                  )}
+                >
+                  <div className="flex-1">
+                    <div className="font-medium text-sm">{expense.description}</div>
+                    <div className="text-xs text-muted-foreground flex items-center gap-2">
+                      <span>${expense.amount.toFixed(2)}</span>
+                      <span>•</span>
+                      <span>{FREQUENCY_LABELS[expense.frequency as RecurrenceFrequency]}</span>
+                      {expense.daysUntilDue !== null && (
+                        <>
+                          <span>•</span>
+                          <span className={cn(expense.daysUntilDue <= 3 && "text-orange-600 font-medium")}>
+                            {expense.daysUntilDue === 0 ? "Due today" :
+                             expense.daysUntilDue === 1 ? "Due tomorrow" :
+                             `Due in ${expense.daysUntilDue} days`}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => generateExpense.mutate({ templateId: expense.id })}
+                    disabled={generateExpense.isPending}
+                  >
+                    {generateExpense.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <>
+                        <Plus className="h-4 w-4 mr-1" />
+                        Log
+                      </>
+                    )}
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* All Recurring Templates */}
+        <div className="space-y-2">
+          <h4 className="text-sm font-medium">All Templates</h4>
+          {!recurring || recurring.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">
+              No recurring expenses. Create one by enabling &quot;Recurring&quot; when adding an expense.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {recurring.map((expense) => {
+                const isPaused = !expense.nextDueDate;
+                return (
+                  <div key={expense.id} className="flex items-center justify-between p-3 rounded border">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-sm">{expense.description}</span>
+                        {isPaused && (
+                          <Badge variant="secondary" className="text-xs">
+                            <Pause className="h-3 w-3 mr-1" />
+                            Paused
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="text-xs text-muted-foreground flex items-center gap-2">
+                        <span>${expense.amount.toFixed(2)}</span>
+                        <span>•</span>
+                        <span>{FREQUENCY_LABELS[expense.frequency as RecurrenceFrequency]}</span>
+                        {expense.nextDueDate && (
+                          <>
+                            <span>•</span>
+                            <span>Next: {format(new Date(expense.nextDueDate), "MMM d")}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={() => generateExpense.mutate({ templateId: expense.id })}
+                          disabled={generateExpense.isPending}
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Log Now
+                        </DropdownMenuItem>
+                        {!isPaused && (
+                          <DropdownMenuItem
+                            onClick={() => skipOccurrence.mutate({ id: expense.id })}
+                            disabled={skipOccurrence.isPending}
+                          >
+                            <SkipForward className="h-4 w-4 mr-2" />
+                            Skip Next
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem
+                          onClick={() => togglePause.mutate({ id: expense.id })}
+                          disabled={togglePause.isPending}
+                        >
+                          {isPaused ? (
+                            <>
+                              <Play className="h-4 w-4 mr-2" />
+                              Resume
+                            </>
+                          ) : (
+                            <>
+                              <Pause className="h-4 w-4 mr-2" />
+                              Pause
+                            </>
+                          )}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="text-destructive"
+                          onClick={() => deleteExpense.mutate({ id: expense.id })}
+                          disabled={deleteExpense.isPending}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete Template
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -497,6 +1087,7 @@ function BudgetTrackerCard({ month }: { month: Date }) {
 function SplitConfigDialog() {
   const [isOpen, setIsOpen] = useState(false);
   const [selfPercent, setSelfPercent] = useState(65);
+  const [defaultCurrency, setDefaultCurrency] = useState<Currency>("USD");
 
   const utils = api.useUtils();
   const { data: config } = api.expenses.getSplitConfig.useQuery();
@@ -510,6 +1101,7 @@ function SplitConfigDialog() {
 
   const handleOpen = () => {
     setSelfPercent(config?.selfPercent ?? 65);
+    setDefaultCurrency((config?.defaultCurrency as Currency) ?? "USD");
     setIsOpen(true);
   };
 
@@ -523,8 +1115,8 @@ function SplitConfigDialog() {
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Configure Split Ratio</DialogTitle>
-          <DialogDescription>Set how joint expenses should be split.</DialogDescription>
+          <DialogTitle>Expense Settings</DialogTitle>
+          <DialogDescription>Configure split ratio and default currency.</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="space-y-2">
@@ -543,11 +1135,31 @@ function SplitConfigDialog() {
             <span className="text-purple-600">{100 - selfPercent}%</span>
           </div>
           <div className="text-center text-sm text-muted-foreground">You / Partner</div>
+
+          <div className="border-t pt-4 space-y-2">
+            <Label>Default Currency</Label>
+            <Select value={defaultCurrency} onValueChange={(v) => setDefaultCurrency(v as Currency)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.keys(CURRENCY_LABELS) as Currency[]).map((cur) => (
+                  <SelectItem key={cur} value={cur}>
+                    <span className="font-medium">{CURRENCY_LABELS[cur].symbol}</span>
+                    <span className="ml-2">{CURRENCY_LABELS[cur].name} ({cur})</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              This will be the default currency for new expenses.
+            </p>
+          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setIsOpen(false)}>Cancel</Button>
           <Button
-            onClick={() => updateConfig.mutate({ selfPercent, partnerPercent: 100 - selfPercent })}
+            onClick={() => updateConfig.mutate({ selfPercent, partnerPercent: 100 - selfPercent, defaultCurrency })}
             disabled={updateConfig.isPending}
           >
             {updateConfig.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
@@ -562,6 +1174,14 @@ function SplitConfigDialog() {
 // ============================================================================
 // EXPENSE FORM
 // ============================================================================
+
+interface FormErrors {
+  amount?: string;
+  description?: string;
+  date?: string;
+  notes?: string;
+  frequency?: string;
+}
 
 function ExpenseForm({
   isOpen,
@@ -580,16 +1200,23 @@ function ExpenseForm({
   const [paidFrom, setPaidFrom] = useState<PaymentAccount>("SELF");
   const [categoryId, setCategoryId] = useState<string>("");
   const [notes, setNotes] = useState("");
+  const [currency, setCurrency] = useState<Currency>("USD");
   const [isRecurring, setIsRecurring] = useState(false);
   const [frequency, setFrequency] = useState<RecurrenceFrequency>("MONTHLY");
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [serverError, setServerError] = useState<string | null>(null);
 
   const { data: categories } = api.expenses.getCategories.useQuery();
+  const { data: config } = api.expenses.getSplitConfig.useQuery();
 
   const createExpense = api.expenses.create.useMutation({
     onSuccess: () => {
       resetForm();
       onSuccess();
       onOpenChange(false);
+    },
+    onError: (error) => {
+      setServerError(error.message || "Failed to create expense. Please try again.");
     },
   });
 
@@ -598,6 +1225,9 @@ function ExpenseForm({
       resetForm();
       onSuccess();
       onOpenChange(false);
+    },
+    onError: (error) => {
+      setServerError(error.message || "Failed to update expense. Please try again.");
     },
   });
 
@@ -608,8 +1238,11 @@ function ExpenseForm({
     setPaidFrom("SELF");
     setCategoryId("");
     setNotes("");
+    setCurrency((config?.defaultCurrency as Currency) ?? "USD");
     setIsRecurring(false);
     setFrequency("MONTHLY");
+    setErrors({});
+    setServerError(null);
   };
 
   const handleOpen = (open: boolean) => {
@@ -620,25 +1253,77 @@ function ExpenseForm({
       setPaidFrom(editingExpense.paidFrom);
       setCategoryId(editingExpense.category?.id ?? "");
       setNotes(editingExpense.notes ?? "");
+      setCurrency(editingExpense.currency ?? "USD");
       setIsRecurring(editingExpense.isRecurring ?? false);
       setFrequency(editingExpense.frequency ?? "MONTHLY");
+    } else if (open && !editingExpense) {
+      // Set default currency for new expense
+      setCurrency((config?.defaultCurrency as Currency) ?? "USD");
     } else if (!open) {
       resetForm();
     }
     onOpenChange(open);
   };
 
-  const handleSubmit = () => {
-    const parsedAmount = parseFloat(amount);
-    if (isNaN(parsedAmount) || parsedAmount <= 0 || !description.trim()) return;
+  const validateForm = (): boolean => {
+    const newErrors: FormErrors = {};
+    setServerError(null);
 
+    // Validate amount
+    const parsedAmount = parseFloat(amount);
+    if (!amount || isNaN(parsedAmount)) {
+      newErrors.amount = "Amount is required";
+    } else if (parsedAmount < MIN_EXPENSE_AMOUNT) {
+      newErrors.amount = `Amount must be at least $${MIN_EXPENSE_AMOUNT}`;
+    } else if (parsedAmount > MAX_EXPENSE_AMOUNT) {
+      newErrors.amount = `Amount cannot exceed $${MAX_EXPENSE_AMOUNT.toLocaleString()}`;
+    }
+
+    // Validate description
+    const trimmedDesc = description.trim();
+    if (!trimmedDesc) {
+      newErrors.description = "Description is required";
+    } else if (trimmedDesc.length > MAX_DESCRIPTION_LENGTH) {
+      newErrors.description = `Description cannot exceed ${MAX_DESCRIPTION_LENGTH} characters`;
+    }
+
+    // Validate date
+    const parsedDate = new Date(date);
+    if (isNaN(parsedDate.getTime())) {
+      newErrors.date = "Invalid date";
+    } else {
+      const maxFutureDate = addMonths(new Date(), Math.ceil(MAX_FUTURE_DAYS / 30));
+      if (parsedDate > maxFutureDate) {
+        newErrors.date = `Date cannot be more than ${MAX_FUTURE_DAYS} days in the future`;
+      }
+    }
+
+    // Validate notes
+    if (notes && notes.length > MAX_NOTES_LENGTH) {
+      newErrors.notes = `Notes cannot exceed ${MAX_NOTES_LENGTH} characters`;
+    }
+
+    // Validate recurring expense
+    if (isRecurring && !frequency) {
+      newErrors.frequency = "Frequency is required for recurring expenses";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = () => {
+    if (!validateForm()) return;
+
+    const parsedAmount = parseFloat(amount);
     const data = {
       amount: parsedAmount,
       description: description.trim(),
       date: new Date(date),
       paidFrom,
       categoryId: categoryId || undefined,
-      notes: notes || undefined,
+      notes: notes.trim() || undefined,
+      currency,
       isRecurring,
       frequency: isRecurring ? frequency : undefined,
     };
@@ -662,37 +1347,84 @@ function ExpenseForm({
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
+          {/* Server Error Display */}
+          {serverError && (
+            <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm border border-destructive/20">
+              {serverError}
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="amount">Amount</Label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                <Input
-                  id="amount"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  placeholder="0.00"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  className="pl-7"
-                />
+              <div className="flex gap-2">
+                <Select value={currency} onValueChange={(v) => setCurrency(v as Currency)}>
+                  <SelectTrigger className="w-[90px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(Object.keys(CURRENCY_LABELS) as Currency[]).map((cur) => (
+                      <SelectItem key={cur} value={cur}>
+                        <span className="font-medium">{CURRENCY_LABELS[cur].symbol}</span>
+                        <span className="text-muted-foreground ml-1">{cur}</span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <div className="relative flex-1">
+                  <Input
+                    id="amount"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max={MAX_EXPENSE_AMOUNT}
+                    placeholder="0.00"
+                    value={amount}
+                    onChange={(e) => {
+                      setAmount(e.target.value);
+                      if (errors.amount) setErrors({ ...errors, amount: undefined });
+                    }}
+                    className={cn(errors.amount && "border-destructive")}
+                  />
+                </div>
               </div>
+              {errors.amount && <p className="text-xs text-destructive">{errors.amount}</p>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="date">Date</Label>
-              <Input id="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+              <Input
+                id="date"
+                type="date"
+                value={date}
+                onChange={(e) => {
+                  setDate(e.target.value);
+                  if (errors.date) setErrors({ ...errors, date: undefined });
+                }}
+                className={cn(errors.date && "border-destructive")}
+              />
+              {errors.date && <p className="text-xs text-destructive">{errors.date}</p>}
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
+            <Label htmlFor="description">
+              Description
+              <span className="text-xs text-muted-foreground ml-2">
+                ({description.length}/{MAX_DESCRIPTION_LENGTH})
+              </span>
+            </Label>
             <Input
               id="description"
               placeholder="What was this expense for?"
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              maxLength={MAX_DESCRIPTION_LENGTH}
+              onChange={(e) => {
+                setDescription(e.target.value);
+                if (errors.description) setErrors({ ...errors, description: undefined });
+              }}
+              className={cn(errors.description && "border-destructive")}
             />
+            {errors.description && <p className="text-xs text-destructive">{errors.description}</p>}
           </div>
 
           <div className="space-y-2">
@@ -737,20 +1469,30 @@ function ExpenseForm({
           </div>
 
           {/* Recurring Expense Toggle */}
-          <div className="flex items-center space-x-2 p-3 rounded-lg border">
+          <div className={cn(
+            "flex items-center space-x-2 p-3 rounded-lg border",
+            errors.frequency && "border-destructive"
+          )}>
             <Checkbox
               id="recurring"
               checked={isRecurring}
-              onCheckedChange={(checked) => setIsRecurring(checked as boolean)}
+              onCheckedChange={(checked) => {
+                setIsRecurring(checked as boolean);
+                if (errors.frequency) setErrors({ ...errors, frequency: undefined });
+              }}
             />
             <div className="flex-1">
               <Label htmlFor="recurring" className="flex items-center gap-2 cursor-pointer">
                 <RefreshCw className="h-4 w-4" />
                 Recurring Expense
               </Label>
+              {errors.frequency && <p className="text-xs text-destructive mt-1">{errors.frequency}</p>}
             </div>
             {isRecurring && (
-              <Select value={frequency} onValueChange={(v) => setFrequency(v as RecurrenceFrequency)}>
+              <Select value={frequency} onValueChange={(v) => {
+                setFrequency(v as RecurrenceFrequency);
+                if (errors.frequency) setErrors({ ...errors, frequency: undefined });
+              }}>
                 <SelectTrigger className="w-[140px]">
                   <SelectValue />
                 </SelectTrigger>
@@ -764,14 +1506,25 @@ function ExpenseForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="notes">Notes (Optional)</Label>
+            <Label htmlFor="notes">
+              Notes (Optional)
+              <span className="text-xs text-muted-foreground ml-2">
+                ({notes.length}/{MAX_NOTES_LENGTH})
+              </span>
+            </Label>
             <Textarea
               id="notes"
               placeholder="Add any additional details..."
               value={notes}
-              onChange={(e) => setNotes(e.target.value)}
+              maxLength={MAX_NOTES_LENGTH}
+              onChange={(e) => {
+                setNotes(e.target.value);
+                if (errors.notes) setErrors({ ...errors, notes: undefined });
+              }}
               rows={2}
+              className={cn(errors.notes && "border-destructive")}
             />
+            {errors.notes && <p className="text-xs text-destructive">{errors.notes}</p>}
           </div>
         </div>
         <DialogFooter>
@@ -1006,6 +1759,10 @@ export default function ExpensesPage() {
             <Target className="h-4 w-4" />
             Budgets
           </TabsTrigger>
+          <TabsTrigger value="settlements" className="gap-2">
+            <History className="h-4 w-4" />
+            Settlements
+          </TabsTrigger>
         </TabsList>
 
         {/* Expenses Tab */}
@@ -1030,8 +1787,9 @@ export default function ExpensesPage() {
 
           {/* Main Content Grid */}
           <div className="grid gap-6 lg:grid-cols-3">
-            <div className="lg:col-span-1">
+            <div className="lg:col-span-1 space-y-6">
               <MonthlySummaryCard month={selectedMonth} />
+              <RecurringExpensesCard onRefresh={handleFormSuccess} />
             </div>
 
             <div className="lg:col-span-2">
@@ -1060,96 +1818,169 @@ export default function ExpensesPage() {
                       </Button>
                     </div>
                   ) : (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Date</TableHead>
-                          <TableHead>Description</TableHead>
-                          <TableHead>Category</TableHead>
-                          <TableHead>Paid From</TableHead>
-                          <TableHead className="text-right">Amount</TableHead>
-                          <TableHead className="w-[50px]"></TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
+                    <>
+                      {/* Mobile Card View */}
+                      <div className="md:hidden space-y-3">
                         {expenses.map((expense) => {
                           const Icon = ACCOUNT_ICONS[expense.paidFrom];
                           return (
-                            <TableRow key={expense.id}>
-                              <TableCell className="font-medium">
-                                {format(new Date(expense.date), "MMM d")}
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex items-center gap-2">
-                                  <div>
-                                    <div>{expense.description}</div>
-                                    {expense.notes && (
-                                      <div className="text-xs text-muted-foreground">{expense.notes}</div>
+                            <div key={expense.id} className="p-4 rounded-lg border bg-card">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium truncate">{expense.description}</span>
+                                    {expense.isRecurring && (
+                                      <RefreshCw className="h-3 w-3 text-muted-foreground flex-shrink-0" />
                                     )}
                                   </div>
-                                  {expense.isRecurring && (
-                                    <RefreshCw className="h-3 w-3 text-muted-foreground" />
+                                  <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
+                                    <span>{format(new Date(expense.date), "MMM d")}</span>
+                                    <span>•</span>
+                                    <div className="flex items-center gap-1">
+                                      <div className={cn("w-4 h-4 rounded-full flex items-center justify-center", ACCOUNT_COLORS[expense.paidFrom])}>
+                                        <Icon className="h-2 w-2 text-white" />
+                                      </div>
+                                      <span className="text-xs">{ACCOUNT_LABELS[expense.paidFrom].split(" ")[0]}</span>
+                                    </div>
+                                  </div>
+                                  {expense.category && (
+                                    <Badge
+                                      variant="secondary"
+                                      className="mt-2 text-xs"
+                                      style={{
+                                        backgroundColor: `${expense.category.color}20`,
+                                        color: expense.category.color,
+                                      }}
+                                    >
+                                      {expense.category.name}
+                                    </Badge>
                                   )}
                                 </div>
-                              </TableCell>
-                              <TableCell>
-                                {expense.category ? (
-                                  <Badge
-                                    variant="secondary"
-                                    style={{
-                                      backgroundColor: `${expense.category.color}20`,
-                                      color: expense.category.color,
-                                    }}
-                                  >
-                                    {expense.category.name}
-                                  </Badge>
-                                ) : (
-                                  <span className="text-muted-foreground">-</span>
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex items-center gap-1.5">
-                                  <div
-                                    className={cn(
-                                      "w-6 h-6 rounded-full flex items-center justify-center",
-                                      ACCOUNT_COLORS[expense.paidFrom]
-                                    )}
-                                  >
-                                    <Icon className="h-3 w-3 text-white" />
+                                <div className="text-right flex-shrink-0">
+                                  <div className="font-semibold">
+                                    {formatCurrency(expense.amount, expense.currency)}
                                   </div>
-                                  <span className="text-sm">{ACCOUNT_LABELS[expense.paidFrom]}</span>
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button variant="ghost" size="sm" className="h-6 px-2 mt-1">
+                                        <MoreHorizontal className="h-4 w-4" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      <DropdownMenuItem onClick={() => handleEditExpense(expense)}>
+                                        <Edit className="h-4 w-4 mr-2" />
+                                        Edit
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        className="text-destructive"
+                                        onClick={() => deleteExpense.mutate({ id: expense.id })}
+                                      >
+                                        <Trash2 className="h-4 w-4 mr-2" />
+                                        Delete
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
                                 </div>
-                              </TableCell>
-                              <TableCell className="text-right font-medium">
-                                ${expense.amount.toFixed(2)}
-                              </TableCell>
-                              <TableCell>
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                                      <MoreHorizontal className="h-4 w-4" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={() => handleEditExpense(expense)}>
-                                      <Edit className="h-4 w-4 mr-2" />
-                                      Edit
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                      className="text-destructive"
-                                      onClick={() => deleteExpense.mutate({ id: expense.id })}
-                                    >
-                                      <Trash2 className="h-4 w-4 mr-2" />
-                                      Delete
-                                    </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              </TableCell>
-                            </TableRow>
+                              </div>
+                            </div>
                           );
                         })}
-                      </TableBody>
-                    </Table>
+                      </div>
+
+                      {/* Desktop Table View */}
+                      <div className="hidden md:block overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Date</TableHead>
+                              <TableHead>Description</TableHead>
+                              <TableHead>Category</TableHead>
+                              <TableHead>Paid From</TableHead>
+                              <TableHead className="text-right">Amount</TableHead>
+                              <TableHead className="w-[50px]"></TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {expenses.map((expense) => {
+                              const Icon = ACCOUNT_ICONS[expense.paidFrom];
+                              return (
+                                <TableRow key={expense.id}>
+                                  <TableCell className="font-medium">
+                                    {format(new Date(expense.date), "MMM d")}
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="flex items-center gap-2">
+                                      <div>
+                                        <div>{expense.description}</div>
+                                        {expense.notes && (
+                                          <div className="text-xs text-muted-foreground">{expense.notes}</div>
+                                        )}
+                                      </div>
+                                      {expense.isRecurring && (
+                                        <RefreshCw className="h-3 w-3 text-muted-foreground" />
+                                      )}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>
+                                    {expense.category ? (
+                                      <Badge
+                                        variant="secondary"
+                                        style={{
+                                          backgroundColor: `${expense.category.color}20`,
+                                          color: expense.category.color,
+                                        }}
+                                      >
+                                        {expense.category.name}
+                                      </Badge>
+                                    ) : (
+                                      <span className="text-muted-foreground">-</span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="flex items-center gap-1.5">
+                                      <div
+                                        className={cn(
+                                          "w-6 h-6 rounded-full flex items-center justify-center",
+                                          ACCOUNT_COLORS[expense.paidFrom]
+                                        )}
+                                      >
+                                        <Icon className="h-3 w-3 text-white" />
+                                      </div>
+                                      <span className="text-sm">{ACCOUNT_LABELS[expense.paidFrom]}</span>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="text-right font-medium">
+                                    {formatCurrency(expense.amount, expense.currency)}
+                                  </TableCell>
+                                  <TableCell>
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                                          <MoreHorizontal className="h-4 w-4" />
+                                        </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end">
+                                        <DropdownMenuItem onClick={() => handleEditExpense(expense)}>
+                                          <Edit className="h-4 w-4 mr-2" />
+                                          Edit
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          className="text-destructive"
+                                          onClick={() => deleteExpense.mutate({ id: expense.id })}
+                                        >
+                                          <Trash2 className="h-4 w-4 mr-2" />
+                                          Delete
+                                        </DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </>
                   )}
                 </CardContent>
               </Card>
@@ -1159,13 +1990,28 @@ export default function ExpensesPage() {
 
         {/* Analytics Tab */}
         <TabsContent value="analytics">
-          <AnalyticsCard />
+          <div className="grid gap-6 lg:grid-cols-3">
+            <div className="lg:col-span-2">
+              <AnalyticsCard />
+            </div>
+            <div>
+              <SpendingInsightsCard />
+            </div>
+          </div>
         </TabsContent>
 
         {/* Budgets Tab */}
         <TabsContent value="budgets">
           <div className="grid gap-6 lg:grid-cols-2">
             <BudgetTrackerCard month={selectedMonth} />
+            <MonthlySummaryCard month={selectedMonth} />
+          </div>
+        </TabsContent>
+
+        {/* Settlements Tab */}
+        <TabsContent value="settlements">
+          <div className="grid gap-6 lg:grid-cols-2">
+            <SettlementHistoryCard />
             <MonthlySummaryCard month={selectedMonth} />
           </div>
         </TabsContent>
