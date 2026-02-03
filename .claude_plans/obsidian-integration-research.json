@@ -1,0 +1,964 @@
+{
+  "research_summary": {
+    "date": "2026-02-02",
+    "focus": "Obsidian Local REST API integration for bidirectional sync",
+    "platforms_searched": ["github", "obsidian-help", "obsidian-forum", "technical-documentation"],
+    "repositories_analyzed": 3,
+    "docs_reviewed": 12
+  },
+
+  "obsidian_local_rest_api": {
+    "overview": {
+      "plugin_name": "Obsidian Local REST API",
+      "author": "coddingtonbear",
+      "repository": "https://github.com/coddingtonbear/obsidian-local-rest-api",
+      "documentation": "https://coddingtonbear.github.io/obsidian-local-rest-api/",
+      "purpose": "Secure HTTPS interface with API key authentication for automating Obsidian vault operations",
+      "version": "3.2.0+",
+      "license": "Open source"
+    },
+
+    "authentication": {
+      "type": "Bearer token (API key)",
+      "location": "Obsidian settings → Local REST API plugin section",
+      "header_format": "Authorization: Bearer {API_KEY}",
+      "auto_generation": "API key automatically generated on first-time setup",
+      "security": "HTTPS with self-signed certificate (requires trust configuration)",
+      "exception": "GET / endpoint does not require authentication"
+    },
+
+    "configuration": {
+      "default_port": 27124,
+      "default_protocol": "HTTPS",
+      "base_url": "https://127.0.0.1:27124",
+      "ssl_certificate": "Self-signed certificate accessible via GET /obsidian-local-rest-api.crt",
+      "certificate_warning": "May trigger browser/client warnings - requires SSL verification disabled or certificate trust"
+    },
+
+    "api_endpoints": {
+      "system": [
+        {
+          "method": "GET",
+          "path": "/",
+          "purpose": "Server information and authentication status",
+          "auth_required": false,
+          "response": "Service details, version, auth status"
+        },
+        {
+          "method": "GET",
+          "path": "/openapi.yaml",
+          "purpose": "OpenAPI specification for runtime endpoint discovery",
+          "auth_required": true,
+          "note": "Added in v3.2.0 for API introspection"
+        }
+      ],
+
+      "vault_files": [
+        {
+          "method": "GET",
+          "path": "/vault/{filename}",
+          "purpose": "Read file content",
+          "auth_required": true,
+          "accept_headers": [
+            "text/markdown (default - raw content)",
+            "application/vnd.olrapi.note+json (parsed with metadata)",
+            "application/vnd.olrapi.document-map+json (structure map)"
+          ],
+          "response_codes": [200, 404],
+          "note_json_schema": {
+            "content": "string",
+            "frontmatter": "object",
+            "path": "string",
+            "stat": {"ctime": "timestamp", "mtime": "timestamp", "size": "number"},
+            "tags": "array of strings"
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/vault/{filename}",
+          "purpose": "Append to existing file or create new file",
+          "auth_required": true,
+          "content_type": "text/markdown",
+          "response_codes": [204, 400, 405],
+          "note": "405 error if target is directory"
+        },
+        {
+          "method": "PUT",
+          "path": "/vault/{filename}",
+          "purpose": "Create new file or completely replace existing file",
+          "auth_required": true,
+          "content_type": "text/markdown or */*",
+          "response_codes": [204, 400, 405]
+        },
+        {
+          "method": "PATCH",
+          "path": "/vault/{filename}",
+          "purpose": "Modify content relative to structural elements (headings, blocks, frontmatter)",
+          "auth_required": true,
+          "required_headers": {
+            "Operation": "append | prepend | replace",
+            "Target-Type": "heading | block | frontmatter",
+            "Target": "Location identifier (e.g., 'Heading 1::Subheading 1' for nested)"
+          },
+          "optional_headers": {
+            "Target-Delimiter": "Default :: - for nested targets",
+            "Trim-Target-Whitespace": "Default false - true | false"
+          },
+          "content_type": "text/markdown or application/json (for table operations)",
+          "response_codes": [200, 400, 404, 405],
+          "special_features": [
+            "Supports nested heading targeting with delimiter syntax",
+            "Can insert into specific sections without replacing entire file",
+            "Table row operations via JSON formatting",
+            "URL encoding required for non-ASCII characters"
+          ],
+          "version_note": "PATCH API changed in v3.0; older format deprecated until v4.0"
+        },
+        {
+          "method": "DELETE",
+          "path": "/vault/{filename}",
+          "purpose": "Remove file from vault",
+          "auth_required": true,
+          "response_codes": [204, 404, 405]
+        }
+      ],
+
+      "vault_directories": [
+        {
+          "method": "GET",
+          "path": "/vault/",
+          "purpose": "List root directory contents",
+          "auth_required": true,
+          "response_codes": [200, 404],
+          "note": "Empty directories excluded from results"
+        },
+        {
+          "method": "GET",
+          "path": "/vault/{pathToDirectory}/",
+          "purpose": "List contents of specified directory",
+          "auth_required": true,
+          "response_codes": [200, 404]
+        }
+      ],
+
+      "active_file": [
+        {
+          "note": "All /active/ endpoints mirror /vault/{filename} functionality but operate on currently open file in Obsidian UI",
+          "methods": ["GET", "POST", "PUT", "PATCH", "DELETE"],
+          "path_pattern": "/active/",
+          "use_case": "Useful for browser extensions or tools that work with currently focused note"
+        }
+      ],
+
+      "periodic_notes": [
+        {
+          "pattern": "/periodic/{period}/",
+          "periods": ["daily", "weekly", "monthly", "quarterly", "yearly"],
+          "methods": ["GET", "POST", "PUT", "PATCH", "DELETE"],
+          "purpose": "Work with periodic notes (today's daily note, current week's weekly note, etc.)",
+          "note": "Creates note from template if it doesn't exist"
+        },
+        {
+          "pattern": "/periodic/{period}/{year}/{month}/{day}/",
+          "methods": ["GET", "POST", "PUT", "PATCH", "DELETE"],
+          "purpose": "Work with specific date's periodic note",
+          "parameters": {
+            "year": "number",
+            "month": "1-12",
+            "day": "1-31"
+          }
+        }
+      ],
+
+      "commands": [
+        {
+          "method": "GET",
+          "path": "/commands/",
+          "purpose": "List all available Obsidian commands",
+          "auth_required": true,
+          "response": "Array of {id, name} pairs"
+        },
+        {
+          "method": "POST",
+          "path": "/commands/{commandId}/",
+          "purpose": "Execute specific Obsidian command",
+          "auth_required": true,
+          "response_codes": [204, 404]
+        }
+      ],
+
+      "open": [
+        {
+          "method": "POST",
+          "path": "/open/{filename}",
+          "purpose": "Open file in Obsidian UI",
+          "auth_required": true,
+          "query_parameters": {
+            "newLeaf": "boolean (optional) - open in new pane/tab"
+          },
+          "response_codes": [200],
+          "note": "Creates file if it doesn't exist"
+        }
+      ],
+
+      "search": [
+        {
+          "method": "POST",
+          "path": "/search/",
+          "purpose": "Advanced query-based file search",
+          "auth_required": true,
+          "content_types": [
+            "application/vnd.olrapi.dataview.dql+txt (Dataview DQL syntax)",
+            "application/vnd.olrapi.jsonlogic+json (JsonLogic format)"
+          ],
+          "custom_operators": {
+            "glob": "Pattern matching (e.g., *.foo)",
+            "regexp": "Regular expression matching"
+          },
+          "response": "Array of matching files with results",
+          "note": "Falsy values excluded: false, null/undefined, 0, [], {}"
+        },
+        {
+          "method": "POST",
+          "path": "/search/simple/",
+          "purpose": "Text-based file search",
+          "auth_required": true,
+          "query_parameters": {
+            "query": "string (required) - search term",
+            "contextLength": "number (optional, default: 100) - context window around matches"
+          },
+          "response": "Matching files with positions, context, and relevance scores"
+        }
+      ]
+    },
+
+    "capabilities": {
+      "note_operations": [
+        "Create, read, update, delete notes",
+        "Append content to existing notes",
+        "Insert content at specific locations (headings, blocks, frontmatter)",
+        "Replace entire file content"
+      ],
+      "vault_operations": [
+        "List directory contents (excluding empty directories)",
+        "Navigate vault directory structure",
+        "Access metadata (creation time, modification time, size)"
+      ],
+      "advanced_features": [
+        "PATCH operations for surgical content insertion",
+        "Periodic notes integration",
+        "Command execution",
+        "Search with Dataview DQL or JsonLogic",
+        "Active file manipulation for UI-aware operations",
+        "Table row operations via JSON",
+        "OpenAPI specification for runtime discovery"
+      ]
+    },
+
+    "limitations": {
+      "network": [
+        "Local network only (127.0.0.1 by default)",
+        "Requires Obsidian desktop app running",
+        "Self-signed SSL certificate requires trust configuration"
+      ],
+      "api": [
+        "No rate limiting documented (potential concern for high-frequency sync)",
+        "No batch operations (must make individual requests per file)",
+        "No transaction support for multi-file operations",
+        "No built-in conflict detection or merge capabilities",
+        "PATCH API breaking changes between major versions",
+        "Directory operations limited to listing (no create/delete directory endpoints)"
+      ],
+      "sync_challenges": [
+        "No webhook or push notification support (must poll for changes)",
+        "No incremental change detection (must compare timestamps or content)",
+        "No built-in conflict resolution",
+        "No partial content transfer (always full file operations)"
+      ]
+    },
+
+    "example_requests": {
+      "read_note": {
+        "description": "Get note with parsed metadata",
+        "curl": "curl -k -X GET -H \"Authorization: Bearer YOUR_API_KEY\" -H \"Accept: application/vnd.olrapi.note+json\" \"https://127.0.0.1:27124/vault/MyNote.md\""
+      },
+      "create_note": {
+        "description": "Create new note with frontmatter",
+        "curl": "curl -k -X PUT -H \"Authorization: Bearer YOUR_API_KEY\" -H \"Content-Type: text/markdown\" -d \"---\\ntitle: My Note\\ntags: [project, important]\\n---\\n\\n# My Note\\n\\nContent here\" \"https://127.0.0.1:27124/vault/NewNote.md\""
+      },
+      "append_content": {
+        "description": "Append content to existing note",
+        "curl": "curl -k -X POST -H \"Authorization: Bearer YOUR_API_KEY\" -H \"Content-Type: text/markdown\" -d \"\\n## New Section\\n\\nAdditional content\" \"https://127.0.0.1:27124/vault/ExistingNote.md\""
+      },
+      "insert_at_heading": {
+        "description": "Insert content under specific heading",
+        "curl": "curl -k -X PATCH -H \"Authorization: Bearer YOUR_API_KEY\" -H \"Operation: append\" -H \"Target-Type: heading\" -H \"Target: My Heading\" -H \"Content-Type: text/markdown\" -d \"\\nNew content under heading\" \"https://127.0.0.1:27124/vault/MyNote.md\""
+      },
+      "update_frontmatter": {
+        "description": "Update frontmatter field",
+        "curl": "curl -k -X PATCH -H \"Authorization: Bearer YOUR_API_KEY\" -H \"Operation: replace\" -H \"Target-Type: frontmatter\" -H \"Target: status\" -H \"Content-Type: text/markdown\" -d \"completed\" \"https://127.0.0.1:27124/vault/Task.md\""
+      },
+      "search_notes": {
+        "description": "Simple text search",
+        "curl": "curl -k -X POST -H \"Authorization: Bearer YOUR_API_KEY\" \"https://127.0.0.1:27124/search/simple/?query=project&contextLength=50\""
+      },
+      "list_vault": {
+        "description": "List all files in vault root",
+        "curl": "curl -k -X GET -H \"Authorization: Bearer YOUR_API_KEY\" \"https://127.0.0.1:27124/vault/\""
+      }
+    }
+  },
+
+  "obsidian_file_format": {
+    "markdown_specification": {
+      "base_format": "CommonMark Markdown with Obsidian extensions",
+      "file_extension": ".md",
+      "encoding": "UTF-8"
+    },
+
+    "yaml_frontmatter": {
+      "structure": {
+        "delimiter": "--- (three dashes)",
+        "position": "Must be at very top of file",
+        "format": "YAML syntax between opening and closing ---",
+        "example": "---\\ntitle: My Note\\ntags: [tag1, tag2]\\naliases: [Alias 1, Alias 2]\\n---"
+      },
+
+      "native_fields": {
+        "tags": {
+          "formats": [
+            "Array: tags: [tag1, tag2, tag3]",
+            "List: tags:\\n  - tag1\\n  - tag2"
+          ],
+          "important": "Do NOT include # symbol in frontmatter tags (makes them invalid)"
+        },
+        "aliases": {
+          "format": "List property for alternative note names",
+          "example": "aliases: [Short Name, Abbrev]"
+        },
+        "cssclass": {
+          "purpose": "Apply custom CSS class to note"
+        }
+      },
+
+      "custom_fields": {
+        "common_patterns": [
+          "created: YYYY-MM-DD HH:mm:ss (creation timestamp)",
+          "updated: YYYY-MM-DD HH:mm:ss (modification timestamp)",
+          "status: value (workflow state)",
+          "priority: value (importance level)",
+          "type: value (note category)"
+        ],
+        "data_types": [
+          "strings (quoted or unquoted)",
+          "numbers",
+          "booleans (true/false)",
+          "arrays/lists",
+          "dates (YYYY-MM-DD format recommended)",
+          "nested objects"
+        ]
+      },
+
+      "limitations": {
+        "position": "Must be at very top or will not be recognized",
+        "syntax": "Must be valid YAML or entire frontmatter ignored",
+        "links": "Wikilinks in frontmatter may require plugin support for full functionality"
+      }
+    },
+
+    "wikilinks": {
+      "syntax": "[[Note Name]] or [[Note Name|Display Text]]",
+      "features": [
+        "Automatic backlink creation in target note",
+        "Graph view connection",
+        "Supports aliases: [[Note Name|Custom Display]]",
+        "Block references: [[Note Name#^blockid]]",
+        "Heading links: [[Note Name#Heading]]"
+      ],
+      "vs_markdown_links": {
+        "wikilinks": "[[Note]] - Full Obsidian features (backlinks, graph)",
+        "markdown_links": "[Text](Note.md) - Limited backlink support",
+        "recommendation": "Use wikilinks for Obsidian-specific features"
+      }
+    },
+
+    "tags": {
+      "inline_format": "#tag or #nested/tag",
+      "frontmatter_format": "tags: [tag1, tag2] (without # symbol)",
+      "nested_tags": "Use slash separator: #projects/active",
+      "tag_panel": "Shows all tags with counts in Obsidian UI"
+    },
+
+    "metadata_handling": {
+      "file_system_metadata": {
+        "ctime": "File creation time (unreliable across file system operations)",
+        "mtime": "File modification time (updated on every change)",
+        "size": "File size in bytes"
+      },
+      "recommended_approach": {
+        "strategy": "Use YAML frontmatter for reliable timestamps",
+        "created_field": "created: YYYY-MM-DD HH:mm:ss",
+        "updated_field": "updated: YYYY-MM-DD HH:mm:ss",
+        "plugins": [
+          "Update Time on Edit - auto-updates frontmatter timestamps",
+          "Templater - inserts timestamps on note creation",
+          "Date in Metadata - auto-inserts creation date"
+        ],
+        "rationale": "File system timestamps lost on copy/restore/sync operations"
+      }
+    },
+
+    "special_features": {
+      "callouts": ">[!type] Title\\n> Content (for info boxes)",
+      "code_blocks": "```language\\ncode\\n```",
+      "tables": "Markdown tables with Obsidian enhancements",
+      "math": "LaTeX with $ or $$ delimiters",
+      "embedded_notes": "![[Note Name]] to embed another note",
+      "embedded_images": "![[image.png]] or ![](image.png)"
+    }
+  },
+
+  "sync_strategies": {
+    "official_obsidian_sync": {
+      "mechanism": "Proprietary cloud sync service",
+      "conflict_resolution": {
+        "algorithm": "Google diff-match-patch for text merging",
+        "strategy": "Automatic merge of concurrent changes",
+        "special_case": "If note created locally and remote version synced within minutes, remote version retained without merge",
+        "settings_files": "JSON files merged by applying local keys on top of remote"
+      },
+      "features": [
+        "End-to-end encryption",
+        "Selective sync (choose files/folders)",
+        "Version history",
+        "Deleted file recovery",
+        "Mobile support"
+      ],
+      "limitations": [
+        "Paid service ($10/month as of 2025)",
+        "Proprietary (no self-hosting)",
+        "Limited to Obsidian's servers"
+      ]
+    },
+
+    "third_party_options": {
+      "git_based": {
+        "plugin": "obsidian-git",
+        "mechanism": "Git commits and push/pull",
+        "conflict_resolution": "Standard Git merge with manual conflict resolution",
+        "commit_strategy": "Auto-commit with timestamps: 'Auto-sync: YYYY-MM-DD HH:MM:SS'",
+        "pros": [
+          "Free",
+          "Full version history",
+          "Works with GitHub/GitLab",
+          "Self-hosted option"
+        ],
+        "cons": [
+          "Requires Git knowledge for conflicts",
+          "Manual conflict resolution can be complex",
+          "Not real-time",
+          "Mobile support limited"
+        ]
+      },
+
+      "file_sync": {
+        "services": ["Syncthing", "Dropbox", "OneDrive", "Google Drive", "iCloud"],
+        "mechanism": "File-level synchronization",
+        "conflict_resolution": {
+          "typical_strategy": "Last-write-wins based on file mtime",
+          "conflict_files": "Create duplicate files for conflicts (filename conflict.md)"
+        },
+        "syncthing_specific": {
+          "conflict_strategy": "Send & Receive bidirectional mode",
+          "issue": "MacOS + Android combinations may cause conflicts on every modification",
+          "recommendation": "Configure ignore patterns for .obsidian folder"
+        },
+        "icloud_warning": "Known to cause file duplication/corruption on Windows",
+        "pros": [
+          "Simple setup",
+          "Works across many apps",
+          "Some options free"
+        ],
+        "cons": [
+          "No merge capabilities",
+          "Conflict files require manual resolution",
+          "No version history (typically)",
+          ".obsidian folder sync issues"
+        ]
+      },
+
+      "obsidian_livesync": {
+        "plugin": "obsidian-livesync",
+        "mechanism": "CouchDB-based bidirectional sync",
+        "conflict_resolution": "Pick a file to resolve conflict UI",
+        "features": [
+          "Self-hosted option",
+          "Real-time sync",
+          "End-to-end encryption",
+          "Mobile support"
+        ],
+        "setup_complexity": "Requires CouchDB server setup"
+      },
+
+      "remotely_save": {
+        "plugin": "Remotely Save",
+        "services": "WebDAV, S3, OneDrive, Dropbox",
+        "mechanism": "Cloud storage sync",
+        "conflict_resolution": "Varies by configuration"
+      },
+
+      "obsidian_decentralized": {
+        "plugin": "obsidian-decentralized",
+        "mechanism": "Local network peer-to-peer sync",
+        "conflict_resolution_options": [
+          "Last Write Wins - newest mtime kept",
+          "Attempt Auto-Merge - for Markdown files",
+          "Create duplicate conflict files (safest)"
+        ],
+        "merge_fallback": "If auto-merge fails, creates conflict file"
+      }
+    },
+
+    "web_app_integration_patterns": {
+      "polling_approach": {
+        "mechanism": "Periodic GET requests to check for changes",
+        "implementation": [
+          "1. Store last sync timestamp per note",
+          "2. Periodically GET /vault/ to list all files",
+          "3. For each file, GET with Accept: application/vnd.olrapi.note+json",
+          "4. Compare stat.mtime with stored timestamp",
+          "5. If changed, fetch full content and update local DB"
+        ],
+        "pros": [
+          "Simple to implement",
+          "Works with REST API as-is"
+        ],
+        "cons": [
+          "High API call volume",
+          "Delay in sync (poll interval)",
+          "No way to detect deletions without full vault scan"
+        ]
+      },
+
+      "timestamp_based_sync": {
+        "mechanism": "Compare modification timestamps",
+        "implementation": [
+          "1. Each note stores: obsidian_mtime, app_mtime, sync_timestamp",
+          "2. On sync: compare obsidian_mtime vs stored obsidian_mtime",
+          "3. If changed: fetch from Obsidian, check for conflicts",
+          "4. Conflict if: obsidian_mtime > sync_timestamp AND app_mtime > sync_timestamp"
+        ],
+        "conflict_detection": "Both sides modified since last sync",
+        "resolution_strategies": [
+          "Last-write-wins (compare mtimes)",
+          "Manual resolution (present both versions to user)",
+          "Automatic merge (for simple changes)",
+          "Create conflict note in Obsidian"
+        ]
+      },
+
+      "content_hash_sync": {
+        "mechanism": "Use content hashing for change detection",
+        "implementation": [
+          "1. Store SHA-256 hash of note content",
+          "2. On sync: GET note and hash content",
+          "3. Compare hash: if different, content changed",
+          "4. More reliable than timestamp comparison"
+        ],
+        "pros": [
+          "Detects actual content changes (not just mtime updates)",
+          "Handles clock skew issues"
+        ],
+        "cons": [
+          "Must fetch full content to check for changes",
+          "Higher bandwidth usage"
+        ]
+      },
+
+      "frontmatter_metadata_tracking": {
+        "mechanism": "Use YAML frontmatter for sync state",
+        "implementation": [
+          "Add custom frontmatter fields:",
+          "  sync_id: unique identifier from web app",
+          "  sync_version: version number or hash",
+          "  last_synced: timestamp",
+          "  synced_from: 'app' or 'obsidian'"
+        ],
+        "pros": [
+          "Sync state embedded in file",
+          "Survives file system operations",
+          "Visible to user in Obsidian"
+        ],
+        "cons": [
+          "Modifies user's notes",
+          "Frontmatter clutter",
+          "User could edit sync metadata"
+        ]
+      }
+    },
+
+    "recommended_sync_architecture": {
+      "approach": "Hybrid timestamp + content hash with PATCH support",
+      "data_model": {
+        "sync_state_table": {
+          "fields": [
+            "note_id (app internal ID)",
+            "obsidian_path (vault path)",
+            "last_obsidian_mtime (from stat.mtime)",
+            "last_app_mtime (app modification time)",
+            "last_sync_timestamp (successful sync time)",
+            "content_hash (SHA-256 of content)",
+            "sync_direction (to_obsidian | from_obsidian | bidirectional)",
+            "conflict_status (none | detected | resolved)"
+          ]
+        }
+      },
+
+      "sync_workflow": {
+        "pull_from_obsidian": [
+          "1. GET /vault/ to list all .md files",
+          "2. For each file: GET with Accept: application/vnd.olrapi.note+json",
+          "3. Compare stat.mtime with stored last_obsidian_mtime",
+          "4. If changed:",
+          "  a. Check if app version also changed (app_mtime > last_sync)",
+          "  b. If conflict: flag for manual resolution",
+          "  c. If no conflict: update app DB and store new mtime/hash",
+          "5. Detect deletions: files in sync_state but not in /vault/"
+        ],
+
+        "push_to_obsidian": [
+          "1. Query app DB for notes modified since last_sync",
+          "2. For each modified note:",
+          "  a. Check if Obsidian version changed (GET and compare mtime)",
+          "  b. If conflict: flag for resolution",
+          "  c. If no conflict: PUT new content to /vault/{path}",
+          "  d. Update sync_state with new mtimes and hash",
+          "3. For deletions: DELETE /vault/{path}"
+        ],
+
+        "conflict_resolution": [
+          "1. Detect conflict: both sides modified since last_sync",
+          "2. Resolution options:",
+          "  - User choice (present both versions)",
+          "  - Last-write-wins (compare mtimes)",
+          "  - Keep both (create 'Note (from app).md' in Obsidian)",
+          "  - Attempt auto-merge (if changes in different sections)",
+          "3. Use PATCH for surgical updates to reduce conflicts"
+        ]
+      },
+
+      "optimization_strategies": [
+        "Cache GET /vault/ results for 30-60 seconds to reduce API calls",
+        "Use PATCH to update specific sections instead of full PUT",
+        "Implement exponential backoff for API rate limiting",
+        "Batch sync operations during user idle periods",
+        "Allow user to configure sync frequency (real-time, 5min, manual)",
+        "Use frontmatter fields (created, updated) instead of file system times",
+        "Implement selective sync (user chooses which notes to sync)"
+      ],
+
+      "technical_considerations": [
+        "Handle Obsidian not running gracefully (connection errors)",
+        "Support multiple vaults (different base URLs or API keys)",
+        "Respect .obsidian folder (exclude from sync)",
+        "Handle file renames (Obsidian doesn't provide rename events)",
+        "Deal with Obsidian's auto-save behavior (may cause rapid mtime changes)",
+        "Consider sync filtering by tags or folders",
+        "Implement conflict resolution UI in web app",
+        "Log all sync operations for debugging",
+        "Provide sync status indicators in UI"
+      ]
+    }
+  },
+
+  "implementation_recommendations": [
+    {
+      "scenario": "Initial MVP - One-way sync (Obsidian → Web App)",
+      "recommended_solution": "Polling with timestamp comparison",
+      "implementation": [
+        "1. User provides Obsidian API key and base URL in app settings",
+        "2. App periodically (every 5 minutes) calls GET /vault/",
+        "3. For new/changed files: GET with application/vnd.olrapi.note+json",
+        "4. Parse frontmatter for tags, created, updated fields",
+        "5. Create/update records in app database",
+        "6. Map Obsidian notes to app entities (Memo, Idea, etc.) based on tags or folder"
+      ],
+      "rationale": "Simplest to implement, low risk of data loss, allows users to continue Obsidian workflow"
+    },
+    {
+      "scenario": "Bidirectional sync - Basic",
+      "recommended_solution": "Timestamp-based sync with last-write-wins",
+      "implementation": [
+        "1. Track last_obsidian_mtime and last_app_mtime in sync_state table",
+        "2. Pull: Compare Obsidian mtime with stored value, update if newer",
+        "3. Push: Compare app mtime with stored value, PUT to Obsidian if newer",
+        "4. Conflict: If both changed, compare mtimes and keep newest",
+        "5. Store sync_timestamp on successful sync"
+      ],
+      "rationale": "Automatic conflict resolution, minimal user intervention, works for single-user scenarios"
+    },
+    {
+      "scenario": "Bidirectional sync - Production",
+      "recommended_solution": "Hybrid timestamp + content hash with conflict detection UI",
+      "implementation": [
+        "1. Use timestamp comparison for change detection (performance)",
+        "2. Use content hash for conflict detection (accuracy)",
+        "3. When conflict detected: present both versions to user in UI",
+        "4. User chooses: keep app version, keep Obsidian version, or manual merge",
+        "5. Use PATCH operations to minimize conflicts (update specific sections)"
+      ],
+      "rationale": "Balances performance with accuracy, gives user control over conflicts, reduces data loss risk"
+    },
+    {
+      "scenario": "Selective sync - Notes by tag",
+      "recommended_solution": "Filter by frontmatter tags during sync",
+      "implementation": [
+        "1. User configures sync tags in app settings (e.g., #sync/tasks, #sync/ideas)",
+        "2. GET /vault/ and filter files",
+        "3. For each file: GET with application/vnd.olrapi.note+json",
+        "4. Check frontmatter tags array",
+        "5. Only sync notes with matching tags",
+        "6. When creating notes in Obsidian from app, add sync tags to frontmatter"
+      ],
+      "rationale": "Users can control which notes sync, reduces API calls, respects privacy"
+    },
+    {
+      "scenario": "Entity mapping - Tasks",
+      "recommended_solution": "Map app Tasks to Obsidian notes with specific frontmatter schema",
+      "implementation": [
+        "Frontmatter schema:",
+        "  ---",
+        "  type: task",
+        "  sync_id: <app task ID>",
+        "  status: TODO | IN_PROGRESS | DONE",
+        "  priority: LOW | MEDIUM | HIGH | URGENT",
+        "  due: YYYY-MM-DD",
+        "  tags: [work, project-x]",
+        "  ---",
+        "Sync logic:",
+        "  - App task → Obsidian: PUT /vault/Tasks/{title}.md with frontmatter + description",
+        "  - Obsidian → App task: Parse frontmatter, map to Task model fields",
+        "  - Use PATCH to update status field when task completed in app"
+      ],
+      "rationale": "Clear schema, easy to query in Obsidian with Dataview, preserves app data model"
+    },
+    {
+      "scenario": "Entity mapping - Memos/Ideas",
+      "recommended_solution": "Use folders and frontmatter type field",
+      "implementation": [
+        "Structure:",
+        "  /Memos/*.md (type: memo in frontmatter)",
+        "  /Ideas/*.md (type: idea in frontmatter)",
+        "Frontmatter schema:",
+        "  ---",
+        "  type: memo | idea",
+        "  sync_id: <app ID>",
+        "  created: YYYY-MM-DD HH:mm:ss",
+        "  updated: YYYY-MM-DD HH:mm:ss",
+        "  tags: [tag1, tag2]",
+        "  ---",
+        "Sync logic:",
+        "  - Use folder path to determine entity type",
+        "  - Fallback to frontmatter 'type' field if in root",
+        "  - Preserve rich text formatting in content body"
+      ],
+      "rationale": "Leverages Obsidian's folder structure, keeps notes organized, allows Dataview queries"
+    }
+  ],
+
+  "technical_insights": {
+    "common_patterns": [
+      "Most Obsidian integrations use polling rather than webhooks (no real-time API)",
+      "YAML frontmatter is the standard for structured metadata",
+      "Wikilinks [[]] are preferred over Markdown links for Obsidian features",
+      "Timestamp tracking in frontmatter more reliable than file system metadata",
+      "PATCH operations enable granular updates (reduce conflicts)",
+      "Self-signed SSL requires client-side trust configuration"
+    ],
+
+    "best_practices": [
+      "Always use Accept: application/vnd.olrapi.note+json for structured data access",
+      "Store API key securely (encrypted in app database, not in frontend)",
+      "Implement retry logic with exponential backoff for API failures",
+      "Validate YAML frontmatter before parsing (handle malformed YAML)",
+      "Use content hashing for reliable conflict detection",
+      "Respect user's note organization (don't restructure vault)",
+      "Provide clear sync status UI (last sync time, conflicts, errors)",
+      "Allow manual sync trigger in addition to automatic sync",
+      "Test with Obsidian not running (handle connection errors gracefully)",
+      "Document frontmatter schema for users (what fields app uses/expects)"
+    ],
+
+    "pitfalls": [
+      "File system timestamps unreliable across sync services",
+      "iCloud on Windows causes file corruption",
+      "Rapid auto-save in Obsidian may cause frequent mtime updates",
+      "Sync loops: app updates Obsidian → Obsidian mtime changes → app detects change",
+      "Frontmatter with # symbols in tags array is invalid YAML",
+      "PATCH API changed in v3.0 (breaking change)",
+      "No DELETE detection without full vault scan",
+      "Self-signed certificate causes connection errors without proper config",
+      "No batch operations (must make individual API calls per file)",
+      "Empty directories not listed by GET /vault/"
+    ],
+
+    "emerging_trends": [
+      "MCP (Model Context Protocol) servers for Obsidian integration with AI tools",
+      "Dataview DQL for advanced querying becoming standard",
+      "PATCH operations replacing full PUT for updates",
+      "OpenAPI specs for runtime endpoint discovery",
+      "Decentralized sync options (P2P, local network)",
+      "Plugin ecosystem growing for specialized sync needs"
+    ]
+  },
+
+  "community_insights": {
+    "popular_solutions": [
+      "Obsidian Sync for paid users (most seamless)",
+      "Git + obsidian-git plugin for tech-savvy users",
+      "Syncthing for free cross-platform sync",
+      "Local REST API for custom integrations and automation"
+    ],
+
+    "controversial_topics": [
+      "File system metadata vs frontmatter for timestamps (community prefers frontmatter)",
+      "Wikilinks vs Markdown links (Obsidian features favor wikilinks)",
+      "Sync service reliability (iCloud issues on Windows)",
+      "Conflict resolution strategies (manual vs automatic)"
+    ],
+
+    "expert_opinions": [
+      "Use frontmatter for all metadata that should survive file operations",
+      "PATCH operations are underutilized but powerful for reducing conflicts",
+      "Obsidian Local REST API is most flexible for custom workflows",
+      "Consider user's vault as source of truth (don't force app structure onto vault)",
+      "Implement conservative conflict resolution (when in doubt, ask user)"
+    ]
+  },
+
+  "gotchas_and_challenges": {
+    "api_limitations": [
+      "No webhooks or server-sent events (must poll)",
+      "No batch operations (performance concern for large vaults)",
+      "No transaction support (can't update multiple files atomically)",
+      "Self-signed SSL certificate requires trust configuration",
+      "API only accessible when Obsidian desktop app is running",
+      "Local network only (not accessible remotely without VPN/tunnel)"
+    ],
+
+    "sync_challenges": [
+      "Detecting deletions requires full vault scan",
+      "File renames appear as delete + create",
+      "Rapid auto-save in Obsidian causes frequent changes",
+      "Sync loops if not careful with mtime tracking",
+      "Large vaults (1000+ notes) may have slow sync times",
+      "Binary attachments not well-supported in API",
+      "Nested tag structures in frontmatter can be complex to parse"
+    ],
+
+    "conflict_resolution_challenges": [
+      "No built-in merge capabilities in REST API",
+      "Diff-match-patch library needed for content merging",
+      "User education required (what is a conflict, how to resolve)",
+      "Presenting conflicts in UI without overwhelming user",
+      "Preserving Obsidian-specific syntax (wikilinks, callouts) during merge"
+    ],
+
+    "frontmatter_gotchas": [
+      "Must be at very top of file (even blank line breaks it)",
+      "Invalid YAML silently ignored by Obsidian",
+      "Tags array must not include # symbols",
+      "Dates without quotes may parse incorrectly",
+      "Wikilinks in frontmatter may not create backlinks without plugin",
+      "Nested objects can be hard to edit in Obsidian UI"
+    ],
+
+    "performance_considerations": [
+      "Full vault scan can take seconds for 1000+ notes",
+      "Each note requires separate GET request (no bulk endpoint)",
+      "Content hash calculation adds CPU overhead",
+      "Frequent polling increases battery usage on laptops",
+      "Network latency accumulates with many sequential requests"
+    ]
+  },
+
+  "next_steps": {
+    "proof_of_concept": [
+      "1. Install Obsidian Local REST API plugin in test vault",
+      "2. Create sample notes with frontmatter schema",
+      "3. Test all CRUD operations via curl",
+      "4. Implement basic tRPC router for Obsidian integration",
+      "5. Build sync UI in web app settings page",
+      "6. Test one-way sync (Obsidian → app) with polling"
+    ],
+
+    "mvp_features": [
+      "User settings: Obsidian API key, base URL, sync interval",
+      "One-way sync: Obsidian → app (read-only from app perspective)",
+      "Entity mapping: Memos and Ideas (based on folder or frontmatter)",
+      "Sync status UI: last sync time, file count, errors",
+      "Manual sync trigger button"
+    ],
+
+    "v1_features": [
+      "Bidirectional sync with last-write-wins conflict resolution",
+      "Task entity mapping with status sync",
+      "Selective sync by tags or folders",
+      "Conflict detection UI",
+      "Sync history/log"
+    ],
+
+    "future_enhancements": [
+      "Advanced conflict resolution (diff UI, manual merge)",
+      "Real-time sync (reduce poll interval or investigate alternatives)",
+      "Multi-vault support",
+      "Attachment/image sync",
+      "Obsidian command execution from app",
+      "Search integration (use /search/ endpoints)",
+      "Calendar event sync with periodic notes"
+    ]
+  },
+
+  "citations": [
+    {
+      "number": 1,
+      "citation": "coddingtonbear. \"Obsidian Local REST API.\" GitHub, 2026. https://github.com/coddingtonbear/obsidian-local-rest-api"
+    },
+    {
+      "number": 2,
+      "citation": "coddingtonbear. \"Local Rest API for Obsidian: Interactive API Documentation.\" GitHub Pages, 2026. https://coddingtonbear.github.io/obsidian-local-rest-api/"
+    },
+    {
+      "number": 3,
+      "citation": "Obsidian. \"YAML front matter - Obsidian Help.\" Obsidian Help, 2026. https://help.obsidian.md/Advanced+topics/YAML+front+matter"
+    },
+    {
+      "number": 4,
+      "citation": "Obsidian. \"Internal links - Obsidian Help.\" Obsidian Help, 2026. https://help.obsidian.md/links"
+    },
+    {
+      "number": 5,
+      "citation": "Obsidian Community. \"Robust Sync Conflict Resolution.\" Obsidian Forum, 2026. https://forum.obsidian.md/t/robust-sync-conflict-resolution/93544"
+    },
+    {
+      "number": 6,
+      "citation": "iWebbIO. \"obsidian-decentralized.\" GitHub, 2026. https://github.com/iWebbIO/obsidian-decentralized"
+    },
+    {
+      "number": 7,
+      "citation": "Obsidian. \"Troubleshoot Obsidian Sync - Obsidian Help.\" Obsidian Help, 2026. https://help.obsidian.md/Obsidian+Sync/Troubleshoot+Obsidian+Sync"
+    },
+    {
+      "number": 8,
+      "citation": "nicolevanderhoeven. \"YAML Frontmatter - Fork My Brain.\" Fork My Brain, 2026. https://notes.nicolevanderhoeven.com/obsidian-playbook/Using+Obsidian/03+Linking+and+organizing/YAML+Frontmatter"
+    },
+    {
+      "number": 9,
+      "citation": "Obsidian Community. \"How to retrieve creation date from Metadata of a note.\" Obsidian Forum, 2026. https://forum.obsidian.md/t/how-to-retrieve-creation-date-from-metadata-of-a-note/31246"
+    },
+    {
+      "number": 10,
+      "citation": "Miller, Stephan. \"How to Sync Obsidian Across All Your Devices.\" Stephan Miller, 2026. https://www.stephanmiller.com/sync-obsidian-vault-across-devices/"
+    }
+  ]
+}

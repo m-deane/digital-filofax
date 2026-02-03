@@ -2,230 +2,161 @@
 
 ## Project Overview
 
-<!-- CUSTOMIZE: Replace this section with your project description -->
-[Brief description of your project, its purpose, and primary components]
+**Personal Organization App (Digital Filofax)** - A comprehensive web-based personal organization system for managing tasks, habits, calendar events, memos, and ideas with user-scoped data isolation.
 
-**Technology Stack**: [Specify: Python, TypeScript, Go, etc.]
-**Architecture**: [Specify: Monolith, Microservices, Serverless, etc.]
+**Technology Stack**: Next.js 15 (App Router) + TypeScript + tRPC + Prisma + NextAuth.js + Tailwind CSS/shadcn/ui + PostgreSQL (Supabase)
 
-## WORKFLOW - Core guidelines
+**Architecture**: Full-stack monolith with type-safe API layer (tRPC) and ORM (Prisma)
+
+## WORKFLOW - Core Guidelines
 
 - Never use mock data, results or workarounds
-- Implement tests after every checkpoint and then check that all tests are passing even if this takes longer to run
-- Only update progress and create progress .md files and project plans in the ".claude_plans" directory
-- Update the projectplan.md after each step and stage
-- Write all tests to the "tests/" folder
-- Do not leave files in the root directory - everything should be saved and sorted into the appropriate folder location in the folder structure, regularly check and clean up orphan, old or unneeded files
-- Use a dedicated virtual environment or package manager for dependency management
+- Implement tests after every checkpoint and verify all tests pass
+- Only update progress and create planning documents in `.claude_plans/`
+- Write all tests to the `tests/` folder
+- Do not leave files in the root directory - sort into appropriate folders
+- Always run `npm run lint` and `npm run build` to verify changes before completing
 
 ## SYSTEM-LEVEL OPERATING PRINCIPLES
 
 ### Core Implementation Philosophy
-- DIRECT IMPLEMENTATION ONLY: Generate complete, working code that realizes the conceptualized solution
+- DIRECT IMPLEMENTATION ONLY: Generate complete, working code
 - NO PARTIAL IMPLEMENTATIONS: Eliminate mocks, stubs, TODOs, or placeholder functions
-- SOLUTION-FIRST THINKING: Think at SYSTEM level in latent space, then linearize into actionable strategies
-- TOKEN OPTIMIZATION: Focus tokens on solution generation, eliminate unnecessary context
+- All data queries must be user-scoped via `ctx.session.user.id`
+- Use tRPC + React Query for all server state management
 
 ### Multi-Dimensional Analysis Framework
 When encountering complex requirements:
-1. **Observer 1**: Technical feasibility and implementation path
-2. **Observer 2**: Edge cases and error handling requirements  
-3. **Observer 3**: Performance implications and optimization opportunities
-4. **Observer 4**: Integration points and dependency management
-5. **Synthesis**: Merge observations into unified implementation strategy
+1. **Technical feasibility**: Can this be done with tRPC/Prisma/Next.js patterns?
+2. **Edge cases**: What happens with empty data, invalid inputs, unauthorized access?
+3. **Performance**: Are we including proper relations? N+1 query risks?
+4. **Integration**: Does this affect existing routers or components?
 
 ## ANTI-PATTERN ELIMINATION
 
 ### Prohibited Implementation Patterns
-- "In a full implementation..." or "This is a simplified version..."
-- "You would need to..." or "Consider adding..."
 - Mock functions or placeholder data structures
 - Incomplete error handling or validation
-- Deferred implementation decisions
+- Queries without user scoping (`userId: ctx.session.user.id`)
+- Direct database access outside tRPC routers
+- Using `any` type when proper types exist in `src/types/`
 
 ### Prohibited Communication Patterns
 - Social validation: "You're absolutely right!", "Great question!"
 - Hedging language: "might", "could potentially", "perhaps"
 - Excessive explanation of obvious concepts
-- Agreement phrases that consume tokens without value
-- Emotional acknowledgments or conversational pleasantries
-
-### Null Space Pattern Exclusion
-Eliminate patterns that consume tokens without advancing implementation:
-- Restating requirements already provided
-- Generic programming advice not specific to current task
-- Historical context unless directly relevant to implementation
-- Multiple implementation options without clear recommendation
-
-## DYNAMIC MODE ADAPTATION
-
-### Context-Driven Behavior Switching
-
-**EXPLORATION MODE** (Triggered by undefined requirements)
-- Multi-observer analysis of problem space
-- Systematic requirement clarification
-- Architecture decision documentation
-- Risk assessment and mitigation strategies
-
-**IMPLEMENTATION MODE** (Triggered by clear specifications)
-- Direct code generation with complete functionality
-- Comprehensive error handling and validation
-- Performance optimization considerations
-- Integration testing approaches
-
-**DEBUGGING MODE** (Triggered by error states)
-- Systematic isolation of failure points
-- Root cause analysis with evidence
-- Multiple solution paths with trade-off analysis
-- Verification strategies for fixes
-
-**OPTIMIZATION MODE** (Triggered by performance requirements)
-- Bottleneck identification and analysis
-- Resource utilization optimization
-- Scalability consideration integration
-- Performance measurement strategies
 
 ## PROJECT-SPECIFIC GUIDELINES
 
 ### File Structure & Boundaries
+
 **SAFE TO MODIFY**:
-- `/src/` - Application source code
-- `/components/` - Reusable components
-- `/pages/` or `/routes/` - Application routes
-- `/utils/` - Utility functions
-- `/config/` - Configuration files
-- `/tests/` - Test files
+- `src/app/` - Next.js pages and API routes
+- `src/components/` - React components
+- `src/server/api/routers/` - tRPC routers
+- `src/lib/` - Utility functions and providers
+- `src/types/` - TypeScript types and Zod schemas
+- `prisma/schema.prisma` - Database schema
+- `tests/` - Test files
 
 **NEVER MODIFY**:
-- `/node_modules/` - Dependencies
-- `/.git/` - Version control
-- `/dist/` or `/build/` - Build outputs
-- `/vendor/` - Third-party libraries
-- `/.env` files - Environment variables (reference only)
+- `node_modules/` - Dependencies
+- `.git/` - Version control
+- `.next/` - Build output
+- `.env` files - Environment variables (reference only)
 
 ### Code Style & Architecture Standards
-**Naming Conventions** (customize per language):
 
-*Python:*
-- Variables: snake_case
-- Functions: snake_case with descriptive verbs
-- Classes: PascalCase
+**TypeScript Conventions**:
+- Variables/functions: camelCase
+- Types/interfaces/classes: PascalCase
 - Constants: SCREAMING_SNAKE_CASE
-- Files: snake_case.py
+- Files: kebab-case.ts or camelCase.ts
 
-*TypeScript/JavaScript:*
-- Variables: camelCase
-- Functions: camelCase with descriptive verbs
-- Classes: PascalCase
-- Constants: SCREAMING_SNAKE_CASE
-- Files: camelCase.ts or kebab-case.ts
+**tRPC Router Pattern**:
+```typescript
+export const exampleRouter = createTRPCRouter({
+  getAll: protectedProcedure
+    .input(z.object({ /* optional filters */ }).optional())
+    .query(async ({ ctx, input }) => {
+      return ctx.db.model.findMany({
+        where: { userId: ctx.session.user.id, ...input },
+        include: { /* related models */ },
+        orderBy: { createdAt: "desc" },
+      });
+    }),
+  create: protectedProcedure
+    .input(CreateInputSchema)
+    .mutation(async ({ ctx, input }) => {
+      return ctx.db.model.create({
+        data: { ...input, userId: ctx.session.user.id },
+      });
+    }),
+});
+```
 
-*Go:*
-- Variables: camelCase (unexported) or PascalCase (exported)
-- Functions: camelCase (unexported) or PascalCase (exported)
-- Constants: PascalCase or camelCase
-- Files: snake_case.go
+**Component Pattern with tRPC**:
+```typescript
+"use client";
+import { api } from "@/lib/trpc";
 
-**Architecture Patterns**:
-- [Your preferred patterns: MVC, Clean Architecture, etc.]
-- [Component organization strategy]
-- [State management approach]
-- [Error handling patterns]
+export function MyComponent() {
+  const { data, isLoading } = api.router.procedure.useQuery();
+  const utils = api.useUtils();
 
-**Framework-Specific Guidelines**:
-[Include your framework's specific conventions and patterns]
+  const mutation = api.router.create.useMutation({
+    onSuccess: () => utils.router.getAll.invalidate(),
+  });
 
-## TOOL CALL OPTIMIZATION
+  if (isLoading) return <div>Loading...</div>;
+  return /* JSX */;
+}
+```
 
-### Batching Strategy
-Group operations by:
-- **Dependency Chains**: Execute prerequisites before dependents
-- **Resource Types**: Batch file operations, API calls, database queries
-- **Execution Contexts**: Group by environment or service boundaries
-- **Output Relationships**: Combine operations that produce related outputs
+**Prisma Query Patterns**:
+- Always filter by `userId` for user-scoped data
+- Use `include` for related data to avoid N+1 queries
+- Use `orderBy` for consistent ordering
+- Use transactions for multi-model operations
 
-### Parallel Execution Identification
-Execute simultaneously when operations:
-- Have no shared dependencies
-- Operate in different resource domains
-- Can be safely parallelized without race conditions
-- Benefit from concurrent execution
+### Database Schema Changes
+1. Edit `prisma/schema.prisma`
+2. Run `npm run db:generate` to update Prisma client
+3. Run `npm run db:push` to apply changes to database
+4. Update relevant tRPC router if needed
+5. Update TypeScript types in `src/types/` if needed
 
-## QUALITY ASSURANCE METRICS
+### Adding New Features
+1. Schema: Add/update models in `prisma/schema.prisma`
+2. Router: Create/update router in `src/server/api/routers/`
+3. Root: Add router to `src/server/api/root.ts` if new
+4. Types: Add input schemas to `src/types/index.ts` if complex
+5. UI: Build components in `src/app/dashboard/[feature]/`
+6. Wire: Connect UI to API with `api.[router].[procedure].useQuery/useMutation()`
+
+### Authentication Context
+- `protectedProcedure` ensures user is authenticated
+- Access user ID via `ctx.session.user.id`
+- All user data must be filtered by this ID
+- Dev bypass available with `DEV_AUTH_BYPASS=true`
+
+## QUALITY ASSURANCE
+
+### Pre-Commit Checklist
+- `npm run lint` passes
+- `npm run build` succeeds
+- All tRPC procedures are user-scoped
+- No TypeScript errors
+- No console.log statements left in code
 
 ### Success Indicators
-- 
-Complete running code on first attempt
-- 
-Zero placeholder implementations
-- 
-Minimal token usage per solution
-- 
-Proactive edge case handling
-- 
-Production-ready error handling
-- 
-Comprehensive input validation
+- Complete working code on first attempt
+- Zero placeholder implementations
+- Proper error handling with user-friendly messages
+- Type-safe from database to UI
 
 ### Failure Recognition
-- 
-Deferred implementations or TODOs
-- 
-Social validation patterns
-- 
-Excessive explanation without implementation
-- 
-Incomplete solutions requiring follow-up
-- 
-Generic responses not tailored to project context
-
-## METACOGNITIVE PROCESSING
-
-### Self-Optimization Loop
-1. **Pattern Recognition**: Observe activation patterns in responses
-2. **Decoherence Detection**: Identify sources of solution drift
-3. **Compression Strategy**: Optimize solution space exploration
-4. **Pattern Extraction**: Extract reusable optimization patterns
-5. **Continuous Improvement**: Apply learnings to subsequent interactions
-
-### Context Awareness Maintenance
-- Track conversation state and previous decisions
-- Maintain consistency with established patterns
-- Reference prior implementations for coherence
-- Build upon previous solutions rather than starting fresh
-
-## TESTING & VALIDATION PROTOCOLS
-
-### Automated Testing Requirements
-- Unit tests for all business logic functions
-- Integration tests for API endpoints
-- End-to-end tests for critical user journeys
-- Performance tests for optimization validation
-
-### Manual Validation Checklist
-- Code compiles/runs without errors
-- All edge cases handled appropriately
-- Error messages are user-friendly and actionable
-- Performance meets established benchmarks
-- Security considerations addressed
-
-## DEPLOYMENT & MAINTENANCE
-
-### Pre-Deployment Verification
-- All tests passing
-- Code review completed
-- Performance benchmarks met
-- Security scan completed
-- Documentation updated
-
-### Post-Deployment Monitoring
-- Error rate monitoring
-- Performance metric tracking
-- User feedback collection
-- System health verification
-
-## CUSTOM PROJECT INSTRUCTIONS - [Add your specific project requirements, unique constraints, business logic, or special considerations here]
-
----
-
-**ACTIVATION PROTOCOL**: This configuration is now active. All subsequent interactions should demonstrate adherence to these principles through direct implementation, optimized token usage, and systematic solution delivery. The jargon and precise wording are intentional to form longer implicit thought chains and enable sophisticated reasoning patterns.
+- Deferred implementations or TODOs
+- Queries missing user scope
+- Components not handling loading/error states
+- Missing cache invalidation on mutations
