@@ -28,7 +28,7 @@ export const preferencesRouter = createTRPCRouter({
     .input(
       z.object({
         theme: z.enum(["system", "light", "dark"]).optional(),
-        defaultView: z.string().optional(),
+        defaultView: z.string().max(50).optional(),
         weekStartsOn: z.number().min(0).max(6).optional(),
         dashboardLayout: z.any().optional(),
       })
@@ -108,7 +108,7 @@ export const preferencesRouter = createTRPCRouter({
   updateEnabledWidgets: protectedProcedure
     .input(
       z.object({
-        enabledWidgets: z.array(z.string()),
+        enabledWidgets: z.array(z.string().max(100)).max(50),
       })
     )
     .mutation(async ({ ctx, input }) => {

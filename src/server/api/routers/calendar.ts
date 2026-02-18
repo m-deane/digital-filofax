@@ -60,13 +60,13 @@ export const calendarRouter = createTRPCRouter({
     .input(
       z.object({
         title: z.string().min(1).max(500),
-        description: z.string().optional(),
+        description: z.string().max(5000).optional(),
         startDate: z.date(),
         endDate: z.date(),
         allDay: z.boolean().default(false),
-        location: z.string().optional(),
+        location: z.string().max(500).optional(),
         color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
-        recurrenceRule: z.string().optional(),
+        recurrenceRule: z.string().max(500).optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -92,13 +92,13 @@ export const calendarRouter = createTRPCRouter({
       z.object({
         id: z.string(),
         title: z.string().min(1).max(500).optional(),
-        description: z.string().nullable().optional(),
+        description: z.string().max(5000).nullable().optional(),
         startDate: z.date().optional(),
         endDate: z.date().optional(),
         allDay: z.boolean().optional(),
-        location: z.string().nullable().optional(),
+        location: z.string().max(500).nullable().optional(),
         color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).nullable().optional(),
-        recurrenceRule: z.string().nullable().optional(),
+        recurrenceRule: z.string().max(500).nullable().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {

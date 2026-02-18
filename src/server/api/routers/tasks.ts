@@ -9,8 +9,9 @@ export const tasksRouter = createTRPCRouter({
         status: z.array(z.enum(["TODO", "IN_PROGRESS", "DONE"])).optional(),
         priority: z.array(z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"])).optional(),
         categoryId: z.string().optional(),
-        tagIds: z.array(z.string()).optional(),
-        search: z.string().optional(),
+        contextId: z.string().optional(),
+        tagIds: z.array(z.string()).max(50).optional(),
+        search: z.string().max(500).optional(),
         weekOf: z.date().optional(),
         monthOf: z.date().optional(),
         limit: z.number().min(1).max(100).default(50),
@@ -24,6 +25,7 @@ export const tasksRouter = createTRPCRouter({
           ...(input?.status && { status: { in: input.status } }),
           ...(input?.priority && { priority: { in: input.priority } }),
           ...(input?.categoryId && { categoryId: input.categoryId }),
+          ...(input?.contextId && { contextId: input.contextId }),
           ...(input?.tagIds && {
             tags: { some: { id: { in: input.tagIds } } },
           }),
@@ -38,6 +40,7 @@ export const tasksRouter = createTRPCRouter({
         },
         include: {
           category: true,
+          context: true,
           tags: true,
           subtasks: { orderBy: { order: "asc" } },
         },
@@ -59,6 +62,7 @@ export const tasksRouter = createTRPCRouter({
         where: { id: input.id, userId: ctx.session.user.id },
         include: {
           category: true,
+          context: true,
           tags: true,
           subtasks: { orderBy: { order: "asc" } },
         },
@@ -75,15 +79,16 @@ export const tasksRouter = createTRPCRouter({
     .input(
       z.object({
         title: z.string().min(1).max(500),
-        description: z.string().optional(),
+        description: z.string().max(10000).optional(),
         status: z.enum(["TODO", "IN_PROGRESS", "DONE"]).default("TODO"),
         priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]).default("MEDIUM"),
         dueDate: z.date().optional(),
         categoryId: z.string().optional(),
-        tagIds: z.array(z.string()).optional(),
+        contextId: z.string().optional(),
+        tagIds: z.array(z.string()).max(50).optional(),
         weekOf: z.date().optional(),
         monthOf: z.date().optional(),
-        recurrenceRule: z.string().optional(),
+        recurrenceRule: z.string().max(500).optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -118,12 +123,13 @@ export const tasksRouter = createTRPCRouter({
       z.object({
         id: z.string(),
         title: z.string().min(1).max(500).optional(),
-        description: z.string().optional(),
+        description: z.string().max(10000).optional(),
         status: z.enum(["TODO", "IN_PROGRESS", "DONE"]).optional(),
         priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]).optional(),
         dueDate: z.date().nullable().optional(),
         categoryId: z.string().nullable().optional(),
-        tagIds: z.array(z.string()).optional(),
+        contextId: z.string().nullable().optional(),
+        tagIds: z.array(z.string()).max(50).optional(),
         weekOf: z.date().nullable().optional(),
         monthOf: z.date().nullable().optional(),
         order: z.number().optional(),
@@ -191,7 +197,7 @@ export const tasksRouter = createTRPCRouter({
             order: z.number(),
             status: z.enum(["TODO", "IN_PROGRESS", "DONE"]).optional(),
           })
-        ),
+        ).max(200),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -320,7 +326,7 @@ export const tasksRouter = createTRPCRouter({
     }),
 
   getDueSoon: protectedProcedure
-    .input(z.object({ days: z.number().default(7) }))
+    .input(z.object({ days: z.number().min(1).max(365).default(7) }))
     .query(async ({ ctx, input }) => {
       const now = new Date();
       const endDate = new Date(now.getTime() + input.days * 24 * 60 * 60 * 1000);
@@ -339,6 +345,339 @@ export const tasksRouter = createTRPCRouter({
           tags: true,
         },
         orderBy: { dueDate: "asc" },
+      });
+    }),
+
+  getUrgentCount: protectedProcedure.query(async ({ ctx }) => {
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const endOfToday = new Date(startOfToday.getTime() + 24 * 60 * 60 * 1000);
+
+    // Get overdue tasks (critical)
+    const overdueCount = await ctx.db.task.count({
+      where: {
+        userId: ctx.session.user.id,
+        status: { not: "DONE" },
+        dueDate: {
+          lt: startOfToday,
+        },
+      },
+    });
+
+    // Get due today tasks (high)
+    const dueTodayCount = await ctx.db.task.count({
+      where: {
+        userId: ctx.session.user.id,
+        status: { not: "DONE" },
+        dueDate: {
+          gte: startOfToday,
+          lt: endOfToday,
+        },
+      },
+    });
+
+    // Get urgent priority tasks (not already counted)
+    const urgentPriorityCount = await ctx.db.task.count({
+      where: {
+        userId: ctx.session.user.id,
+        status: { not: "DONE" },
+        priority: "URGENT",
+        OR: [
+          { dueDate: null },
+          { dueDate: { gte: endOfToday } },
+        ],
+      },
+    });
+
+    const total = overdueCount + dueTodayCount + urgentPriorityCount;
+
+    return {
+      overdue: overdueCount,
+      dueToday: dueTodayCount,
+      urgent: urgentPriorityCount,
+      total,
+    };
+  }),
+
+  getUrgent: protectedProcedure.query(async ({ ctx }) => {
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const endOfToday = new Date(startOfToday.getTime() + 24 * 60 * 60 * 1000);
+
+    // Get overdue and urgent tasks with their details
+    const urgentTasks = await ctx.db.task.findMany({
+      where: {
+        userId: ctx.session.user.id,
+        status: { not: "DONE" },
+        OR: [
+          { dueDate: { lt: startOfToday } }, // Overdue
+          { dueDate: { gte: startOfToday, lt: endOfToday } }, // Due today
+          { priority: "URGENT" }, // Urgent priority
+        ],
+      },
+      include: {
+        category: true,
+        tags: true,
+      },
+      orderBy: [
+        { dueDate: "asc" },
+        { priority: "desc" },
+      ],
+      take: 20,
+    });
+
+    // Add urgency level to each task
+    const tasksWithUrgency = urgentTasks.map((task) => {
+      let urgencyLevel: "critical" | "high" | "medium" | "low" = "low";
+      if (task.dueDate && task.dueDate < startOfToday) {
+        urgencyLevel = "critical";
+      } else if (task.dueDate && task.dueDate < endOfToday) {
+        urgencyLevel = "high";
+      } else if (task.priority === "URGENT") {
+        urgencyLevel = "high";
+      } else if (task.priority === "HIGH") {
+        urgencyLevel = "medium";
+      }
+      return { ...task, urgencyLevel };
+    });
+
+    return { urgent: tasksWithUrgency };
+  }),
+
+  // Bulk operations
+  bulkUpdateStatus: protectedProcedure
+    .input(
+      z.object({
+        taskIds: z.array(z.string()).min(1).max(200),
+        status: z.enum(["TODO", "IN_PROGRESS", "DONE"]),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      // Verify user owns all tasks
+      const tasks = await ctx.db.task.findMany({
+        where: { id: { in: input.taskIds }, userId: ctx.session.user.id },
+        select: { id: true, status: true },
+      });
+
+      if (tasks.length !== input.taskIds.length) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You can only update your own tasks",
+        });
+      }
+
+      // Auto-set completedAt for tasks being marked as DONE
+      const now = new Date();
+      await ctx.db.task.updateMany({
+        where: {
+          id: { in: input.taskIds },
+          userId: ctx.session.user.id,
+        },
+        data: {
+          status: input.status,
+          completedAt: input.status === "DONE" ? now : null,
+        },
+      });
+
+      return { success: true, count: tasks.length };
+    }),
+
+  bulkDelete: protectedProcedure
+    .input(z.object({ taskIds: z.array(z.string()).min(1).max(200) }))
+    .mutation(async ({ ctx, input }) => {
+      // Verify user owns all tasks
+      const tasks = await ctx.db.task.findMany({
+        where: { id: { in: input.taskIds }, userId: ctx.session.user.id },
+        select: { id: true },
+      });
+
+      if (tasks.length !== input.taskIds.length) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You can only delete your own tasks",
+        });
+      }
+
+      await ctx.db.task.deleteMany({
+        where: {
+          id: { in: input.taskIds },
+          userId: ctx.session.user.id,
+        },
+      });
+
+      return { success: true, count: tasks.length };
+    }),
+
+  bulkAssignCategory: protectedProcedure
+    .input(
+      z.object({
+        taskIds: z.array(z.string()).min(1).max(200),
+        categoryId: z.string().nullable(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      // Verify user owns all tasks
+      const tasks = await ctx.db.task.findMany({
+        where: { id: { in: input.taskIds }, userId: ctx.session.user.id },
+        select: { id: true },
+      });
+
+      if (tasks.length !== input.taskIds.length) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You can only update your own tasks",
+        });
+      }
+
+      // If categoryId is provided, verify user owns the category
+      if (input.categoryId) {
+        const category = await ctx.db.category.findFirst({
+          where: { id: input.categoryId, userId: ctx.session.user.id },
+        });
+
+        if (!category) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Category not found",
+          });
+        }
+      }
+
+      await ctx.db.task.updateMany({
+        where: {
+          id: { in: input.taskIds },
+          userId: ctx.session.user.id,
+        },
+        data: {
+          categoryId: input.categoryId,
+        },
+      });
+
+      return { success: true, count: tasks.length };
+    }),
+
+  bulkAssignPriority: protectedProcedure
+    .input(
+      z.object({
+        taskIds: z.array(z.string()).min(1).max(200),
+        priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      // Verify user owns all tasks
+      const tasks = await ctx.db.task.findMany({
+        where: { id: { in: input.taskIds }, userId: ctx.session.user.id },
+        select: { id: true },
+      });
+
+      if (tasks.length !== input.taskIds.length) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You can only update your own tasks",
+        });
+      }
+
+      await ctx.db.task.updateMany({
+        where: {
+          id: { in: input.taskIds },
+          userId: ctx.session.user.id,
+        },
+        data: {
+          priority: input.priority,
+        },
+      });
+
+      return { success: true, count: tasks.length };
+    }),
+
+  // Drag-and-drop mutations for weekly planner
+  moveToDate: protectedProcedure
+    .input(
+      z.object({
+        taskId: z.string(),
+        scheduledStart: z.date(),
+        scheduledEnd: z.date(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const task = await ctx.db.task.findFirst({
+        where: { id: input.taskId, userId: ctx.session.user.id },
+      });
+
+      if (!task) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Task not found" });
+      }
+
+      return ctx.db.task.update({
+        where: { id: input.taskId },
+        data: {
+          scheduledStart: input.scheduledStart,
+          scheduledEnd: input.scheduledEnd,
+        },
+        include: {
+          category: true,
+          context: true,
+          tags: true,
+          subtasks: { orderBy: { order: "asc" } },
+        },
+      });
+    }),
+
+  updateSchedule: protectedProcedure
+    .input(
+      z.object({
+        taskId: z.string(),
+        scheduledStart: z.date().nullable(),
+        scheduledEnd: z.date().nullable(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const task = await ctx.db.task.findFirst({
+        where: { id: input.taskId, userId: ctx.session.user.id },
+      });
+
+      if (!task) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Task not found" });
+      }
+
+      return ctx.db.task.update({
+        where: { id: input.taskId },
+        data: {
+          scheduledStart: input.scheduledStart,
+          scheduledEnd: input.scheduledEnd,
+        },
+        include: {
+          category: true,
+          context: true,
+          tags: true,
+          subtasks: { orderBy: { order: "asc" } },
+        },
+      });
+    }),
+
+  getScheduledTasks: protectedProcedure
+    .input(
+      z.object({
+        startDate: z.date(),
+        endDate: z.date(),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      return ctx.db.task.findMany({
+        where: {
+          userId: ctx.session.user.id,
+          scheduledStart: {
+            gte: input.startDate,
+            lte: input.endDate,
+          },
+        },
+        include: {
+          category: true,
+          context: true,
+          tags: true,
+          subtasks: { orderBy: { order: "asc" } },
+        },
+        orderBy: { scheduledStart: "asc" },
       });
     }),
 });

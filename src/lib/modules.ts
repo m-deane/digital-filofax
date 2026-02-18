@@ -6,6 +6,16 @@ import {
   Calendar,
   Trophy,
   Users,
+  DollarSign,
+  CloudOff,
+  Heart,
+  Compass,
+  Github,
+  Share2,
+  BarChart3,
+  Sparkles,
+  LayoutTemplate,
+  Image,
   type LucideIcon,
 } from "lucide-react";
 
@@ -18,6 +28,16 @@ export const MODULE_IDS = [
   "calendar",
   "goals",
   "contacts",
+  "finance",
+  "someday",
+  "journal",
+  "planning",
+  "github",
+  "collaboration",
+  "analytics",
+  "suggestions",
+  "templates",
+  "vision",
 ] as const;
 
 export type ModuleId = (typeof MODULE_IDS)[number];
@@ -90,6 +110,86 @@ export const MODULES: Record<ModuleId, ModuleConfig> = {
     routes: ["/dashboard/contacts"],
     widgets: [],
   },
+  finance: {
+    id: "finance",
+    name: "Finance",
+    description: "Track income, expenses, budgets, and savings goals",
+    icon: DollarSign,
+    routes: ["/dashboard/finance", "/dashboard/finance/transactions"],
+    widgets: ["finance"],
+  },
+  someday: {
+    id: "someday",
+    name: "Someday/Maybe",
+    description: "GTD-style list for ideas and projects you might do someday",
+    icon: CloudOff,
+    routes: ["/dashboard/someday"],
+    widgets: ["someday-review"],
+  },
+  journal: {
+    id: "journal",
+    name: "Journal",
+    description: "Daily gratitude and mood tracking for wellbeing",
+    icon: Heart,
+    routes: ["/dashboard/journal"],
+    widgets: ["journal"],
+  },
+  planning: {
+    id: "planning",
+    name: "Planning & Reviews",
+    description: "Life roles, weekly reviews, yearly overview and reflections",
+    icon: Compass,
+    routes: ["/dashboard/roles", "/dashboard/review", "/dashboard/yearly", "/dashboard/reflect"],
+    widgets: ["weekly-review"],
+  },
+  github: {
+    id: "github",
+    name: "GitHub",
+    description: "Connect and track GitHub repositories, issues, and pull requests",
+    icon: Github,
+    routes: ["/dashboard/github"],
+    widgets: ["github"],
+  },
+  collaboration: {
+    id: "collaboration",
+    name: "Collaboration",
+    description: "Share tasks and collaborate with others through shared lists",
+    icon: Share2,
+    routes: ["/dashboard/shared"],
+    widgets: [],
+  },
+  analytics: {
+    id: "analytics",
+    name: "Analytics",
+    description: "Productivity charts, habit stats, and goal progress insights",
+    icon: BarChart3,
+    routes: ["/dashboard/analytics"],
+    widgets: [],
+  },
+  suggestions: {
+    id: "suggestions",
+    name: "Smart Suggestions",
+    description: "Rule-based suggestions for task prioritization and scheduling",
+    icon: Sparkles,
+    routes: ["/dashboard/suggestions"],
+    widgets: [],
+  },
+  templates: {
+    id: "templates",
+    name: "Templates",
+    description: "Reusable templates for tasks, projects, and routines",
+    icon: LayoutTemplate,
+    routes: ["/dashboard/templates"],
+    widgets: [],
+  },
+  vision: {
+    id: "vision",
+    name: "Vision Board",
+    description: "Visual inspiration board for goals and aspirations",
+    icon: Image,
+    routes: ["/dashboard/vision"],
+    widgets: [],
+  },
 };
 
 // Default enabled modules for new users
@@ -130,25 +230,3 @@ export function isWidgetEnabled(widgetType: string, enabledModules: string[]): b
   return true;
 }
 
-// Get module config by route
-export function getModuleByRoute(route: string): ModuleConfig | null {
-  for (const config of Object.values(MODULES)) {
-    if (config.routes.some((r) => route.startsWith(r))) {
-      return config;
-    }
-  }
-  return null;
-}
-
-// Get all routes that should be visible based on enabled modules
-export function getEnabledRoutes(enabledModules: string[]): string[] {
-  const routes: string[] = ["/dashboard", "/dashboard/settings"];
-
-  for (const [moduleId, config] of Object.entries(MODULES)) {
-    if (enabledModules.includes(moduleId)) {
-      routes.push(...config.routes);
-    }
-  }
-
-  return routes;
-}

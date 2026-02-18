@@ -16,6 +16,8 @@ import {
   Plus,
   ArrowRight,
   Loader2,
+  AlertTriangle,
+  RefreshCcw,
 } from "lucide-react";
 import Link from "next/link";
 import { format, startOfDay, isSameDay, subDays } from "date-fns";
@@ -24,6 +26,9 @@ import { useIsWidgetEnabled } from "@/hooks/use-modules";
 import { WidgetPicker } from "@/components/dashboard/widget-picker";
 import { FocusTimerWidget } from "@/components/dashboard/focus-timer-widget";
 import { GoalsWidget } from "@/components/dashboard/goals-widget";
+import { UrgencyBadge, PriorityBadge } from "@/components/urgency-badge";
+import { getUrgencyColor } from "@/lib/urgency";
+import { cn } from "@/lib/utils";
 
 function TodayAgendaWidget() {
   const { data, isLoading } = api.calendar.getToday.useQuery();
@@ -368,6 +373,121 @@ function IdeasWidget() {
   );
 }
 
+function NeedsAttentionWidget() {
+  const utils = api.useUtils();
+  const { data: urgentData, isLoading } = api.tasks.getUrgent.useQuery();
+  const updateTask = api.tasks.update.useMutation({
+    onSuccess: () => {
+      utils.tasks.getUrgent.invalidate();
+      utils.tasks.getDueSoon.invalidate();
+      utils.tasks.getAll.invalidate();
+    },
+  });
+
+  const urgentTasks = urgentData?.urgent ?? [];
+
+  const handleToggle = (taskId: string, currentStatus: string) => {
+    updateTask.mutate({
+      id: taskId,
+      status: currentStatus === "DONE" ? "TODO" : "DONE",
+    });
+  };
+
+  if (!isLoading && urgentTasks.length === 0) {
+    return null;
+  }
+
+  return (
+    <Card className="border-orange-200 dark:border-orange-900">
+      <CardHeader className="flex flex-row items-center justify-between pb-2 bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-950/20 dark:to-red-950/20">
+        <div className="flex items-center gap-2">
+          <AlertTriangle className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+          <div>
+            <CardTitle className="text-lg font-semibold">Needs Attention</CardTitle>
+            <CardDescription>{urgentTasks.length} urgent items</CardDescription>
+          </div>
+        </div>
+        <Link href="/dashboard/tasks">
+          <Button variant="ghost" size="sm">
+            View All <ArrowRight className="ml-1 h-4 w-4" />
+          </Button>
+        </Link>
+      </CardHeader>
+      <CardContent className="space-y-3 pt-4">
+        {isLoading && (
+          <div className="flex justify-center p-4">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        )}
+        {!isLoading && urgentTasks.slice(0, 5).map((task) => {
+          const colors = getUrgencyColor(task.urgencyLevel);
+
+          return (
+            <div
+              key={task.id}
+              className={cn(
+                "flex items-start gap-3 p-3 rounded-lg border-l-4 transition-colors",
+                colors.border,
+                colors.bg,
+                colors.hover
+              )}
+            >
+              <Checkbox
+                checked={task.status === "DONE"}
+                onCheckedChange={() => handleToggle(task.id, task.status)}
+              />
+              <div className="flex-1 space-y-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className={cn("text-sm font-medium", colors.text)}>{task.title}</span>
+                  <PriorityBadge priority={task.priority} showText={false} />
+                </div>
+                {task.category && (
+                  <p className="text-xs text-muted-foreground">{task.category.name}</p>
+                )}
+                <UrgencyBadge
+                  dueDate={task.dueDate}
+                  priority={task.priority}
+                  showLabel={true}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </CardContent>
+    </Card>
+  );
+}
+
+function WeeklyReviewReminderWidget() {
+  const { data, isLoading } = api.review.needsReview.useQuery();
+
+  if (isLoading || !data?.needsReview) return null;
+
+  return (
+    <Card className="border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/20">
+      <CardHeader className="pb-3">
+        <div className="flex items-center gap-2">
+          <RefreshCcw className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+          <CardTitle className="text-amber-900 dark:text-amber-100">Time for Weekly Review</CardTitle>
+        </div>
+        <CardDescription className="text-amber-700 dark:text-amber-300">
+          {data.lastReviewDate
+            ? `Last review: ${format(data.lastReviewDate, "MMM d, yyyy")}`
+            : "You haven't completed a review yet"}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Link href="/dashboard/review">
+          <Button variant="default" className="w-full">
+            Start Weekly Review
+            <ArrowRight className="h-4 w-4 ml-2" />
+          </Button>
+        </Link>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function DashboardPage() {
   const agendaEnabled = useIsWidgetEnabled("agenda");
   const tasksEnabled = useIsWidgetEnabled("tasks");
@@ -400,6 +520,12 @@ export default function DashboardPage() {
 
       {/* Quick Stats */}
       <QuickStatsWidget />
+
+      {/* Weekly Review Reminder - Always show if review is needed */}
+      <WeeklyReviewReminderWidget />
+
+      {/* Needs Attention Section - Always show if there are urgent items */}
+      {tasksEnabled && <NeedsAttentionWidget />}
 
       {/* Main Content Grid */}
       {widgets.length > 0 ? (

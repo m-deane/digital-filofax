@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { TRPCError } from "@trpc/server";
-import { startOfDay, startOfMonth, endOfMonth, subDays } from "date-fns";
+import { startOfDay, startOfMonth, subDays } from "date-fns";
 
 export const reflectionsRouter = createTRPCRouter({
   // ============================================================================
@@ -45,11 +45,11 @@ export const reflectionsRouter = createTRPCRouter({
     .input(
       z.object({
         date: z.date(),
-        morningIntention: z.string().optional().nullable(),
-        eveningReflection: z.string().optional().nullable(),
-        wins: z.array(z.string()).optional(),
-        improvements: z.array(z.string()).optional(),
-        tomorrowFocus: z.string().optional().nullable(),
+        morningIntention: z.string().max(2000).optional().nullable(),
+        eveningReflection: z.string().max(5000).optional().nullable(),
+        wins: z.array(z.string().max(500)).max(20).optional(),
+        improvements: z.array(z.string().max(500)).max(20).optional(),
+        tomorrowFocus: z.string().max(2000).optional().nullable(),
         energyLevel: z.number().min(1).max(5).optional().nullable(),
         productivityRating: z.number().min(1).max(5).optional().nullable(),
       })
@@ -132,10 +132,10 @@ export const reflectionsRouter = createTRPCRouter({
     .input(
       z.object({
         monthOf: z.date(),
-        highlights: z.array(z.string()).optional(),
-        challenges: z.array(z.string()).optional(),
-        lessonsLearned: z.array(z.string()).optional(),
-        nextMonthGoals: z.array(z.string()).optional(),
+        highlights: z.array(z.string().max(500)).max(20).optional(),
+        challenges: z.array(z.string().max(500)).max(20).optional(),
+        lessonsLearned: z.array(z.string().max(500)).max(20).optional(),
+        nextMonthGoals: z.array(z.string().max(500)).max(20).optional(),
         rating: z.number().min(1).max(5).optional().nullable(),
       })
     )

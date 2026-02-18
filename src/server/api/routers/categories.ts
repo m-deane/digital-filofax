@@ -47,7 +47,7 @@ export const categoriesRouter = createTRPCRouter({
       z.object({
         name: z.string().min(1).max(100),
         color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).default("#6366f1"),
-        icon: z.string().optional(),
+        icon: z.string().max(50).optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -147,7 +147,7 @@ export const categoriesRouter = createTRPCRouter({
             id: z.string(),
             order: z.number(),
           })
-        ),
+        ).max(100),
       })
     )
     .mutation(async ({ ctx, input }) => {

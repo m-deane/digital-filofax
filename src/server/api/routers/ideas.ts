@@ -9,7 +9,7 @@ export const ideasRouter = createTRPCRouter({
         status: z.array(z.enum(["NEW", "EXPLORING", "IN_PROGRESS", "IMPLEMENTED", "ARCHIVED"])).optional(),
         categoryId: z.string().optional(),
         tagIds: z.array(z.string()).optional(),
-        search: z.string().optional(),
+        search: z.string().max(500).optional(),
         limit: z.number().min(1).max(100).default(50),
         cursor: z.string().optional(),
       }).optional()
@@ -67,7 +67,7 @@ export const ideasRouter = createTRPCRouter({
     .input(
       z.object({
         title: z.string().min(1).max(500),
-        description: z.string().optional(),
+        description: z.string().max(5000).optional(),
         status: z.enum(["NEW", "EXPLORING", "IN_PROGRESS", "IMPLEMENTED", "ARCHIVED"]).default("NEW"),
         priority: z.number().min(0).max(5).default(0),
         categoryId: z.string().optional(),
@@ -97,7 +97,7 @@ export const ideasRouter = createTRPCRouter({
       z.object({
         id: z.string(),
         title: z.string().min(1).max(500).optional(),
-        description: z.string().nullable().optional(),
+        description: z.string().max(5000).nullable().optional(),
         status: z.enum(["NEW", "EXPLORING", "IN_PROGRESS", "IMPLEMENTED", "ARCHIVED"]).optional(),
         priority: z.number().min(0).max(5).optional(),
         categoryId: z.string().nullable().optional(),
@@ -243,7 +243,7 @@ export const ideasRouter = createTRPCRouter({
     .input(
       z.object({
         title: z.string().min(1).max(500),
-        description: z.string().optional(),
+        description: z.string().max(5000).optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {

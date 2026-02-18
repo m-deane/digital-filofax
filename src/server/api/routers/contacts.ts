@@ -6,7 +6,7 @@ export const contactsRouter = createTRPCRouter({
   getAll: protectedProcedure
     .input(
       z.object({
-        search: z.string().optional(),
+        search: z.string().max(500).optional(),
         categoryId: z.string().optional(),
         isFavorite: z.boolean().optional(),
       }).optional()
@@ -65,7 +65,7 @@ export const contactsRouter = createTRPCRouter({
         company: z.string().max(200).optional(),
         jobTitle: z.string().max(200).optional(),
         birthday: z.date().optional(),
-        notes: z.string().optional(),
+        notes: z.string().max(10000).optional(),
         isFavorite: z.boolean().default(false),
         categoryId: z.string().optional(),
       })
@@ -96,7 +96,7 @@ export const contactsRouter = createTRPCRouter({
         company: z.string().max(200).optional(),
         jobTitle: z.string().max(200).optional(),
         birthday: z.date().nullable().optional(),
-        notes: z.string().optional(),
+        notes: z.string().max(10000).optional(),
         isFavorite: z.boolean().optional(),
         categoryId: z.string().nullable().optional(),
       })
@@ -181,8 +181,8 @@ export const contactsRouter = createTRPCRouter({
     .input(
       z.object({
         name: z.string().min(1).max(100),
-        color: z.string().default("#6366f1"),
-        icon: z.string().optional(),
+        color: z.string().max(50).default("#6366f1"),
+        icon: z.string().max(50).optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -201,8 +201,8 @@ export const contactsRouter = createTRPCRouter({
       z.object({
         id: z.string(),
         name: z.string().min(1).max(100).optional(),
-        color: z.string().optional(),
-        icon: z.string().optional(),
+        color: z.string().max(50).optional(),
+        icon: z.string().max(50).optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {

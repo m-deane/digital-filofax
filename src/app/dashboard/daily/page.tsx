@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
 import {
   ChevronLeft,
   ChevronRight,
@@ -382,7 +381,13 @@ export default function DailyPlanningPage() {
               <ScrollArea className="h-[600px]">
                 <TimeGrid
                   events={data.events}
-                  scheduledTasks={data.scheduledTasks}
+                  scheduledTasks={data.scheduledTasks.map(t => ({
+                    id: t.id,
+                    title: t.title,
+                    scheduledStart: t.scheduledStart,
+                    scheduledEnd: t.scheduledEnd,
+                    category: t.category ? { color: t.category.color } : null,
+                  }))}
                   onDropTask={handleDropTask}
                 />
               </ScrollArea>

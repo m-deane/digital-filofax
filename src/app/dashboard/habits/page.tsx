@@ -43,6 +43,8 @@ import {
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/trpc";
 import { startOfDay, subDays, isSameDay } from "date-fns";
+import { HabitHeatmap } from "@/components/habits/habit-heatmap";
+import { StreakDisplay } from "@/components/habits/streak-display";
 
 type HabitType = "BOOLEAN" | "NUMERIC" | "DURATION";
 
@@ -290,11 +292,20 @@ export default function HabitsPage() {
   const [newHabitType, setNewHabitType] = useState<HabitType>("BOOLEAN");
   const [newHabitColor, setNewHabitColor] = useState("#10b981");
   const [togglingHabitId, setTogglingHabitId] = useState<string | null>(null);
+  const [selectedHabitId, setSelectedHabitId] = useState<string | undefined>(undefined);
 
   const utils = api.useUtils();
 
   // Fetch habits from API
   const { data, isLoading, error } = api.habits.getAll.useQuery({});
+
+  // Fetch heatmap data
+  const { data: heatmapData = [], isLoading: isLoadingHeatmap } = api.habits.getHeatmapData.useQuery(
+    selectedHabitId ? { habitId: selectedHabitId } : undefined
+  );
+
+  // Fetch streak stats
+  const { data: streakStats = [], isLoading: isLoadingStats } = api.habits.getStreakStats.useQuery();
 
   // Create habit mutation
   const createHabit = api.habits.create.useMutation({
@@ -468,24 +479,72 @@ export default function HabitsPage() {
         </Card>
       )}
 
-      {/* Overview and Habits Grid */}
+      {/* Heatmap Section */}
       {!isLoading && habits.length > 0 && (
-        <div className="grid gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-1">
-            <TodayOverview habits={habits} />
+        <>
+          <Card>
+            <CardHeader>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                  <CardTitle>Habit Activity</CardTitle>
+                  <CardDescription>Your habit completion history over the past year</CardDescription>
+                </div>
+                <Select
+                  value={selectedHabitId ?? "all"}
+                  onValueChange={(value) => setSelectedHabitId(value === "all" ? undefined : value)}
+                >
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder="All Habits" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Habits</SelectItem>
+                    {habits.map((habit) => (
+                      <SelectItem key={habit.id} value={habit.id}>
+                        {habit.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {isLoadingHeatmap ? (
+                <div className="flex items-center justify-center p-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : (
+                <HabitHeatmap data={heatmapData} />
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Streak Stats */}
+          {isLoadingStats ? (
+            <div className="flex items-center justify-center p-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <StreakDisplay stats={streakStats} />
+          )}
+
+          {/* Overview and Habits Grid */}
+          <div className="grid gap-6 lg:grid-cols-3">
+            <div className="lg:col-span-1">
+              <TodayOverview habits={habits} />
+            </div>
+            <div className="lg:col-span-2 space-y-4">
+              {habits.map((habit) => (
+                <HabitCard
+                  key={habit.id}
+                  habit={habit}
+                  onToggle={() => handleToggleHabit(habit)}
+                  onDelete={() => handleDeleteHabit(habit.id)}
+                  isToggling={togglingHabitId === habit.id}
+                />
+              ))}
+            </div>
           </div>
-          <div className="lg:col-span-2 space-y-4">
-            {habits.map((habit) => (
-              <HabitCard
-                key={habit.id}
-                habit={habit}
-                onToggle={() => handleToggleHabit(habit)}
-                onDelete={() => handleDeleteHabit(habit.id)}
-                isToggling={togglingHabitId === habit.id}
-              />
-            ))}
-          </div>
-        </div>
+        </>
       )}
     </div>
   );

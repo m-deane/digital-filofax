@@ -70,16 +70,44 @@ model User {
   sessions Session[]
 
   // App relations
-  tasks       Task[]
-  categories  Category[]
-  habits      Habit[]
-  habitLogs   HabitLog[]
-  memos       Memo[]
-  tags        Tag[]
-  ideas       Idea[]
-  events      CalendarEvent[]
-  githubRepos GitHubRepo[]
-  preferences UserPreferences?
+  tasks             Task[]
+  categories        Category[]
+  habits            Habit[]
+  habitLogs         HabitLog[]
+  memos             Memo[]
+  tags              Tag[]
+  ideas             Idea[]
+  events            CalendarEvent[]
+  githubRepos       GitHubRepo[]
+  preferences       UserPreferences?
+  gratitudeEntries  GratitudeEntry[]
+  moodEntries       MoodEntry[]
+  lifeRoles        LifeRole[]
+  weeklyBigRocks   WeeklyBigRock[]
+  somedayItems     SomedayItem[]
+  contacts          Contact[]
+  contactCategories ContactCategory[]
+  contexts          Context[]
+  goals             Goal[]
+  visionBoards      VisionBoard[]
+  templates         Template[]
+  transactions      Transaction[]
+  financeCategories FinanceCategory[]
+  savingsGoals      SavingsGoal[]
+  dailyReflections  DailyReflection[]
+  monthlyReflections MonthlyReflection[]
+  weeklyReviews     WeeklyReview[]
+  yearlyGoals       YearlyGoal[]
+  yearlyThemes      YearlyTheme[]
+  yearlyReflections YearlyReflection[]
+  focusSessions     FocusSession[]
+  importLogs        ImportLog[]
+  aiSuggestions     AISuggestion[]
+
+  // Collaboration relations
+  ownedSharedLists  SharedList[]       @relation("OwnedSharedLists")
+  sharedListMemberships SharedListMember[] @relation("SharedListMemberships")
+  sharedTasksAdded  SharedTask[]       @relation("SharedTasksAdded")
 }
 
 model Category {
@@ -96,6 +124,7 @@ model Category {
   tasks  Task[]
   habits Habit[]
   ideas  Idea[]
+  goals  Goal[]
 
   @@unique([userId, name])
   @@index([userId])
@@ -121,6 +150,17 @@ model Task {
   weekOf  DateTime? @db.Date
   monthOf DateTime? @db.Date
 
+  // Daily planning / time blocking
+  scheduledStart  DateTime?
+  scheduledEnd    DateTime?
+  isDailyPriority Boolean   @default(false)
+
+  // GTD Context
+  contextId String?
+
+  // Goal linking
+  goalId String?
+
   // Relations
   userId     String
   categoryId String?
@@ -129,15 +169,25 @@ model Task {
 
   user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  tags     Tag[]     @relation("TaskTags")
-  subtasks Subtask[]
+  context       Context?       @relation(fields: [contextId], references: [id], onDelete: SetNull)
+  goal          Goal?          @relation(fields: [goalId], references: [id], onDelete: SetNull)
+  tags          Tag[]          @relation("TaskTags")
+  subtasks      Subtask[]
+  focusSessions FocusSession[]
+  suggestions   AISuggestion[]
+  sharedIn      SharedTask[]
 
   @@index([userId])
   @@index([categoryId])
+  @@index([contextId])
+  @@index([goalId])
+  @@index([parentTaskId])
   @@index([status])
   @@index([dueDate])
   @@index([weekOf])
   @@index([monthOf])
+  @@index([scheduledStart])
+  @@index([isDailyPriority])
 }
 
 model Subtask {
@@ -251,6 +301,7 @@ model Idea {
   tags     Tag[]     @relation("IdeaTags")
 
   @@index([userId])
+  @@index([categoryId])
   @@index([status])
 }
 
@@ -304,6 +355,13 @@ model UserPreferences {
   weekStartsOn    Int      @default(1)
   dashboardLayout Json?
   enabledWidgets  String[] @default(["agenda", "habits", "tasks"])
+  enabledModules  String[] @default([])
+
+  // Pomodoro settings
+  pomodoroWorkMinutes         Int @default(25)
+  pomodoroShortBreakMinutes   Int @default(5)
+  pomodoroLongBreakMinutes    Int @default(15)
+  pomodoroSessionsUntilLong   Int @default(4)
 
   userId String @unique
 
@@ -360,4 +418,726 @@ enum EventSource {
   INTERNAL
   GOOGLE_CALENDAR
   GITHUB
+}
+
+// ============================================================================
+// CONTACTS MODELS
+// ============================================================================
+
+model ContactCategory {
+  id        String   @id @default(cuid())
+  name      String
+  color     String   @default("#6366f1")
+  icon      String?
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contacts Contact[]
+
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+model Contact {
+  id         String    @id @default(cuid())
+  name       String
+  email      String?
+  phone      String?
+  address    String?
+  company    String?
+  jobTitle   String?
+  birthday   DateTime? @db.Date
+  notes      String?   @db.Text
+  isFavorite Boolean   @default(false)
+  userId     String
+  categoryId String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category ContactCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([categoryId])
+  @@index([isFavorite])
+  @@index([name])
+}
+
+// ============================================================================
+// JOURNAL MODELS (Gratitude & Mood Tracking)
+// ============================================================================
+
+model GratitudeEntry {
+  id        String   @id @default(cuid())
+  date      DateTime @db.Date
+  entries   String[] // Array of 3 gratitude items
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId])
+  @@index([date])
+}
+
+model MoodEntry {
+  id          String    @id @default(cuid())
+  date        DateTime  @db.Date
+  mood        MoodLevel
+  energyLevel Int       // 1-5 scale
+  notes       String?   @db.Text
+  userId      String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId])
+  @@index([date])
+  @@index([mood])
+}
+
+enum MoodLevel {
+  GREAT
+  GOOD
+  OKAY
+  LOW
+  BAD
+}
+
+// ============================================================================
+// LIFE ROLES (Franklin Covey)
+// ============================================================================
+
+model LifeRole {
+  id          String   @id @default(cuid())
+  name        String
+  description String?  @db.Text
+  icon        String?
+  color       String   @default("#6366f1")
+  order       Int      @default(0)
+  userId      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  weeklyBigRocks WeeklyBigRock[] @relation("RoleToBigRocks")
+
+  @@unique([userId, name])
+  @@index([userId])
+  @@index([order])
+}
+
+model WeeklyBigRock {
+  id           String    @id @default(cuid())
+  title        String
+  roleId       String
+  weekOf       DateTime  @db.Date
+  completed    Boolean   @default(false)
+  completedAt  DateTime?
+  linkedTaskId String?
+  userId       String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  user User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role LifeRole @relation("RoleToBigRocks", fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([roleId])
+  @@index([weekOf])
+  @@index([completed])
+}
+
+// ============================================================================
+// GTD SOMEDAY/MAYBE
+// ============================================================================
+
+model SomedayItem {
+  id          String          @id @default(cuid())
+  title       String
+  description String?         @db.Text
+  type        SomedayItemType @default(IDEA)
+  category    String?
+  reviewDate  DateTime?       @db.Date
+  userId      String
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([reviewDate])
+  @@index([type])
+}
+
+enum SomedayItemType {
+  TASK
+  PROJECT
+  IDEA
+}
+
+// ============================================================================
+// GOALS & MILESTONES
+// ============================================================================
+
+model Goal {
+  id           String     @id @default(cuid())
+  title        String
+  description  String?    @db.Text
+  type         GoalType   @default(ANNUAL)
+  status       GoalStatus @default(NOT_STARTED)
+  deadline     DateTime?
+  targetDate   DateTime?
+  progress     Int        @default(0)
+  color        String     @default("#6366f1")
+  completedAt  DateTime?
+  userId       String
+  categoryId   String?
+  parentGoalId String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category   Category?   @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  parentGoal Goal?       @relation("GoalHierarchy", fields: [parentGoalId], references: [id], onDelete: SetNull)
+  childGoals Goal[]      @relation("GoalHierarchy")
+  milestones Milestone[]
+  tasks      Task[]
+
+  @@index([userId])
+  @@index([type])
+  @@index([status])
+  @@index([deadline])
+  @@index([targetDate])
+  @@index([categoryId])
+  @@index([parentGoalId])
+}
+
+model Milestone {
+  id          String    @id @default(cuid())
+  title       String
+  date        DateTime
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+  goalId      String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  goal Goal @relation(fields: [goalId], references: [id], onDelete: Cascade)
+
+  @@index([goalId])
+  @@index([date])
+  @@index([completed])
+}
+
+enum GoalType {
+  LIFETIME
+  THREE_YEAR
+  ANNUAL
+  QUARTERLY
+  MONTHLY
+}
+
+enum GoalStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  ON_HOLD
+  ABANDONED
+}
+
+// ============================================================================
+// GTD CONTEXTS
+// ============================================================================
+
+model Context {
+  id        String   @id @default(cuid())
+  name      String
+  icon      String?
+  color     String   @default("#6366f1")
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tasks Task[]
+
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+// ============================================================================
+// VISION BOARD
+// ============================================================================
+
+model VisionBoard {
+  id        String   @id @default(cuid())
+  name      String
+  year      Int?
+  isDefault Boolean  @default(false)
+  bgColor   String   @default("#f8fafc")
+  bgImage   String?
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user  User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items VisionItem[]
+
+  @@index([userId])
+  @@index([isDefault])
+  @@index([year])
+}
+
+model VisionItem {
+  id        String            @id @default(cuid())
+  type      VisionItemType
+  content   String            @db.Text
+  position  Json              // { x: number, y: number }
+  size      Json              // { width: number, height: number }
+  color     String?
+  boardId   String
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  board VisionBoard @relation(fields: [boardId], references: [id], onDelete: Cascade)
+
+  @@index([boardId])
+}
+
+enum VisionItemType {
+  IMAGE
+  TEXT
+  GOAL
+  AFFIRMATION
+}
+
+// ============================================================================
+// TEMPLATES SYSTEM
+// ============================================================================
+
+model Template {
+  id          String       @id @default(cuid())
+  name        String
+  description String?
+  type        TemplateType
+  content     Json         // Dynamic content structure
+  isPublic    Boolean      @default(false)
+  usageCount  Int          @default(0)
+  userId      String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([type])
+  @@index([isPublic])
+}
+
+enum TemplateType {
+  TASK_LIST
+  PROJECT
+  DAILY_ROUTINE
+  WEEKLY_PLAN
+  MEETING_NOTES
+  CHECKLIST
+}
+
+// ============================================================================
+// FINANCE MODULE
+// ============================================================================
+
+model Transaction {
+  id            String              @id @default(cuid())
+  amount        Decimal             @db.Decimal(12, 2)
+  type          TransactionType
+  description   String
+  date          DateTime            @db.Date
+  isRecurring   Boolean             @default(false)
+  recurringRule String?
+  userId        String
+  categoryId    String?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category FinanceCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([categoryId])
+  @@index([date])
+  @@index([type])
+}
+
+model FinanceCategory {
+  id          String          @id @default(cuid())
+  name        String
+  type        TransactionType
+  icon        String?
+  color       String          @default("#6366f1")
+  budgetLimit Decimal?        @db.Decimal(12, 2)
+  userId      String
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@unique([userId, name, type])
+  @@index([userId])
+  @@index([type])
+}
+
+model SavingsGoal {
+  id            String    @id @default(cuid())
+  name          String
+  targetAmount  Decimal   @db.Decimal(12, 2)
+  currentAmount Decimal   @default(0) @db.Decimal(12, 2)
+  deadline      DateTime?
+  color         String    @default("#10b981")
+  userId        String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([deadline])
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+// ============================================================================
+// REFLECTIONS
+// ============================================================================
+
+model DailyReflection {
+  id                 String   @id @default(cuid())
+  date               DateTime @db.Date
+  morningIntention   String?  @db.Text
+  eveningReflection  String?  @db.Text
+  wins               String[] // Array of wins
+  improvements       String[] // Array of areas to improve
+  tomorrowFocus      String?
+  energyLevel        Int?     // 1-5
+  productivityRating Int?     // 1-5
+  userId             String
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId])
+  @@index([date])
+}
+
+model MonthlyReflection {
+  id             String   @id @default(cuid())
+  monthOf        DateTime @db.Date // First day of month
+  highlights     String[] // Array of highlights/accomplishments
+  challenges     String[] // Array of challenges faced
+  lessonsLearned String[] // Key lessons
+  nextMonthGoals String[] // Goals for next month
+  rating         Int?     // 1-5
+  notes          String?  @db.Text
+  userId         String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, monthOf])
+  @@index([userId])
+  @@index([monthOf])
+}
+
+// ============================================================================
+// WEEKLY REVIEW
+// ============================================================================
+
+model WeeklyReview {
+  id            String    @id @default(cuid())
+  weekOf        DateTime  @db.Date // Monday of the week
+  wins          String[]
+  challenges    String[]
+  lessonsLearned String[]
+  nextWeekFocus String[]
+  gratitudes    String[]
+  rating        Int       // 1-5
+  notes         String?   @db.Text
+  isDraft       Boolean   @default(true)
+  completedAt   DateTime?
+  userId        String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, weekOf])
+  @@index([userId])
+  @@index([weekOf])
+  @@index([isDraft])
+}
+
+// ============================================================================
+// YEARLY OVERVIEW
+// ============================================================================
+
+model YearlyGoal {
+  id          String           @id @default(cuid())
+  year        Int
+  title       String
+  description String?          @db.Text
+  category    String?
+  status      YearlyGoalStatus @default(NOT_STARTED)
+  quarter     Quarter?
+  userId      String
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([year])
+  @@index([status])
+  @@index([quarter])
+}
+
+model YearlyTheme {
+  id          String   @id @default(cuid())
+  year        Int
+  theme       String
+  description String?  @db.Text
+  isActive    Boolean  @default(true)
+  userId      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, year])
+  @@index([userId])
+  @@index([year])
+}
+
+enum YearlyGoalStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  DEFERRED
+}
+
+enum Quarter {
+  Q1
+  Q2
+  Q3
+  Q4
+}
+
+model YearlyReflection {
+  id                  String   @id @default(cuid())
+  year                Int
+  accomplishments     String[]
+  challenges          String[]
+  lessonsLearned      String[]
+  gratitudes          String[]
+  rating              Int?     // 1-10
+  nextYearIntentions  String[]
+  visionStatement     String?  @db.Text
+  themeWord           String?
+  userId              String
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, year])
+  @@index([userId])
+  @@index([year])
+}
+
+// ============================================================================
+// FOCUS SESSIONS (Pomodoro)
+// ============================================================================
+
+model FocusSession {
+  id        String           @id @default(cuid())
+  startTime DateTime         @default(now())
+  endTime   DateTime?
+  duration  Int              // Duration in minutes
+  type      FocusSessionType
+  taskId    String?
+  userId    String
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  task Task? @relation(fields: [taskId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([taskId])
+  @@index([startTime])
+  @@index([type])
+}
+
+enum FocusSessionType {
+  WORK
+  SHORT_BREAK
+  LONG_BREAK
+}
+
+// ============================================================================
+// DATA IMPORT
+// ============================================================================
+
+model ImportLog {
+  id              String       @id @default(cuid())
+  source          ImportSource
+  filename        String
+  recordsImported Int          @default(0)
+  errors          String[]     @default([])
+  userId          String
+  createdAt       DateTime     @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([source])
+}
+
+enum ImportSource {
+  CSV
+  TODOIST
+  APPLE_REMINDERS
+  JSON
+}
+
+// ============================================================================
+// AI SUGGESTIONS
+// ============================================================================
+
+model AISuggestion {
+  id        String           @id @default(cuid())
+  type      SuggestionType
+  content   String           @db.Text
+  reasoning String           @db.Text
+  accepted  Boolean          @default(false)
+  dismissed Boolean          @default(false)
+  metadata  Json?            // Additional data for applying the suggestion
+  taskId    String?
+  userId    String
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  task Task? @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([taskId])
+  @@index([type])
+  @@index([accepted])
+  @@index([dismissed])
+  @@index([createdAt])
+}
+
+enum SuggestionType {
+  TASK_SUGGESTION
+  PRIORITY_CHANGE
+  DUE_DATE
+  CONTEXT
+  BREAKDOWN
+  RECURRING
+  RESCHEDULE
+  CATEGORY_BALANCE
+}
+
+// ============================================================================
+// COLLABORATION & SHARING
+// ============================================================================
+
+model SharedList {
+  id          String   @id @default(cuid())
+  name        String
+  description String?  @db.Text
+  ownerId     String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  owner   User               @relation("OwnedSharedLists", fields: [ownerId], references: [id], onDelete: Cascade)
+  members SharedListMember[]
+  tasks   SharedTask[]
+  invites ListInvite[]
+
+  @@index([ownerId])
+  @@index([updatedAt])
+}
+
+model SharedListMember {
+  id         String             @id @default(cuid())
+  listId     String
+  userId     String
+  role       SharedListRole
+  invitedAt  DateTime           @default(now())
+  acceptedAt DateTime?
+
+  list SharedList @relation(fields: [listId], references: [id], onDelete: Cascade)
+  user User       @relation("SharedListMemberships", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([listId, userId])
+  @@index([listId])
+  @@index([userId])
+  @@index([role])
+}
+
+model SharedTask {
+  id       String   @id @default(cuid())
+  listId   String
+  taskId   String
+  addedBy  String
+  addedAt  DateTime @default(now())
+
+  list SharedList @relation(fields: [listId], references: [id], onDelete: Cascade)
+  task Task       @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User       @relation("SharedTasksAdded", fields: [addedBy], references: [id], onDelete: Cascade)
+
+  @@unique([listId, taskId])
+  @@index([listId])
+  @@index([taskId])
+  @@index([addedBy])
+}
+
+model ListInvite {
+  id         String         @id @default(cuid())
+  listId     String
+  email      String
+  token      String         @unique
+  role       SharedListRole
+  expiresAt  DateTime
+  acceptedAt DateTime?
+  createdAt  DateTime       @default(now())
+
+  list SharedList @relation(fields: [listId], references: [id], onDelete: Cascade)
+
+  @@index([listId])
+  @@index([email])
+  @@index([token])
+  @@index([expiresAt])
+}
+
+enum SharedListRole {
+  OWNER
+  EDITOR
+  VIEWER
 }

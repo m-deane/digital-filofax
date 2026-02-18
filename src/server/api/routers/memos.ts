@@ -9,7 +9,7 @@ export const memosRouter = createTRPCRouter({
         includeArchived: z.boolean().default(false),
         memoType: z.array(z.enum(["NOTE", "ANECDOTE", "JOURNAL", "MEETING", "QUICK_THOUGHT"])).optional(),
         tagIds: z.array(z.string()).optional(),
-        search: z.string().optional(),
+        search: z.string().max(500).optional(),
         pinnedOnly: z.boolean().optional(),
         limit: z.number().min(1).max(100).default(50),
         cursor: z.string().optional(),
@@ -67,7 +67,7 @@ export const memosRouter = createTRPCRouter({
     .input(
       z.object({
         title: z.string().min(1).max(500),
-        content: z.string(),
+        content: z.string().max(100000),
         memoType: z.enum(["NOTE", "ANECDOTE", "JOURNAL", "MEETING", "QUICK_THOUGHT"]).default("NOTE"),
         isPinned: z.boolean().default(false),
         tagIds: z.array(z.string()).optional(),
@@ -95,7 +95,7 @@ export const memosRouter = createTRPCRouter({
       z.object({
         id: z.string(),
         title: z.string().min(1).max(500).optional(),
-        content: z.string().optional(),
+        content: z.string().max(100000).optional(),
         memoType: z.enum(["NOTE", "ANECDOTE", "JOURNAL", "MEETING", "QUICK_THOUGHT"]).optional(),
         isPinned: z.boolean().optional(),
         isArchived: z.boolean().optional(),
@@ -201,7 +201,7 @@ export const memosRouter = createTRPCRouter({
   quickCapture: protectedProcedure
     .input(
       z.object({
-        content: z.string().min(1),
+        content: z.string().min(1).max(100000),
         memoType: z.enum(["NOTE", "ANECDOTE", "JOURNAL", "MEETING", "QUICK_THOUGHT"]).default("QUICK_THOUGHT"),
       })
     )

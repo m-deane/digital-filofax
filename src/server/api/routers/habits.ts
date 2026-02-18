@@ -62,12 +62,12 @@ export const habitsRouter = createTRPCRouter({
     .input(
       z.object({
         name: z.string().min(1).max(200),
-        description: z.string().optional(),
+        description: z.string().max(2000).optional(),
         habitType: z.enum(["BOOLEAN", "NUMERIC", "DURATION"]).default("BOOLEAN"),
         frequency: z.enum(["DAILY", "WEEKLY", "MONTHLY", "CUSTOM"]).default("DAILY"),
         targetValue: z.number().positive().optional(),
         unit: z.string().max(50).optional(),
-        icon: z.string().optional(),
+        icon: z.string().max(50).optional(),
         color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).default("#10b981"),
         categoryId: z.string().optional(),
       })
@@ -94,7 +94,7 @@ export const habitsRouter = createTRPCRouter({
         frequency: z.enum(["DAILY", "WEEKLY", "MONTHLY", "CUSTOM"]).optional(),
         targetValue: z.number().positive().nullable().optional(),
         unit: z.string().max(50).nullable().optional(),
-        icon: z.string().nullable().optional(),
+        icon: z.string().max(50).nullable().optional(),
         color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
         categoryId: z.string().nullable().optional(),
         isArchived: z.boolean().optional(),
@@ -143,7 +143,7 @@ export const habitsRouter = createTRPCRouter({
         habitId: z.string(),
         date: z.date(),
         value: z.number().optional(),
-        notes: z.string().optional(),
+        notes: z.string().max(2000).optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -336,4 +336,138 @@ export const habitsRouter = createTRPCRouter({
         lastCompleted: logDates[0] ?? null,
       };
     }),
+
+  // Get heatmap data for past year
+  getHeatmapData: protectedProcedure
+    .input(z.object({ habitId: z.string().optional() }).optional())
+    .query(async ({ ctx, input }) => {
+      const today = startOfDay(new Date());
+      const yearAgo = subDays(today, 365);
+
+      const logs = await ctx.db.habitLog.findMany({
+        where: {
+          userId: ctx.session.user.id,
+          ...(input?.habitId && { habitId: input.habitId }),
+          date: {
+            gte: yearAgo,
+            lte: today,
+          },
+        },
+        include: {
+          habit: {
+            select: {
+              id: true,
+              name: true,
+              color: true,
+            },
+          },
+        },
+        orderBy: { date: "asc" },
+      });
+
+      // Group logs by date
+      const dateMap = new Map<string, { count: number; habits: Array<{ id: string; name: string; color: string }> }>();
+
+      logs.forEach((log) => {
+        const dateKey = log.date.toISOString().split("T")[0];
+        if (!dateKey) return;
+
+        const existing = dateMap.get(dateKey);
+        if (existing) {
+          existing.count += 1;
+          if (!existing.habits.some((h) => h.id === log.habit.id)) {
+            existing.habits.push(log.habit);
+          }
+        } else {
+          dateMap.set(dateKey, {
+            count: 1,
+            habits: [log.habit],
+          });
+        }
+      });
+
+      // Convert to array format
+      const heatmapData = Array.from(dateMap.entries()).map(([date, data]) => ({
+        date,
+        count: data.count,
+        habits: data.habits,
+      }));
+
+      return heatmapData;
+    }),
+
+  // Get streak stats for all habits
+  getStreakStats: protectedProcedure.query(async ({ ctx }) => {
+    const habits = await ctx.db.habit.findMany({
+      where: {
+        userId: ctx.session.user.id,
+        isArchived: false,
+      },
+      include: {
+        logs: {
+          orderBy: { date: "desc" },
+          take: 365,
+        },
+      },
+    });
+
+    const today = startOfDay(new Date());
+
+    return habits.map((habit) => {
+      const logDates = habit.logs.map((log) => log.date);
+
+      // Calculate current streak
+      let currentStreak = 0;
+      let checkDate = today;
+
+      const todayCompleted = logDates.some((d) => isSameDay(d, today));
+      const yesterdayCompleted = logDates.some((d) => isSameDay(d, subDays(today, 1)));
+
+      if (todayCompleted) {
+        currentStreak = 1;
+        checkDate = subDays(today, 1);
+      } else if (yesterdayCompleted) {
+        currentStreak = 1;
+        checkDate = subDays(today, 2);
+      }
+
+      if (currentStreak > 0) {
+        while (logDates.some((d) => isSameDay(d, checkDate))) {
+          currentStreak++;
+          checkDate = subDays(checkDate, 1);
+        }
+      }
+
+      // Calculate longest streak
+      let longestStreak = 0;
+      let tempStreak = 0;
+      const sortedDates = [...logDates].sort((a, b) => a.getTime() - b.getTime());
+
+      for (let i = 0; i < sortedDates.length; i++) {
+        if (i === 0) {
+          tempStreak = 1;
+        } else {
+          const diff = Math.round(
+            (sortedDates[i].getTime() - sortedDates[i - 1].getTime()) / (1000 * 60 * 60 * 24)
+          );
+          if (diff === 1) {
+            tempStreak++;
+          } else {
+            longestStreak = Math.max(longestStreak, tempStreak);
+            tempStreak = 1;
+          }
+        }
+      }
+      longestStreak = Math.max(longestStreak, tempStreak, currentStreak);
+
+      return {
+        habitId: habit.id,
+        habitName: habit.name,
+        color: habit.color,
+        currentStreak,
+        longestStreak,
+        totalCompletions: logDates.length,
+      };
+    });
+  }),
 });

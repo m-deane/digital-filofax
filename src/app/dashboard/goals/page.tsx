@@ -33,6 +33,10 @@ import {
   Loader2,
   Flag,
   Trash2,
+  ChevronRight,
+  Mountain,
+  Calendar as CalendarIcon,
+  TrendingUp,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -40,9 +44,34 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import { api } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
+
+const GOAL_TYPE_LABELS: Record<string, string> = {
+  LIFETIME: "Lifetime Vision",
+  THREE_YEAR: "3-Year Goal",
+  ANNUAL: "Annual Goal",
+  QUARTERLY: "Quarterly Goal",
+  MONTHLY: "Monthly Goal",
+};
+
+const GOAL_TYPE_COLORS: Record<string, string> = {
+  LIFETIME: "bg-purple-100 text-purple-700 border-purple-200",
+  THREE_YEAR: "bg-blue-100 text-blue-700 border-blue-200",
+  ANNUAL: "bg-green-100 text-green-700 border-green-200",
+  QUARTERLY: "bg-yellow-100 text-yellow-700 border-yellow-200",
+  MONTHLY: "bg-orange-100 text-orange-700 border-orange-200",
+};
+
+const GOAL_TYPE_ICONS: Record<string, React.ReactNode> = {
+  LIFETIME: <Mountain className="h-4 w-4" />,
+  THREE_YEAR: <Trophy className="h-4 w-4" />,
+  ANNUAL: <CalendarIcon className="h-4 w-4" />,
+  QUARTERLY: <TrendingUp className="h-4 w-4" />,
+  MONTHLY: <Target className="h-4 w-4" />,
+};
 
 const STATUS_COLORS: Record<string, string> = {
   NOT_STARTED: "bg-gray-100 text-gray-700",
@@ -60,18 +89,22 @@ const STATUS_LABELS: Record<string, string> = {
   ABANDONED: "Abandoned",
 };
 
-function CreateGoalDialog({ onSuccess }: { onSuccess: () => void }) {
+type GoalType = "LIFETIME" | "THREE_YEAR" | "ANNUAL" | "QUARTERLY" | "MONTHLY";
+
+function CreateGoalDialog({ onSuccess, parentGoal }: { onSuccess: () => void; parentGoal?: { id: string; title: string; type: string } }) {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [deadline, setDeadline] = useState("");
+  const [type, setType] = useState<GoalType>("ANNUAL");
+  const [targetDate, setTargetDate] = useState("");
 
   const createGoal = api.goals.create.useMutation({
     onSuccess: () => {
       setOpen(false);
       setTitle("");
       setDescription("");
-      setDeadline("");
+      setType("ANNUAL");
+      setTargetDate("");
       onSuccess();
     },
   });
@@ -81,24 +114,26 @@ function CreateGoalDialog({ onSuccess }: { onSuccess: () => void }) {
     createGoal.mutate({
       title,
       description: description || undefined,
-      deadline: deadline ? new Date(deadline) : undefined,
+      type,
+      targetDate: targetDate ? new Date(targetDate) : undefined,
+      parentGoalId: parentGoal?.id,
     });
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="gap-2">
+        <Button className="gap-2" size={parentGoal ? "sm" : "default"} variant={parentGoal ? "outline" : "default"}>
           <Plus className="h-4 w-4" />
-          New Goal
+          {parentGoal ? "Add Sub-Goal" : "New Goal"}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Create New Goal</DialogTitle>
+            <DialogTitle>{parentGoal ? `Add Sub-Goal to "${parentGoal.title}"` : "Create New Goal"}</DialogTitle>
             <DialogDescription>
-              Set a goal with a clear target and deadline
+              {parentGoal ? "Break down your goal into smaller, actionable steps" : "Set a clear target with a timeline for success"}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -107,7 +142,7 @@ function CreateGoalDialog({ onSuccess }: { onSuccess: () => void }) {
               <Input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="e.g., Learn a new programming language"
+                placeholder="e.g., Master TypeScript programming"
                 required
               />
             </div>
@@ -120,11 +155,26 @@ function CreateGoalDialog({ onSuccess }: { onSuccess: () => void }) {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Deadline (optional)</label>
+              <label className="text-sm font-medium">Goal Type</label>
+              <Select value={type} onValueChange={(v) => setType(v as GoalType)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="LIFETIME">Lifetime Vision</SelectItem>
+                  <SelectItem value="THREE_YEAR">3-Year Goal</SelectItem>
+                  <SelectItem value="ANNUAL">Annual Goal</SelectItem>
+                  <SelectItem value="QUARTERLY">Quarterly Goal</SelectItem>
+                  <SelectItem value="MONTHLY">Monthly Goal</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Target Date (optional)</label>
               <Input
                 type="date"
-                value={deadline}
-                onChange={(e) => setDeadline(e.target.value)}
+                value={targetDate}
+                onChange={(e) => setTargetDate(e.target.value)}
               />
             </div>
           </div>
@@ -229,194 +279,236 @@ function AddMilestoneDialog({
   );
 }
 
-function GoalCard({
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type GoalData = any;
+
+function GoalHierarchyItem({
   goal,
   onUpdate,
+  level = 0,
 }: {
-  goal: {
-    id: string;
-    title: string;
-    description: string | null;
-    status: string;
-    deadline: Date | null;
-    progress: number;
-    color: string;
-    milestones: Array<{
-      id: string;
-      title: string;
-      date: Date;
-      completed: boolean;
-    }>;
-    _count: { tasks: number; milestones: number };
-  };
+  goal: GoalData;
   onUpdate: () => void;
+  level?: number;
 }) {
   const utils = api.useUtils();
 
   const updateGoal = api.goals.update.useMutation({
     onSuccess: () => {
-      utils.goals.getAll.invalidate();
+      utils.goals.getHierarchy.invalidate();
       onUpdate();
     },
   });
 
   const deleteGoal = api.goals.delete.useMutation({
     onSuccess: () => {
-      utils.goals.getAll.invalidate();
+      utils.goals.getHierarchy.invalidate();
       onUpdate();
     },
   });
 
   const toggleMilestone = api.goals.updateMilestone.useMutation({
     onSuccess: () => {
-      utils.goals.getAll.invalidate();
+      utils.goals.getHierarchy.invalidate();
       onUpdate();
     },
   });
 
-  const completedMilestones = goal.milestones.filter((m) => m.completed).length;
+  const completedMilestones = goal.milestones?.filter((m: { completed: boolean }) => m.completed).length || 0;
   const milestoneProgress =
-    goal.milestones.length > 0
-      ? Math.round((completedMilestones / goal.milestones.length) * 100)
+    (goal.milestones?.length || 0) > 0
+      ? Math.round((completedMilestones / (goal.milestones?.length || 1)) * 100)
       : 0;
 
+  const hasChildren = goal.childGoals && goal.childGoals.length > 0;
+
   return (
-    <Card className="h-full">
-      <CardHeader className="pb-2">
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <CardTitle className="text-lg">{goal.title}</CardTitle>
-            {goal.description && (
-              <CardDescription className="mt-1">{goal.description}</CardDescription>
+    <div className={cn("space-y-2", level > 0 && "ml-6 border-l-2 pl-4 border-muted")}>
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1 space-y-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <Badge variant="outline" className={cn("gap-1", GOAL_TYPE_COLORS[goal.type])}>
+                  {GOAL_TYPE_ICONS[goal.type]}
+                  {GOAL_TYPE_LABELS[goal.type]}
+                </Badge>
+                <Badge className={STATUS_COLORS[goal.status]}>
+                  {STATUS_LABELS[goal.status]}
+                </Badge>
+                {goal.targetDate && (
+                  <Badge variant="outline" className="gap-1">
+                    <Calendar className="h-3 w-3" />
+                    {format(new Date(goal.targetDate), "MMM d, yyyy")}
+                  </Badge>
+                )}
+              </div>
+              <CardTitle className="text-lg">{goal.title}</CardTitle>
+              {goal.description && (
+                <CardDescription>{goal.description}</CardDescription>
+              )}
+            </div>
+            <div className="flex items-center gap-1">
+              <CreateGoalDialog onSuccess={onUpdate} parentGoal={{ id: goal.id, title: goal.title, type: goal.type }} />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onClick={() =>
+                      updateGoal.mutate({ id: goal.id, status: "IN_PROGRESS" })
+                    }
+                  >
+                    Mark In Progress
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() =>
+                      updateGoal.mutate({ id: goal.id, status: "COMPLETED" })
+                    }
+                  >
+                    Mark Completed
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => updateGoal.mutate({ id: goal.id, status: "ON_HOLD" })}
+                  >
+                    Put On Hold
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="text-destructive"
+                    onClick={() => deleteGoal.mutate({ id: goal.id })}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Progress */}
+          <div className="space-y-1">
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Progress</span>
+              <span className="font-medium">{milestoneProgress}%</span>
+            </div>
+            <Progress value={milestoneProgress} className="h-2" />
+          </div>
+
+          {/* Milestones */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">
+                Milestones ({completedMilestones}/{goal.milestones.length})
+              </span>
+              <AddMilestoneDialog goalId={goal.id} onSuccess={onUpdate} />
+            </div>
+            {goal.milestones.length > 0 ? (
+              <div className="space-y-1">
+                {goal.milestones.slice(0, 4).map((milestone: { id: string; title: string; date: Date; completed: boolean }) => (
+                  <div
+                    key={milestone.id}
+                    className={cn(
+                      "flex items-center gap-2 p-2 rounded text-sm cursor-pointer hover:bg-muted/50",
+                      milestone.completed && "text-muted-foreground"
+                    )}
+                    onClick={() =>
+                      toggleMilestone.mutate({
+                        id: milestone.id,
+                        completed: !milestone.completed,
+                      })
+                    }
+                  >
+                    {milestone.completed ? (
+                      <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    ) : (
+                      <Circle className="h-4 w-4" />
+                    )}
+                    <span className={cn(milestone.completed && "line-through")}>
+                      {milestone.title}
+                    </span>
+                    <span className="ml-auto text-xs text-muted-foreground">
+                      {format(new Date(milestone.date), "MMM d")}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No milestones yet</p>
             )}
           </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                onClick={() =>
-                  updateGoal.mutate({ id: goal.id, status: "IN_PROGRESS" })
-                }
-              >
-                Mark In Progress
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() =>
-                  updateGoal.mutate({ id: goal.id, status: "COMPLETED" })
-                }
-              >
-                Mark Completed
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => updateGoal.mutate({ id: goal.id, status: "ON_HOLD" })}
-              >
-                Put On Hold
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                className="text-destructive"
-                onClick={() => deleteGoal.mutate({ id: goal.id })}
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-        <div className="flex items-center gap-2 mt-2">
-          <Badge className={STATUS_COLORS[goal.status]}>
-            {STATUS_LABELS[goal.status]}
-          </Badge>
-          {goal.deadline && (
-            <Badge variant="outline" className="gap-1">
-              <Calendar className="h-3 w-3" />
-              {format(new Date(goal.deadline), "MMM d, yyyy")}
-            </Badge>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Progress */}
-        <div className="space-y-1">
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Progress</span>
-            <span className="font-medium">{milestoneProgress}%</span>
-          </div>
-          <Progress value={milestoneProgress} className="h-2" />
-        </div>
 
-        {/* Milestones */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">
-              Milestones ({completedMilestones}/{goal.milestones.length})
-            </span>
-            <AddMilestoneDialog goalId={goal.id} onSuccess={onUpdate} />
-          </div>
-          {goal.milestones.length > 0 ? (
-            <div className="space-y-1">
-              {goal.milestones.slice(0, 4).map((milestone) => (
-                <div
-                  key={milestone.id}
-                  className={cn(
-                    "flex items-center gap-2 p-2 rounded text-sm cursor-pointer hover:bg-muted/50",
-                    milestone.completed && "text-muted-foreground"
-                  )}
-                  onClick={() =>
-                    toggleMilestone.mutate({
-                      id: milestone.id,
-                      completed: !milestone.completed,
-                    })
-                  }
-                >
-                  {milestone.completed ? (
-                    <CheckCircle2 className="h-4 w-4 text-green-500" />
-                  ) : (
-                    <Circle className="h-4 w-4" />
-                  )}
-                  <span className={cn(milestone.completed && "line-through")}>
-                    {milestone.title}
-                  </span>
-                  <span className="ml-auto text-xs text-muted-foreground">
-                    {format(new Date(milestone.date), "MMM d")}
-                  </span>
-                </div>
-              ))}
+          {/* Stats */}
+          <div className="flex items-center gap-4 pt-2 border-t text-sm text-muted-foreground">
+            <div className="flex items-center gap-1">
+              <Target className="h-4 w-4" />
+              {goal._count?.tasks ?? 0} tasks
             </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">No milestones yet</p>
-          )}
-        </div>
-
-        {/* Stats */}
-        <div className="flex items-center gap-4 pt-2 border-t text-sm text-muted-foreground">
-          <div className="flex items-center gap-1">
-            <Target className="h-4 w-4" />
-            {goal._count.tasks} tasks
+            {hasChildren && (
+              <div className="flex items-center gap-1">
+                <ChevronRight className="h-4 w-4" />
+                {goal.childGoals.length} sub-goals
+              </div>
+            )}
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Render child goals */}
+      {hasChildren && (
+        <div className="space-y-2 mt-2">
+          {goal.childGoals.map((childGoal: GoalData) => (
+            <GoalHierarchyItem
+              key={childGoal.id}
+              goal={childGoal}
+              onUpdate={onUpdate}
+              level={level + 1}
+            />
+          ))}
         </div>
-      </CardContent>
-    </Card>
+      )}
+    </div>
   );
 }
 
 export default function GoalsPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [view, setView] = useState<"hierarchy" | "grid">("hierarchy");
   const utils = api.useUtils();
 
-  const { data: goals, isLoading } = api.goals.getAll.useQuery(
-    statusFilter !== "all" ? { status: statusFilter as "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED" | "ON_HOLD" | "ABANDONED" } : undefined
+  const { data: hierarchyGoals, isLoading: isLoadingHierarchy } = api.goals.getHierarchy.useQuery();
+
+  const { data: gridGoals, isLoading: isLoadingGrid } = api.goals.getAll.useQuery(
+    view === "grid" && (statusFilter !== "all" || typeFilter !== "all")
+      ? {
+          ...(statusFilter !== "all" && { status: statusFilter as "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED" | "ON_HOLD" | "ABANDONED" }),
+          ...(typeFilter !== "all" && { type: typeFilter as "LIFETIME" | "THREE_YEAR" | "ANNUAL" | "QUARTERLY" | "MONTHLY" }),
+        }
+      : undefined
   );
 
   const { data: stats } = api.goals.getStats.useQuery();
 
   const handleRefresh = () => {
     utils.goals.getAll.invalidate();
+    utils.goals.getHierarchy.invalidate();
     utils.goals.getStats.invalidate();
   };
+
+  const isLoading = view === "hierarchy" ? isLoadingHierarchy : isLoadingGrid;
+
+  // Apply filters to hierarchy view
+  const filteredHierarchyGoals = hierarchyGoals?.filter((goal) => {
+    if (statusFilter !== "all" && goal.status !== statusFilter) return false;
+    if (typeFilter !== "all" && goal.type !== typeFilter) return false;
+    return true;
+  });
+
+  const goalsToDisplay = view === "hierarchy" ? filteredHierarchyGoals : gridGoals;
 
   return (
     <div className="space-y-6">
@@ -425,7 +517,7 @@ export default function GoalsPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Goals</h1>
           <p className="text-muted-foreground">
-            Set and track your long-term objectives
+            Cascade your vision into actionable objectives
           </p>
         </div>
         <CreateGoalDialog onSuccess={handleRefresh} />
@@ -433,7 +525,7 @@ export default function GoalsPage() {
 
       {/* Stats */}
       {stats && (
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
           <Card>
             <CardContent className="flex items-center gap-4 p-6">
               <div className="p-2 rounded-lg bg-blue-100">
@@ -469,42 +561,74 @@ export default function GoalsPage() {
           </Card>
           <Card>
             <CardContent className="flex items-center gap-4 p-6">
-              <div className="p-2 rounded-lg bg-gray-100">
-                <Circle className="h-5 w-5 text-gray-600" />
+              <div className="p-2 rounded-lg bg-purple-100">
+                <Mountain className="h-5 w-5 text-purple-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{stats.notStarted}</p>
-                <p className="text-xs text-muted-foreground">Not Started</p>
+                <p className="text-2xl font-bold">{stats.byType.lifetime}</p>
+                <p className="text-xs text-muted-foreground">Lifetime</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="flex items-center gap-4 p-6">
+              <div className="p-2 rounded-lg bg-orange-100">
+                <CalendarIcon className="h-5 w-5 text-orange-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{stats.byType.annual}</p>
+                <p className="text-xs text-muted-foreground">Annual</p>
               </div>
             </CardContent>
           </Card>
         </div>
       )}
 
-      {/* Filters */}
-      <div className="flex items-center gap-4">
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Filter by status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Goals</SelectItem>
-            <SelectItem value="NOT_STARTED">Not Started</SelectItem>
-            <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
-            <SelectItem value="COMPLETED">Completed</SelectItem>
-            <SelectItem value="ON_HOLD">On Hold</SelectItem>
-          </SelectContent>
-        </Select>
+      {/* View Tabs and Filters */}
+      <div className="flex items-center justify-between gap-4">
+        <Tabs value={view} onValueChange={(v) => setView(v as "hierarchy" | "grid")}>
+          <TabsList>
+            <TabsTrigger value="hierarchy">Hierarchy View</TabsTrigger>
+            <TabsTrigger value="grid">Grid View</TabsTrigger>
+          </TabsList>
+        </Tabs>
+        <div className="flex items-center gap-2">
+          <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filter by type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Types</SelectItem>
+              <SelectItem value="LIFETIME">Lifetime</SelectItem>
+              <SelectItem value="THREE_YEAR">3-Year</SelectItem>
+              <SelectItem value="ANNUAL">Annual</SelectItem>
+              <SelectItem value="QUARTERLY">Quarterly</SelectItem>
+              <SelectItem value="MONTHLY">Monthly</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filter by status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="NOT_STARTED">Not Started</SelectItem>
+              <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+              <SelectItem value="COMPLETED">Completed</SelectItem>
+              <SelectItem value="ON_HOLD">On Hold</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
-      {/* Goals Grid */}
+      {/* Goals Display */}
       {isLoading && (
         <div className="flex justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       )}
 
-      {!isLoading && goals && goals.length === 0 && (
+      {!isLoading && goalsToDisplay && goalsToDisplay.length === 0 && (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Trophy className="h-12 w-12 text-muted-foreground mb-4" />
@@ -516,10 +640,10 @@ export default function GoalsPage() {
         </Card>
       )}
 
-      {!isLoading && goals && goals.length > 0 && (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {goals.map((goal) => (
-            <GoalCard key={goal.id} goal={goal} onUpdate={handleRefresh} />
+      {!isLoading && goalsToDisplay && goalsToDisplay.length > 0 && (
+        <div className="space-y-4">
+          {goalsToDisplay.map((goal: GoalData) => (
+            <GoalHierarchyItem key={goal.id} goal={goal} onUpdate={handleRefresh} />
           ))}
         </div>
       )}

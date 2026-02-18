@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { startOfDay, endOfDay, format } from "date-fns";
 
@@ -199,7 +200,7 @@ export const dailyRouter = createTRPCRouter({
       });
 
       if (!task) {
-        throw new Error("Task not found");
+        throw new TRPCError({ code: "NOT_FOUND", message: "Task not found" });
       }
 
       // Count current priorities
@@ -226,6 +227,6 @@ export const dailyRouter = createTRPCRouter({
         });
       }
 
-      throw new Error("Maximum 3 daily priorities allowed");
+      throw new TRPCError({ code: "BAD_REQUEST", message: "Maximum 3 daily priorities allowed" });
     }),
 });
