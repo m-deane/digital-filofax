@@ -1,0 +1,60 @@
+--- a/prisma/schema.prisma
++++ b/prisma/schema.prisma
+@@ -79,6 +79,8 @@ model User {
+   events      CalendarEvent[]
+   githubRepos GitHubRepo[]
+   preferences UserPreferences?
++  gratitudeEntries GratitudeEntry[]
++  moodEntries MoodEntry[]
+ }
+
+ model Category {
+@@ -361,3 +363,46 @@ enum EventSource {
+   GOOGLE_CALENDAR
+   GITHUB
+ }
++
++// ============================================================================
++// JOURNAL MODELS (Gratitude & Mood Tracking)
++// ============================================================================
++
++model GratitudeEntry {
++  id        String   @id @default(cuid())
++  date      DateTime @db.Date
++  entries   String[] // Array of 3 gratitude items
++  userId    String
++  createdAt DateTime @default(now())
++  updatedAt DateTime @updatedAt
++
++  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
++
++  @@unique([userId, date])
++  @@index([userId])
++  @@index([date])
++}
++
++model MoodEntry {
++  id          String    @id @default(cuid())
++  date        DateTime  @db.Date
++  mood        MoodLevel
++  energyLevel Int       // 1-5 scale
++  notes       String?   @db.Text
++  userId      String
++  createdAt   DateTime  @default(now())
++  updatedAt   DateTime  @updatedAt
++
++  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
++
++  @@unique([userId, date])
++  @@index([userId])
++  @@index([date])
++  @@index([mood])
++}
++
++enum MoodLevel {
++  GREAT
++  GOOD
++  OKAY
++  LOW
++  BAD
++}

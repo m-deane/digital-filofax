@@ -1,0 +1,46 @@
+[   60284ms] [ERROR] ClientFetchError: Failed to fetch. Read more at https://errors.authjs.dev#autherror
+    at fetchData (webpack-internal:///(app-pages-browser)/./node_modules/next-auth/lib/client.js:49:22)
+    at async getSession (webpack-internal:///(app-pages-browser)/./node_modules/next-auth/react.js:123:21)
+    at async SessionProvider.useEffect [as _getSession] (webpack-internal:///(app-pages-browser)/./node_modules/next-auth/react.js:289:51) @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/userspace/app/errors/intercept-console-error.js:56
+[   60300ms] [ERROR] %c << query #1 %cpreferences.get%c %O 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+   
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: bold; 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: normal; {input: undefined, result: TRPCClientError: Failed to fetch
+    at TRPCClientError.from (webpack-internal:///(app-pages-browse…, elapsedMs: 20817, context: Object} @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/userspace/app/errors/intercept-console-error.js:56
+[   60302ms] [ERROR] %c << query #2 %cgoals.getAll%c %O 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+   
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: bold; 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: normal; {input: undefined, result: TRPCClientError: Failed to fetch
+    at TRPCClientError.from (webpack-internal:///(app-pages-browse…, elapsedMs: 20816, context: Object} @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/userspace/app/errors/intercept-console-error.js:56
+[   60304ms] [ERROR] %c << query #3 %cgoals.getStats%c %O 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+   
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: bold; 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: normal; {input: undefined, result: TRPCClientError: Failed to fetch
+    at TRPCClientError.from (webpack-internal:///(app-pages-browse…, elapsedMs: 20816, context: Object} @ webpack-internal:///(app-pages-browser)/./node_modules/next/dist/next-devtools/userspace/app/errors/intercept-console-error.js:56

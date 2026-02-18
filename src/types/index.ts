@@ -16,7 +16,11 @@ import type {
   Frequency,
   MemoType,
   IdeaStatus,
-  EventSource
+  EventSource,
+  Contact,
+  ContactCategory,
+  DailyReflection,
+  MonthlyReflection
 } from "@prisma/client";
 
 // Re-export Prisma types
@@ -38,7 +42,11 @@ export type {
   Frequency,
   MemoType,
   IdeaStatus,
-  EventSource
+  EventSource,
+  Contact,
+  ContactCategory,
+  DailyReflection,
+  MonthlyReflection
 };
 
 // Extended types with relations
@@ -64,6 +72,10 @@ export type IdeaWithRelations = Idea & {
 
 export type CalendarEventWithSource = CalendarEvent & {
   sourceLabel: string;
+};
+
+export type ContactWithCategory = Contact & {
+  category: ContactCategory | null;
 };
 
 // Input types for forms
@@ -129,6 +141,45 @@ export type CategoryInput = {
 export type TagInput = {
   name: string;
   color?: string;
+};
+
+export type ContactInput = {
+  name: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  company?: string;
+  jobTitle?: string;
+  birthday?: Date;
+  notes?: string;
+  isFavorite?: boolean;
+  categoryId?: string;
+};
+
+export type ContactCategoryInput = {
+  name: string;
+  color?: string;
+  icon?: string;
+};
+
+export type DailyReflectionInput = {
+  date: Date;
+  morningIntention?: string;
+  eveningReflection?: string;
+  wins?: string[];
+  improvements?: string[];
+  tomorrowFocus?: string;
+  energyLevel?: number;
+  productivityRating?: number;
+};
+
+export type MonthlyReflectionInput = {
+  monthOf: Date;
+  highlights?: string[];
+  challenges?: string[];
+  lessonsLearned?: string[];
+  nextMonthGoals?: string[];
+  rating?: number;
 };
 
 // UI State types

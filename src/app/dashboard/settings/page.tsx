@@ -15,6 +15,7 @@ import {
   Calendar,
   Plus,
   Check,
+  Puzzle,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -24,6 +25,12 @@ const settingsSections = [
     description: "Manage your account settings",
     icon: User,
     href: "/dashboard/settings/profile",
+  },
+  {
+    title: "Modules",
+    description: "Enable or disable app features",
+    icon: Puzzle,
+    href: "/dashboard/settings/modules",
   },
   {
     title: "Appearance",

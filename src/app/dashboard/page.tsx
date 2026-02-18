@@ -20,6 +20,10 @@ import {
 import Link from "next/link";
 import { format, startOfDay, isSameDay, subDays } from "date-fns";
 import { api } from "@/lib/trpc";
+import { useIsWidgetEnabled } from "@/hooks/use-modules";
+import { WidgetPicker } from "@/components/dashboard/widget-picker";
+import { FocusTimerWidget } from "@/components/dashboard/focus-timer-widget";
+import { GoalsWidget } from "@/components/dashboard/goals-widget";
 
 function TodayAgendaWidget() {
   const { data, isLoading } = api.calendar.getToday.useQuery();
@@ -271,10 +275,15 @@ function HabitsWidget() {
 }
 
 function QuickStatsWidget() {
-  const { data: tasksData } = api.tasks.getDueSoon.useQuery({ days: 1 });
-  const { data: habitsData } = api.habits.getAll.useQuery({});
-  const { data: eventsData } = api.calendar.getThisWeek.useQuery();
-  const { data: memosData } = api.memos.getAll.useQuery({});
+  const tasksEnabled = useIsWidgetEnabled("tasks");
+  const habitsEnabled = useIsWidgetEnabled("habits");
+  const calendarEnabled = useIsWidgetEnabled("agenda");
+  const memosEnabled = useIsWidgetEnabled("quick-capture");
+
+  const { data: tasksData } = api.tasks.getDueSoon.useQuery({ days: 1 }, { enabled: tasksEnabled });
+  const { data: habitsData } = api.habits.getAll.useQuery({}, { enabled: habitsEnabled });
+  const { data: eventsData } = api.calendar.getThisWeek.useQuery(undefined, { enabled: calendarEnabled });
+  const { data: memosData } = api.memos.getAll.useQuery({}, { enabled: memosEnabled });
 
   const tasksDueToday = tasksData?.length ?? 0;
   const activeHabits = habitsData?.length ?? 0;
@@ -282,14 +291,16 @@ function QuickStatsWidget() {
   const totalMemos = memosData?.memos?.length ?? 0;
 
   const stats = [
-    { label: "Tasks Due Today", value: tasksDueToday, icon: CheckSquare, color: "text-blue-500" },
-    { label: "Active Habits", value: activeHabits, icon: Target, color: "text-green-500" },
-    { label: "Events This Week", value: eventsThisWeek, icon: Calendar, color: "text-purple-500" },
-    { label: "Notes Created", value: totalMemos, icon: FileText, color: "text-orange-500" },
-  ];
+    { label: "Tasks Due Today", value: tasksDueToday, icon: CheckSquare, color: "text-blue-500", enabled: tasksEnabled },
+    { label: "Active Habits", value: activeHabits, icon: Target, color: "text-green-500", enabled: habitsEnabled },
+    { label: "Events This Week", value: eventsThisWeek, icon: Calendar, color: "text-purple-500", enabled: calendarEnabled },
+    { label: "Notes Created", value: totalMemos, icon: FileText, color: "text-orange-500", enabled: memosEnabled },
+  ].filter(stat => stat.enabled);
+
+  if (stats.length === 0) return null;
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className={`grid gap-4 md:grid-cols-2 ${stats.length >= 4 ? "lg:grid-cols-4" : stats.length === 3 ? "lg:grid-cols-3" : ""}`}>
       {stats.map((stat) => (
         <Card key={stat.label}>
           <CardContent className="flex items-center gap-4 p-6">
@@ -358,26 +369,54 @@ function IdeasWidget() {
 }
 
 export default function DashboardPage() {
+  const agendaEnabled = useIsWidgetEnabled("agenda");
+  const tasksEnabled = useIsWidgetEnabled("tasks");
+  const habitsEnabled = useIsWidgetEnabled("habits");
+  const ideasEnabled = useIsWidgetEnabled("ideas");
+  const goalsEnabled = useIsWidgetEnabled("goals");
+  const focusEnabled = useIsWidgetEnabled("focus");
+
+  const widgets = [
+    { key: "agenda", enabled: agendaEnabled, component: <TodayAgendaWidget /> },
+    { key: "tasks", enabled: tasksEnabled, component: <TasksWidget /> },
+    { key: "habits", enabled: habitsEnabled, component: <HabitsWidget /> },
+    { key: "ideas", enabled: ideasEnabled, component: <IdeasWidget /> },
+    { key: "goals", enabled: goalsEnabled, component: <GoalsWidget /> },
+    { key: "focus", enabled: focusEnabled, component: <FocusTimerWidget /> },
+  ].filter(w => w.enabled);
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">
-          Welcome back! Here&apos;s your personal command center.
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-muted-foreground">
+            Welcome back! Here&apos;s your personal command center.
+          </p>
+        </div>
+        <WidgetPicker />
       </div>
 
       {/* Quick Stats */}
       <QuickStatsWidget />
 
       {/* Main Content Grid */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <TodayAgendaWidget />
-        <TasksWidget />
-        <HabitsWidget />
-        <IdeasWidget />
-      </div>
+      {widgets.length > 0 ? (
+        <div className={`grid gap-6 md:grid-cols-2 ${widgets.length >= 3 ? "lg:grid-cols-3" : ""}`}>
+          {widgets.map(w => (
+            <div key={w.key}>{w.component}</div>
+          ))}
+        </div>
+      ) : (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <p className="text-muted-foreground text-center">
+              No widgets enabled. Click Customize to add widgets.
+            </p>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

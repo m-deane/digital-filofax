@@ -6,6 +6,12 @@ import { memosRouter } from "@/server/api/routers/memos";
 import { ideasRouter } from "@/server/api/routers/ideas";
 import { calendarRouter } from "@/server/api/routers/calendar";
 import { tagsRouter } from "@/server/api/routers/tags";
+import { preferencesRouter } from "@/server/api/routers/preferences";
+import { dailyRouter } from "@/server/api/routers/daily";
+import { focusRouter } from "@/server/api/routers/focus";
+import { goalsRouter } from "@/server/api/routers/goals";
+import { contactsRouter } from "@/server/api/routers/contacts";
+import { reflectionsRouter } from "@/server/api/routers/reflections";
 
 export const appRouter = createTRPCRouter({
   tasks: tasksRouter,
@@ -15,6 +21,12 @@ export const appRouter = createTRPCRouter({
   ideas: ideasRouter,
   calendar: calendarRouter,
   tags: tagsRouter,
+  preferences: preferencesRouter,
+  daily: dailyRouter,
+  focus: focusRouter,
+  goals: goalsRouter,
+  contacts: contactsRouter,
+  reflections: reflectionsRouter,
 });
 
 export type AppRouter = typeof appRouter;
