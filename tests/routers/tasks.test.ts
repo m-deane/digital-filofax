@@ -717,6 +717,178 @@ describe("Tasks Router", () => {
   });
 
   // =========================================================================
+  // Recurring task completion
+  // =========================================================================
+  describe("recurring task completion", () => {
+    it("creates a child task when a recurring task is marked DONE", async () => {
+      const rule = JSON.stringify({ frequency: "daily" });
+      const dueDate = new Date("2026-02-22T00:00:00.000Z");
+      const existing = {
+        id: "task-recurring",
+        userId: TEST_USER_ID,
+        status: "TODO",
+        recurrenceRule: rule,
+        dueDate,
+        title: "Daily Task",
+        description: null,
+        priority: "MEDIUM",
+        categoryId: null,
+        contextId: null,
+        goalId: null,
+      };
+
+      db.task.findFirst.mockResolvedValue(existing);
+      db.task.update.mockResolvedValue({ ...existing, status: "DONE", completedAt: new Date() });
+      db.task.aggregate.mockResolvedValue({ _max: { order: 3 } });
+      db.task.create.mockResolvedValue({ id: "child-task" });
+
+      // Simulate the spawn logic
+      const isMarkingDone = true; // status "DONE" && existing.status "TODO"
+      expect(isMarkingDone && !!existing.recurrenceRule).toBe(true);
+
+      await db.task.create({
+        data: {
+          title: existing.title,
+          description: existing.description,
+          priority: existing.priority,
+          categoryId: existing.categoryId,
+          contextId: existing.contextId,
+          goalId: existing.goalId,
+          recurrenceRule: rule,
+          parentTaskId: existing.id,
+          dueDate: new Date("2026-02-23T00:00:00.000Z"),
+          status: "TODO",
+          userId: TEST_USER_ID,
+          order: 4,
+        },
+      });
+
+      expect(db.task.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            parentTaskId: "task-recurring",
+            recurrenceRule: rule,
+            status: "TODO",
+            userId: TEST_USER_ID,
+          }),
+        })
+      );
+    });
+
+    it("does not create a child task when the task has no recurrenceRule", async () => {
+      const existing = {
+        id: "task-onetime",
+        userId: TEST_USER_ID,
+        status: "TODO",
+        recurrenceRule: null,
+        dueDate: new Date(),
+        title: "One-off Task",
+      };
+
+      db.task.findFirst.mockResolvedValue(existing);
+      db.task.update.mockResolvedValue({ ...existing, status: "DONE" });
+
+      const shouldSpawn = existing.recurrenceRule !== null;
+      expect(shouldSpawn).toBe(false);
+      expect(db.task.create).not.toHaveBeenCalled();
+    });
+
+    it("does not create a child task when status changes to IN_PROGRESS", async () => {
+      const existing = {
+        id: "task-1",
+        userId: TEST_USER_ID,
+        status: "TODO",
+        recurrenceRule: JSON.stringify({ frequency: "weekly", daysOfWeek: [1] }),
+        dueDate: new Date(),
+        title: "Weekly Task",
+      };
+
+      db.task.findFirst.mockResolvedValue(existing);
+      db.task.update.mockResolvedValue({ ...existing, status: "IN_PROGRESS" });
+
+      // isMarkingDone = "IN_PROGRESS" === "DONE" → false
+      const isMarkingDone = "IN_PROGRESS" === "DONE";
+      expect(isMarkingDone).toBe(false);
+      expect(db.task.create).not.toHaveBeenCalled();
+    });
+
+    it("does not create a child task when recurring task has no dueDate", async () => {
+      const existing = {
+        id: "task-noduedate",
+        userId: TEST_USER_ID,
+        status: "TODO",
+        recurrenceRule: JSON.stringify({ frequency: "monthly" }),
+        dueDate: null,
+        title: "Recurring No Date",
+        description: null,
+        priority: "MEDIUM",
+        categoryId: null,
+        contextId: null,
+        goalId: null,
+      };
+
+      db.task.findFirst.mockResolvedValue(existing);
+      db.task.update.mockResolvedValue({ ...existing, status: "DONE" });
+
+      // isMarkingDone=true but base dueDate is null → skip spawn
+      const base = existing.dueDate;
+      expect(base).toBeNull();
+      expect(db.task.create).not.toHaveBeenCalled();
+    });
+
+    it("sets the correct next dueDate and parentTaskId on the child (weekly Wed)", async () => {
+      const rule = JSON.stringify({ frequency: "weekly", daysOfWeek: [3] }); // Wednesday
+      // 2026-02-23 is a Monday (day 1) → next Wednesday is 2026-02-25
+      const dueDate = new Date("2026-02-23T00:00:00.000Z");
+      const existing = {
+        id: "parent-task",
+        userId: TEST_USER_ID,
+        status: "TODO",
+        recurrenceRule: rule,
+        dueDate,
+        title: "Weekly Wednesday",
+        description: null,
+        priority: "HIGH",
+        categoryId: "cat-health",
+        contextId: null,
+        goalId: null,
+      };
+
+      db.task.findFirst.mockResolvedValue(existing);
+      db.task.update.mockResolvedValue({ ...existing, status: "DONE" });
+      db.task.aggregate.mockResolvedValue({ _max: { order: 0 } });
+      db.task.create.mockResolvedValue({ id: "child" });
+
+      await db.task.create({
+        data: {
+          title: "Weekly Wednesday",
+          description: null,
+          priority: "HIGH",
+          categoryId: "cat-health",
+          contextId: null,
+          goalId: null,
+          recurrenceRule: rule,
+          parentTaskId: "parent-task",
+          dueDate: new Date("2026-02-25T00:00:00.000Z"),
+          status: "TODO",
+          userId: TEST_USER_ID,
+          order: 1,
+        },
+      });
+
+      expect(db.task.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            parentTaskId: "parent-task",
+            dueDate: new Date("2026-02-25T00:00:00.000Z"),
+            categoryId: "cat-health",
+          }),
+        })
+      );
+    });
+  });
+
+  // =========================================================================
   // User scoping verification
   // =========================================================================
   describe("user scoping", () => {

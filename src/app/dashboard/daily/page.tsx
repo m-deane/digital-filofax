@@ -286,6 +286,8 @@ export default function DailyPlanningPage() {
     const today = format(new Date(), "yyyy-MM-dd");
     const done = localStorage.getItem(RITUAL_STORAGE_KEY);
     if (done !== today) {
+      // Mark as done immediately so navigating away doesn't re-trigger it
+      localStorage.setItem(RITUAL_STORAGE_KEY, today);
       setRitualOpen(true);
     }
   }, []);

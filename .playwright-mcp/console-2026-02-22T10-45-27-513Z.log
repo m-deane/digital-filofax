@@ -1,0 +1,102 @@
+[   11692ms] [ERROR] ClientFetchError: Failed to fetch. Read more at https://errors.authjs.dev#autherror
+    at fetchData (http://localhost:3000/_next/static/chunks/node_modules_fef486fe._.js:13785:22)
+    at async getSession (http://localhost:3000/_next/static/chunks/node_modules_fef486fe._.js:13954:21)
+    at async SessionProvider.useEffect [as _getSession] (http://localhost:3000/_next/static/chunks/node_modules_fef486fe._.js:14105:51) @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_b0daae9a._.js:2359
+[   11694ms] [ERROR] %c << query #1 %cpreferences.get%c %O 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+   
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: bold; 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: normal; {input: undefined, result: TRPCClientError: Failed to fetch
+    at TRPCClientError.from (http://localhost:3000/_next/static/ch…, elapsedMs: 6145, context: Object} @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_b0daae9a._.js:2359
+[   11694ms] [ERROR] %c << query #2 %ctasks.getUrgentCount%c %O 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+   
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: bold; 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: normal; {input: undefined, result: TRPCClientError: Failed to fetch
+    at TRPCClientError.from (http://localhost:3000/_next/static/ch…, elapsedMs: 6145, context: Object} @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_b0daae9a._.js:2359
+[   11694ms] [ERROR] %c << query #3 %cinbox.getCount%c %O 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+   
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: bold; 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: normal; {input: undefined, result: TRPCClientError: Failed to fetch
+    at TRPCClientError.from (http://localhost:3000/_next/static/ch…, elapsedMs: 6144, context: Object} @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_b0daae9a._.js:2359
+[   11694ms] [ERROR] %c << query #4 %csuggestions.getCount%c %O 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+   
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: bold; 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: normal; {input: undefined, result: TRPCClientError: Failed to fetch
+    at TRPCClientError.from (http://localhost:3000/_next/static/ch…, elapsedMs: 6143, context: Object} @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_b0daae9a._.js:2359
+[   11695ms] [ERROR] %c << query #5 %chabits.getAll%c %O 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+   
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: bold; 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: normal; {input: Object, result: TRPCClientError: Failed to fetch
+    at TRPCClientError.from (http://localhost:3000/_next/static/ch…, elapsedMs: 6142, context: Object} @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_b0daae9a._.js:2359
+[   11695ms] [ERROR] %c << query #6 %chabits.getHeatmapData%c %O 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+   
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: bold; 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: normal; {input: undefined, result: TRPCClientError: Failed to fetch
+    at TRPCClientError.from (http://localhost:3000/_next/static/ch…, elapsedMs: 6142, context: Object} @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_b0daae9a._.js:2359
+[   11695ms] [ERROR] %c << query #7 %chabits.getStreakStats%c %O 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+   
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: bold; 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: normal; {input: undefined, result: TRPCClientError: Failed to fetch
+    at TRPCClientError.from (http://localhost:3000/_next/static/ch…, elapsedMs: 6141, context: Object} @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_b0daae9a._.js:2359

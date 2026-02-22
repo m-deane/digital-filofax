@@ -1,0 +1,4 @@
+[    8166ms] [ERROR] ClientFetchError: Failed to fetch. Read more at https://errors.authjs.dev#autherror
+    at fetchData (http://localhost:3000/_next/static/chunks/node_modules_fef486fe._.js:13785:22)
+    at async getSession (http://localhost:3000/_next/static/chunks/node_modules_fef486fe._.js:13954:21)
+    at async SessionProvider.useEffect [as _getSession] (http://localhost:3000/_next/static/chunks/node_modules_fef486fe._.js:14105:51) @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_b0daae9a._.js:2359

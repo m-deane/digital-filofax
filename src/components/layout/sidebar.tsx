@@ -439,6 +439,82 @@ export function Sidebar({ onNavigate }: SidebarProps = {}) {
     [orderedSections, updateSectionOrder]
   );
 
+  // Render content for a nav section — shared between the pre-mount (static) and post-mount (DnD) paths
+  const makeSectionBody = (
+    section: NavSection,
+    expanded: boolean,
+    active: boolean,
+    dragHandleProps: Record<string, unknown> = {}
+  ) => (
+    <>
+      {isCollapsed ? (
+        <>
+          <Separator className="my-3" />
+          <div className="flex justify-center mb-1">
+            <div className={cn("h-1.5 w-6 rounded-full", section.color, active && "opacity-100", !active && "opacity-40")} />
+          </div>
+          {section.items.map((item) => (
+            <NavItemComponent
+              key={item.href}
+              item={item}
+              isCollapsed={isCollapsed}
+              isActive={pathname === item.href || pathname.startsWith(item.href + "/")}
+              badge={getBadge(item.href)}
+              onNavigate={onNavigate}
+            />
+          ))}
+        </>
+      ) : (
+        <>
+          <div
+            className={cn(
+              "mt-4 mb-1 flex w-full items-center gap-2 rounded-md px-2 py-1.5 transition-colors hover:bg-accent/50",
+              "border-l-[3px]",
+              active ? section.color : "border-l-transparent"
+            )}
+            style={{ borderLeftColor: active ? undefined : "transparent" }}
+          >
+            <div
+              className={mounted ? "cursor-grab active:cursor-grabbing touch-none" : "touch-none"}
+              {...dragHandleProps}
+            >
+              <GripVertical className="h-3.5 w-3.5 text-muted-foreground/40 hover:text-muted-foreground" />
+            </div>
+            <button
+              onClick={() => toggleSection(section.id)}
+              className="flex flex-1 items-center gap-2"
+            >
+              <div className={cn("h-2 w-2 rounded-full", section.color)} />
+              <span className="flex-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground text-left">
+                {section.title}
+              </span>
+              <ChevronDown
+                className={cn(
+                  "h-3.5 w-3.5 text-muted-foreground transition-transform duration-200",
+                  !expanded && "-rotate-90"
+                )}
+              />
+            </button>
+          </div>
+          {expanded && (
+            <div className={cn("ml-1 border-l-2 pl-1", section.color.replace("bg-", "border-"))}>
+              {section.items.map((item) => (
+                <NavItemComponent
+                  key={item.href}
+                  item={item}
+                  isCollapsed={isCollapsed}
+                  isActive={pathname === item.href || pathname.startsWith(item.href + "/")}
+                  badge={getBadge(item.href)}
+                  onNavigate={onNavigate}
+                />
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </>
+  );
+
   return (
     <TooltipProvider>
       <aside
@@ -482,8 +558,13 @@ export function Sidebar({ onNavigate }: SidebarProps = {}) {
             ))}
 
             {/* Collapsible Sections with Colored Tabs + Drag-and-Drop */}
-            {/* DndContext must be client-only — dnd-kit generates incrementing aria IDs that
-                differ between SSR and client renders, causing hydration mismatches. */}
+            {/* Sections always render. Before mount: plain divs (no DnD, no aria ID conflicts).
+                After mount: wrapped in DndContext so drag-to-reorder works as a progressive enhancement. */}
+            {!mounted && orderedSections.map((section) => (
+              <div key={section.id}>
+                {makeSectionBody(section, isSectionExpanded(section), isSectionActive(section))}
+              </div>
+            ))}
             {mounted && (
             <DndContext
               sensors={sensors}
@@ -494,96 +575,16 @@ export function Sidebar({ onNavigate }: SidebarProps = {}) {
                 items={orderedSections.map((s) => s.id)}
                 strategy={verticalListSortingStrategy}
               >
-                {orderedSections.map((section) => {
-                  const expanded = isSectionExpanded(section);
-                  const active = isSectionActive(section);
-
-                  return (
-                    <SortableSectionWrapper
-                      key={section.id}
-                      id={section.id}
-                      disabled={isCollapsed}
-                      renderContent={(dragHandleProps) => (
-                        <>
-                          {isCollapsed ? (
-                            <>
-                              <Separator className="my-3" />
-                              {/* Show colored dot when collapsed */}
-                              <div className="flex justify-center mb-1">
-                                <div className={cn("h-1.5 w-6 rounded-full", section.color, active && "opacity-100", !active && "opacity-40")} />
-                              </div>
-                              {section.items.map((item) => (
-                                <NavItemComponent
-                                  key={item.href}
-                                  item={item}
-                                  isCollapsed={isCollapsed}
-                                  isActive={pathname === item.href || pathname.startsWith(item.href + "/")}
-                                  badge={getBadge(item.href)}
-                                  onNavigate={onNavigate}
-                                />
-                              ))}
-                            </>
-                          ) : (
-                            <>
-                              {/* Section header with colored tab + drag handle */}
-                              <div
-                                className={cn(
-                                  "mt-4 mb-1 flex w-full items-center gap-2 rounded-md px-2 py-1.5 transition-colors hover:bg-accent/50",
-                                  "border-l-[3px]",
-                                  active ? section.color : "border-l-transparent"
-                                )}
-                                style={{
-                                  borderLeftColor: active ? undefined : "transparent",
-                                }}
-                              >
-                                {/* Drag handle */}
-                                <div
-                                  className="cursor-grab active:cursor-grabbing touch-none"
-                                  {...dragHandleProps}
-                                >
-                                  <GripVertical className="h-3.5 w-3.5 text-muted-foreground/40 hover:text-muted-foreground" />
-                                </div>
-
-                                {/* Toggle button */}
-                                <button
-                                  onClick={() => toggleSection(section.id)}
-                                  className="flex flex-1 items-center gap-2"
-                                >
-                                  <div className={cn("h-2 w-2 rounded-full", section.color)} />
-                                  <span className="flex-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground text-left">
-                                    {section.title}
-                                  </span>
-                                  <ChevronDown
-                                    className={cn(
-                                      "h-3.5 w-3.5 text-muted-foreground transition-transform duration-200",
-                                      !expanded && "-rotate-90"
-                                    )}
-                                  />
-                                </button>
-                              </div>
-
-                              {/* Section items with colored left border */}
-                              {expanded && (
-                                <div className={cn("ml-1 border-l-2 pl-1", section.color.replace("bg-", "border-"))}>
-                                  {section.items.map((item) => (
-                                    <NavItemComponent
-                                      key={item.href}
-                                      item={item}
-                                      isCollapsed={isCollapsed}
-                                      isActive={pathname === item.href || pathname.startsWith(item.href + "/")}
-                                      badge={getBadge(item.href)}
-                                      onNavigate={onNavigate}
-                                    />
-                                  ))}
-                                </div>
-                              )}
-                            </>
-                          )}
-                        </>
-                      )}
-                    />
-                  );
-                })}
+                {orderedSections.map((section) => (
+                  <SortableSectionWrapper
+                    key={section.id}
+                    id={section.id}
+                    disabled={isCollapsed}
+                    renderContent={(dh) =>
+                      makeSectionBody(section, isSectionExpanded(section), isSectionActive(section), dh)
+                    }
+                  />
+                ))}
               </SortableContext>
             </DndContext>
             )}

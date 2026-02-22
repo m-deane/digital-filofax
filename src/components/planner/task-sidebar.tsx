@@ -1,12 +1,16 @@
 "use client";
 
+import { useState } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Inbox } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DraggableTask } from "./draggable-task";
 import type { Task, Category, Tag, Subtask, Context } from "@prisma/client";
+
+const PAGE_SIZE = 20;
 
 interface TaskSidebarProps {
   tasks: (Task & {
@@ -19,6 +23,7 @@ interface TaskSidebarProps {
 }
 
 export function TaskSidebar({ tasks, onTaskClick }: TaskSidebarProps) {
+  const [showAll, setShowAll] = useState(false);
   const { setNodeRef, isOver } = useDroppable({
     id: "unscheduled-tasks",
     data: {
@@ -26,7 +31,9 @@ export function TaskSidebar({ tasks, onTaskClick }: TaskSidebarProps) {
     },
   });
 
-  const taskIds = tasks.map((t) => t.id);
+  const visibleTasks = showAll ? tasks : tasks.slice(0, PAGE_SIZE);
+  const taskIds = visibleTasks.map((t) => t.id);
+  const hiddenCount = tasks.length - PAGE_SIZE;
 
   return (
     <Card className="h-full">
@@ -34,6 +41,11 @@ export function TaskSidebar({ tasks, onTaskClick }: TaskSidebarProps) {
         <CardTitle className="flex items-center gap-2 text-lg">
           <Inbox className="h-5 w-5" />
           Unscheduled Tasks
+          {tasks.length > 0 && (
+            <span className="ml-auto text-sm font-normal text-muted-foreground">
+              {tasks.length}
+            </span>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -51,9 +63,21 @@ export function TaskSidebar({ tasks, onTaskClick }: TaskSidebarProps) {
                   All tasks are scheduled
                 </p>
               ) : (
-                tasks.map((task) => (
-                  <DraggableTask key={task.id} task={task} onTaskClick={onTaskClick} />
-                ))
+                <>
+                  {visibleTasks.map((task) => (
+                    <DraggableTask key={task.id} task={task} onTaskClick={onTaskClick} />
+                  ))}
+                  {!showAll && hiddenCount > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full text-muted-foreground"
+                      onClick={() => setShowAll(true)}
+                    >
+                      Show {hiddenCount} more
+                    </Button>
+                  )}
+                </>
               )}
             </div>
           </SortableContext>

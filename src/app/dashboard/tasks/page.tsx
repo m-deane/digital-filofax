@@ -38,6 +38,7 @@ import {
   LayoutGrid,
   List,
   Loader2,
+  Repeat,
   X,
   CheckCircle2,
   Layers,
@@ -74,6 +75,7 @@ interface Task {
   category?: Category | null;
   context?: Context | null;
   dueDate?: Date | null;
+  recurrenceRule?: string | null;
 }
 
 function getPriorityBadge(priority: Priority) {
@@ -149,6 +151,12 @@ function TaskCard({ task, onToggle, onEdit, onDelete, isSelected, onSelectToggle
             <span className="text-xs text-muted-foreground flex items-center gap-1">
               <Calendar className="h-3 w-3" />
               {new Date(task.dueDate).toLocaleDateString()}
+            </span>
+          )}
+          {task.recurrenceRule && (
+            <span className="text-xs text-muted-foreground flex items-center gap-1">
+              <Repeat className="h-3 w-3" />
+              Recurring
             </span>
           )}
         </div>

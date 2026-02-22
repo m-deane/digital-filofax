@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { TRPCError } from "@trpc/server";
+import { parseRecurrenceRule, getNextDueDate } from "@/lib/recurrence";
 
 export const tasksRouter = createTRPCRouter({
   getAll: protectedProcedure
@@ -134,6 +135,7 @@ export const tasksRouter = createTRPCRouter({
         monthOf: z.date().nullable().optional(),
         order: z.number().optional(),
         completedAt: z.date().nullable().optional(),
+        recurrenceRule: z.string().max(500).nullable().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -168,6 +170,36 @@ export const tasksRouter = createTRPCRouter({
           subtasks: { orderBy: { order: "asc" } },
         },
       });
+
+      // Spawn next occurrence when a recurring task is marked DONE
+      const isMarkingDone = updateData.status === "DONE" && existing.status !== "DONE";
+      if (isMarkingDone && existing.recurrenceRule) {
+        const rule = parseRecurrenceRule(existing.recurrenceRule);
+        const base = existing.dueDate ?? (updateData.dueDate instanceof Date ? updateData.dueDate : null);
+        if (rule && base) {
+          const nextDue = getNextDueDate(base, rule);
+          const maxOrder = await ctx.db.task.aggregate({
+            where: { userId: ctx.session.user.id, status: "TODO" },
+            _max: { order: true },
+          });
+          await ctx.db.task.create({
+            data: {
+              title: existing.title,
+              description: existing.description,
+              priority: existing.priority,
+              categoryId: existing.categoryId,
+              contextId: existing.contextId,
+              goalId: existing.goalId,
+              recurrenceRule: existing.recurrenceRule,
+              parentTaskId: existing.id,
+              dueDate: nextDue,
+              status: "TODO",
+              userId: ctx.session.user.id,
+              order: (maxOrder._max.order ?? 0) + 1,
+            },
+          });
+        }
+      }
 
       return task;
     }),

@@ -27,7 +27,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
-import { CalendarIcon, Loader2, X } from "lucide-react";
+import { CalendarIcon, Loader2, Repeat, X } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/trpc";
@@ -64,6 +64,8 @@ export function TaskFormDialog({
   const [categoryId, setCategoryId] = useState<string | undefined>();
   const [contextId, setContextId] = useState<string | undefined>();
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [recurrenceFrequency, setRecurrenceFrequency] = useState<"none" | "daily" | "weekly" | "monthly" | "yearly">("none");
+  const [recurrenceDays, setRecurrenceDays] = useState<number[]>([]);
 
   const utils = api.useUtils();
 
@@ -104,6 +106,19 @@ export function TaskFormDialog({
       setCategoryId(task.categoryId || undefined);
       setContextId(task.contextId || undefined);
       setSelectedTags(task.tags.map((t) => t.id));
+      if (task.recurrenceRule) {
+        try {
+          const rule = JSON.parse(task.recurrenceRule) as { frequency: string; daysOfWeek?: number[] };
+          setRecurrenceFrequency(rule.frequency as "daily" | "weekly" | "monthly" | "yearly");
+          setRecurrenceDays(rule.daysOfWeek ?? []);
+        } catch {
+          setRecurrenceFrequency("none");
+          setRecurrenceDays([]);
+        }
+      } else {
+        setRecurrenceFrequency("none");
+        setRecurrenceDays([]);
+      }
     } else {
       setTitle("");
       setDescription("");
@@ -113,12 +128,24 @@ export function TaskFormDialog({
       setCategoryId(undefined);
       setContextId(undefined);
       setSelectedTags([]);
+      setRecurrenceFrequency("none");
+      setRecurrenceDays([]);
     }
   }, [task, defaultValues]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
+
+    const builtRule =
+      recurrenceFrequency === "none"
+        ? null
+        : JSON.stringify({
+            frequency: recurrenceFrequency,
+            ...(recurrenceFrequency === "weekly" && recurrenceDays.length > 0
+              ? { daysOfWeek: recurrenceDays }
+              : {}),
+          });
 
     const data = {
       title: title.trim(),
@@ -131,10 +158,16 @@ export function TaskFormDialog({
       tagIds: selectedTags.length > 0 ? selectedTags : undefined,
       weekOf: defaultValues?.weekOf,
       monthOf: defaultValues?.monthOf,
+      recurrenceRule: builtRule ?? undefined,
     };
 
     if (task) {
-      updateTask.mutate({ id: task.id, ...data });
+      // Pass null to explicitly clear an existing rule; undefined means "don't touch"
+      const recurrenceRuleForUpdate =
+        recurrenceFrequency === "none"
+          ? (task.recurrenceRule ? null : undefined)
+          : builtRule ?? undefined;
+      updateTask.mutate({ id: task.id, ...data, recurrenceRule: recurrenceRuleForUpdate });
     } else {
       createTask.mutate(data);
     }
@@ -151,6 +184,8 @@ export function TaskFormDialog({
       setCategoryId(undefined);
       setContextId(undefined);
       setSelectedTags([]);
+      setRecurrenceFrequency("none");
+      setRecurrenceDays([]);
     }, 200);
   };
 
@@ -269,6 +304,66 @@ export function TaskFormDialog({
                   )}
                 </PopoverContent>
               </Popover>
+            </div>
+
+            {/* Recurrence */}
+            <div className="space-y-2">
+              <Label htmlFor="recurrence" className="flex items-center gap-1.5">
+                <Repeat className="h-3.5 w-3.5" />
+                Repeat
+              </Label>
+              <Select
+                value={recurrenceFrequency}
+                onValueChange={(val) => {
+                  setRecurrenceFrequency(val as typeof recurrenceFrequency);
+                  setRecurrenceDays([]);
+                }}
+              >
+                <SelectTrigger id="recurrence">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Does not repeat</SelectItem>
+                  <SelectItem value="daily">Daily</SelectItem>
+                  <SelectItem value="weekly">Weekly</SelectItem>
+                  <SelectItem value="monthly">Monthly</SelectItem>
+                  <SelectItem value="yearly">Yearly</SelectItem>
+                </SelectContent>
+              </Select>
+              {recurrenceFrequency === "weekly" && (
+                <div className="space-y-1.5">
+                  <span className="text-xs text-muted-foreground">Repeat on</span>
+                  <div className="flex gap-1">
+                    {(["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"] as const).map((label, index) => {
+                      const isActive = recurrenceDays.includes(index);
+                      return (
+                        <button
+                          key={index}
+                          type="button"
+                          onClick={() =>
+                            setRecurrenceDays((prev) =>
+                              isActive ? prev.filter((d) => d !== index) : [...prev, index]
+                            )
+                          }
+                          className={cn(
+                            "h-8 w-8 rounded-full text-xs font-medium border transition-colors",
+                            isActive
+                              ? "bg-primary text-primary-foreground border-primary"
+                              : "bg-background text-muted-foreground border-border hover:border-primary"
+                          )}
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              {recurrenceFrequency !== "none" && !dueDate && (
+                <p className="text-xs text-muted-foreground">
+                  Set a due date so the next occurrence can be scheduled automatically.
+                </p>
+              )}
             </div>
 
             {/* Category */}
