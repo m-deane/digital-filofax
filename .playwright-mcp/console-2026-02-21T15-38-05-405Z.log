@@ -1,0 +1,525 @@
+[    3554ms] [ERROR] ClientFetchError: Failed to fetch. Read more at https://errors.authjs.dev#autherror
+    at fetchData (http://localhost:5173/_next/static/chunks/node_modules_fef486fe._.js:13785:22)
+    at async getSession (http://localhost:5173/_next/static/chunks/node_modules_fef486fe._.js:13954:21)
+    at async SessionProvider.useEffect [as _getSession] (http://localhost:5173/_next/static/chunks/node_modules_fef486fe._.js:14105:51) @ http://localhost:5173/_next/static/chunks/node_modules_next_dist_b0daae9a._.js:2359
+[    3556ms] [ERROR] %c << query #1 %cpreferences.get%c %O 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+   
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: bold; 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: normal; {input: undefined, result: TRPCClientError: Failed to fetch
+    at TRPCClientError.from (http://localhost:5173/_next/static/ch…, elapsedMs: 30144, context: Object} @ http://localhost:5173/_next/static/chunks/node_modules_next_dist_b0daae9a._.js:2359
+[    3557ms] [ERROR] %c << query #2 %ctasks.getUrgentCount%c %O 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+   
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: bold; 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: normal; {input: undefined, result: TRPCClientError: Failed to fetch
+    at TRPCClientError.from (http://localhost:5173/_next/static/ch…, elapsedMs: 30144, context: Object} @ http://localhost:5173/_next/static/chunks/node_modules_next_dist_b0daae9a._.js:2359
+[    3557ms] [ERROR] %c << query #3 %csuggestions.getCount%c %O 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+   
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: bold; 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: normal; {input: undefined, result: TRPCClientError: Failed to fetch
+    at TRPCClientError.from (http://localhost:5173/_next/static/ch…, elapsedMs: 30143, context: Object} @ http://localhost:5173/_next/static/chunks/node_modules_next_dist_b0daae9a._.js:2359
+[    3557ms] [ERROR] %c << query #4 %ctasks.getDueSoon%c %O 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+   
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: bold; 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: normal; {input: Object, result: TRPCClientError: Failed to fetch
+    at TRPCClientError.from (http://localhost:5173/_next/static/ch…, elapsedMs: 30142, context: Object} @ http://localhost:5173/_next/static/chunks/node_modules_next_dist_b0daae9a._.js:2359
+[    3557ms] [ERROR] %c << query #5 %chabits.getAll%c %O 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+   
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: bold; 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: normal; {input: Object, result: TRPCClientError: Failed to fetch
+    at TRPCClientError.from (http://localhost:5173/_next/static/ch…, elapsedMs: 30141, context: Object} @ http://localhost:5173/_next/static/chunks/node_modules_next_dist_b0daae9a._.js:2359
+[    3558ms] [ERROR] %c << query #6 %ccalendar.getThisWeek%c %O 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+   
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: bold; 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: normal; {input: undefined, result: TRPCClientError: Failed to fetch
+    at TRPCClientError.from (http://localhost:5173/_next/static/ch…, elapsedMs: 30141, context: Object} @ http://localhost:5173/_next/static/chunks/node_modules_next_dist_b0daae9a._.js:2359
+[    3558ms] [ERROR] %c << query #7 %cmemos.getAll%c %O 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+   
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: bold; 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: normal; {input: Object, result: TRPCClientError: Failed to fetch
+    at TRPCClientError.from (http://localhost:5173/_next/static/ch…, elapsedMs: 30140, context: Object} @ http://localhost:5173/_next/static/chunks/node_modules_next_dist_b0daae9a._.js:2359
+[    3558ms] [ERROR] %c << query #8 %creview.needsReview%c %O 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+   
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: bold; 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: normal; {input: undefined, result: TRPCClientError: Failed to fetch
+    at TRPCClientError.from (http://localhost:5173/_next/static/ch…, elapsedMs: 30139, context: Object} @ http://localhost:5173/_next/static/chunks/node_modules_next_dist_b0daae9a._.js:2359
+[    3558ms] [ERROR] %c << query #9 %ctasks.getUrgent%c %O 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+   
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: bold; 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: normal; {input: undefined, result: TRPCClientError: Failed to fetch
+    at TRPCClientError.from (http://localhost:5173/_next/static/ch…, elapsedMs: 30139, context: Object} @ http://localhost:5173/_next/static/chunks/node_modules_next_dist_b0daae9a._.js:2359
+[    3559ms] [ERROR] %c << query #10 %ccalendar.getToday%c %O 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+   
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: bold; 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: normal; {input: undefined, result: TRPCClientError: Failed to fetch
+    at TRPCClientError.from (http://localhost:5173/_next/static/ch…, elapsedMs: 30138, context: Object} @ http://localhost:5173/_next/static/chunks/node_modules_next_dist_b0daae9a._.js:2359
+[    3559ms] [ERROR] %c << query #11 %ctasks.getDueSoon%c %O 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+   
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: bold; 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: normal; {input: Object, result: TRPCClientError: Failed to fetch
+    at TRPCClientError.from (http://localhost:5173/_next/static/ch…, elapsedMs: 30137, context: Object} @ http://localhost:5173/_next/static/chunks/node_modules_next_dist_b0daae9a._.js:2359
+[    3559ms] [ERROR] %c << query #12 %cideas.getAll%c %O 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+   
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: bold; 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: normal; {input: Object, result: TRPCClientError: Failed to fetch
+    at TRPCClientError.from (http://localhost:5173/_next/static/ch…, elapsedMs: 30137, context: Object} @ http://localhost:5173/_next/static/chunks/node_modules_next_dist_b0daae9a._.js:2359
+[    3559ms] [ERROR] %c << query #13 %cfocus.getSettings%c %O 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+   
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: bold; 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: normal; {input: undefined, result: TRPCClientError: Failed to fetch
+    at TRPCClientError.from (http://localhost:5173/_next/static/ch…, elapsedMs: 30137, context: Object} @ http://localhost:5173/_next/static/chunks/node_modules_next_dist_b0daae9a._.js:2359
+[    3560ms] [ERROR] %c << query #14 %cfocus.getTodayStats%c %O 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+   
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: bold; 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: normal; {input: undefined, result: TRPCClientError: Failed to fetch
+    at TRPCClientError.from (http://localhost:5173/_next/static/ch…, elapsedMs: 30136, context: Object} @ http://localhost:5173/_next/static/chunks/node_modules_next_dist_b0daae9a._.js:2359
+[    5145ms] [ERROR] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+%s%s https://react.dev/link/hydration-mismatch 
+
+  ...
+    <DashboardLayout>
+      <DashboardShell>
+        ...
+          <div className="flex flex-...">
+            <Header>
+              <header className="sticky top...">
+                <_c>
+                ...
+                  <PopoverTrigger asChild={true}>
+                    <PopperAnchor asChild={true} __scopePopper={{Popper:[...]}}>
+                      <Primitive.div asChild={true} ref={function}>
+                        <Primitive.div.Slot ref={function}>
+                          <Primitive.div.SlotClone ref={function}>
+                            <Primitive.button type="button" aria-haspopup="dialog" aria-expanded={false} ...>
+                              <Primitive.button.Slot type="button" aria-haspopup="dialog" aria-expanded={false} ...>
+                                <Primitive.button.SlotClone type="button" aria-haspopup="dialog" aria-expanded={false} ...>
+                                  <div
+                                    className="relative flex-1 max-w-md"
+                                    type="button"
+                                    aria-haspopup="dialog"
+                                    aria-expanded={false}
++                                   aria-controls="radix-_R_9snelb_"
+-                                   aria-controls="radix-_R_17knelb_"
+                                    data-state="closed"
+                                    onClick={function handleEvent}
+                                    ref={function}
+                                  >
+                <div className="flex items...">
+                  <Dialog open={false} onOpenChange={function bound dispatchSetState}>
+                    <DialogProvider scope={undefined} triggerRef={{current:null}} contentRef={{current:null}} ...>
+                      <DialogTrigger asChild={true}>
+                        <Primitive.button type="button" aria-haspopup="dialog" aria-expanded={false} ...>
+                          <Primitive.button.Slot type="button" aria-haspopup="dialog" aria-expanded={false} ...>
+                            <Primitive.button.SlotClone type="button" aria-haspopup="dialog" aria-expanded={false} ...>
+                              <_c size="sm" className="gap-2" type="button" aria-haspopup="dialog" aria-expanded={false} ...>
+                                <button
+                                  className={"inline-flex items-center justify-center whitespace-nowrap font-medium t..."}
+                                  ref={function}
+                                  type="button"
+                                  aria-haspopup="dialog"
+                                  aria-expanded={false}
++                                 aria-controls="radix-_R_tsnelb_"
+-                                 aria-controls="radix-_R_3nknelb_"
+                                  data-state="closed"
+                                  onClick={function handleEvent}
+                                >
+                      ...
+                  <_c>
+                  <_c>
+                  ...
+                    <Primitive.div asChild={true} ref={function}>
+                      <Primitive.div.Slot ref={function}>
+                        <Primitive.div.SlotClone ref={function}>
+                          <Primitive.button type="button" id="radix-_R_2..." aria-haspopup="menu" aria-expanded={false} ...>
+                            <Primitive.button.Slot type="button" id="radix-_R_2..." aria-haspopup="menu" ...>
+                              <Primitive.button.SlotClone type="button" id="radix-_R_2..." aria-haspopup="menu" ...>
+                                <_c variant="ghost" className="relative h..." type="button" id="radix-_R_2..." ...>
+                                  <button
+                                    className={"inline-flex items-center justify-center gap-2 whitespace-nowrap text-..."}
+                                    ref={function}
+                                    type="button"
++                                   id="radix-_R_2dsnelb_"
+-                                   id="radix-_R_9nknelb_"
+                                    aria-haspopup="menu"
+                                    aria-expanded={false}
+                                    aria-controls={undefined}
+                                    data-state="closed"
+                                    data-disabled={undefined}
+                                    disabled={false}
+                                    onPointerDown={function handleEvent}
+                                    onKeyDown={function handleEvent}
+                                  >
+            ...
+              <div className="flex items...">
+                <div>
+                <WidgetPicker>
+                  <Dialog open={false} onOpenChange={function bound dispatchSetState}>
+                    <DialogProvider scope={undefined} triggerRef={{current:null}} contentRef={{current:null}} ...>
+                      <DialogTrigger asChild={true}>
+                        <Primitive.button type="button" aria-haspopup="dialog" aria-expanded={false} ...>
+                          <Primitive.button.Slot type="button" aria-haspopup="dialog" aria-expanded={false} ...>
+                            <Primitive.button.SlotClone type="button" aria-haspopup="dialog" aria-expanded={false} ...>
+                              <_c variant="outline" size="sm" className="gap-2" type="button" aria-haspopup="dialog" ...>
+                                <button
+                                  className={"inline-flex items-center justify-center whitespace-nowrap font-medium t..."}
+                                  ref={function}
+                                  type="button"
+                                  aria-haspopup="dialog"
+                                  aria-expanded={false}
++                                 aria-controls="radix-_R_hinesnelb_"
+-                                 aria-controls="radix-_R_26atrknelb_"
+                                  data-state="closed"
+                                  onClick={function handleEvent}
+                                >
+                      ...
+ @ http://localhost:5173/_next/static/chunks/node_modules_next_dist_b0daae9a._.js:2359
+[  232389ms] [ERROR] %c << query #23 %cpreferences.get%c %O 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+   
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: bold; 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: normal; {input: undefined, result: TRPCClientError: Failed to fetch
+    at TRPCClientError.from (http://localhost:5173/_next/static/ch…, elapsedMs: 1322, context: Object} @ http://localhost:5173/_next/static/chunks/node_modules_next_dist_b0daae9a._.js:2359
+[  232390ms] [ERROR] %c << query #24 %ctasks.getUrgentCount%c %O 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+   
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: bold; 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: normal; {input: undefined, result: TRPCClientError: Failed to fetch
+    at TRPCClientError.from (http://localhost:5173/_next/static/ch…, elapsedMs: 1320, context: Object} @ http://localhost:5173/_next/static/chunks/node_modules_next_dist_b0daae9a._.js:2359
+[  232390ms] [ERROR] %c << query #25 %csuggestions.getCount%c %O 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+   
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: bold; 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: normal; {input: undefined, result: TRPCClientError: Failed to fetch
+    at TRPCClientError.from (http://localhost:5173/_next/static/ch…, elapsedMs: 1319, context: Object} @ http://localhost:5173/_next/static/chunks/node_modules_next_dist_b0daae9a._.js:2359
+[  264269ms] [ERROR] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+%s%s https://react.dev/link/hydration-mismatch 
+
+  ...
+    <DashboardLayout>
+      <DashboardShell>
+        ...
+          <div className="flex flex-...">
+            <Header>
+              <header className="sticky top...">
+                <_c>
+                ...
+                  <PopoverTrigger asChild={true}>
+                    <PopperAnchor asChild={true} __scopePopper={{Popper:[...]}}>
+                      <Primitive.div asChild={true} ref={function}>
+                        <Primitive.div.Slot ref={function}>
+                          <Primitive.div.SlotClone ref={function}>
+                            <Primitive.button type="button" aria-haspopup="dialog" aria-expanded={false} ...>
+                              <Primitive.button.Slot type="button" aria-haspopup="dialog" aria-expanded={false} ...>
+                                <Primitive.button.SlotClone type="button" aria-haspopup="dialog" aria-expanded={false} ...>
+                                  <div
+                                    className="relative flex-1 max-w-md"
+                                    type="button"
+                                    aria-haspopup="dialog"
+                                    aria-expanded={false}
++                                   aria-controls="radix-_R_9snelb_"
+-                                   aria-controls="radix-_R_17knelb_"
+                                    data-state="closed"
+                                    onClick={function handleEvent}
+                                    ref={function}
+                                  >
+                <div className="flex items...">
+                  <Dialog open={false} onOpenChange={function bound dispatchSetState}>
+                    <DialogProvider scope={undefined} triggerRef={{current:null}} contentRef={{current:null}} ...>
+                      <DialogTrigger asChild={true}>
+                        <Primitive.button type="button" aria-haspopup="dialog" aria-expanded={false} ...>
+                          <Primitive.button.Slot type="button" aria-haspopup="dialog" aria-expanded={false} ...>
+                            <Primitive.button.SlotClone type="button" aria-haspopup="dialog" aria-expanded={false} ...>
+                              <_c size="sm" className="gap-2" type="button" aria-haspopup="dialog" aria-expanded={false} ...>
+                                <button
+                                  className={"inline-flex items-center justify-center whitespace-nowrap font-medium t..."}
+                                  ref={function}
+                                  type="button"
+                                  aria-haspopup="dialog"
+                                  aria-expanded={false}
++                                 aria-controls="radix-_R_tsnelb_"
+-                                 aria-controls="radix-_R_3nknelb_"
+                                  data-state="closed"
+                                  onClick={function handleEvent}
+                                >
+                      ...
+                  <_c>
+                  <_c>
+                  ...
+                    <Primitive.div asChild={true} ref={function}>
+                      <Primitive.div.Slot ref={function}>
+                        <Primitive.div.SlotClone ref={function}>
+                          <Primitive.button type="button" id="radix-_R_2..." aria-haspopup="menu" aria-expanded={false} ...>
+                            <Primitive.button.Slot type="button" id="radix-_R_2..." aria-haspopup="menu" ...>
+                              <Primitive.button.SlotClone type="button" id="radix-_R_2..." aria-haspopup="menu" ...>
+                                <_c variant="ghost" className="relative h..." type="button" id="radix-_R_2..." ...>
+                                  <button
+                                    className={"inline-flex items-center justify-center gap-2 whitespace-nowrap text-..."}
+                                    ref={function}
+                                    type="button"
++                                   id="radix-_R_2dsnelb_"
+-                                   id="radix-_R_9nknelb_"
+                                    aria-haspopup="menu"
+                                    aria-expanded={false}
+                                    aria-controls={undefined}
+                                    data-state="closed"
+                                    data-disabled={undefined}
+                                    disabled={false}
+                                    onPointerDown={function handleEvent}
+                                    onKeyDown={function handleEvent}
+                                  >
+            ...
+ @ http://localhost:5173/_next/static/chunks/node_modules_next_dist_b0daae9a._.js:2359
+[  414501ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:5173/api/trpc/tasks.getUrgentCount,suggestions.getCount?batch=1&input=%7B%220%22%3A%7B%22json%22%3Anull%2C%22meta%22%3A%7B%22values%22%3A%5B%22undefined%22%5D%2C%22v%22%3A1%7D%7D%2C%221%22%3A%7B%22json%22%3Anull%2C%22meta%22%3A%7B%22values%22%3A%5B%22undefined%22%5D%2C%22v%22%3A1%7D%7D%7D:0
+[  414502ms] [ERROR] %c << query #14 %ctasks.getUrgentCount%c %O 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+   
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: bold; 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: normal; {input: undefined, result: TRPCClientError: Unexpected token 'I', "Internal S"... is not valid JSON
+    at TRPCClientError.fro…, elapsedMs: 3872, context: Object} @ http://localhost:5173/_next/static/chunks/node_modules_next_dist_b0daae9a._.js:2359
+[  414503ms] [ERROR] %c << query #15 %csuggestions.getCount%c %O 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+   
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: bold; 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: normal; {input: undefined, result: TRPCClientError: Unexpected token 'I', "Internal S"... is not valid JSON
+    at TRPCClientError.fro…, elapsedMs: 3872, context: Object} @ http://localhost:5173/_next/static/chunks/node_modules_next_dist_b0daae9a._.js:2359
+[  415722ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:5173/api/trpc/tasks.getUrgentCount,suggestions.getCount?batch=1&input=%7B%220%22%3A%7B%22json%22%3Anull%2C%22meta%22%3A%7B%22values%22%3A%5B%22undefined%22%5D%2C%22v%22%3A1%7D%7D%2C%221%22%3A%7B%22json%22%3Anull%2C%22meta%22%3A%7B%22values%22%3A%5B%22undefined%22%5D%2C%22v%22%3A1%7D%7D%7D:0
+[  415722ms] [ERROR] %c << query #16 %ctasks.getUrgentCount%c %O 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+   
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: bold; 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: normal; {input: undefined, result: TRPCClientError: Unexpected token 'I', "Internal S"... is not valid JSON
+    at TRPCClientError.fro…, elapsedMs: 218, context: Object} @ http://localhost:5173/_next/static/chunks/node_modules_next_dist_b0daae9a._.js:2359
+[  415723ms] [ERROR] %c << query #17 %csuggestions.getCount%c %O 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+   
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: bold; 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: normal; {input: undefined, result: TRPCClientError: Unexpected token 'I', "Internal S"... is not valid JSON
+    at TRPCClientError.fro…, elapsedMs: 218, context: Object} @ http://localhost:5173/_next/static/chunks/node_modules_next_dist_b0daae9a._.js:2359
+[  417902ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:5173/api/trpc/tasks.getUrgentCount,suggestions.getCount?batch=1&input=%7B%220%22%3A%7B%22json%22%3Anull%2C%22meta%22%3A%7B%22values%22%3A%5B%22undefined%22%5D%2C%22v%22%3A1%7D%7D%2C%221%22%3A%7B%22json%22%3Anull%2C%22meta%22%3A%7B%22values%22%3A%5B%22undefined%22%5D%2C%22v%22%3A1%7D%7D%7D:0
+[  417903ms] [ERROR] %c << query #18 %ctasks.getUrgentCount%c %O 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+   
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: bold; 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: normal; {input: undefined, result: TRPCClientError: Unexpected token 'I', "Internal S"... is not valid JSON
+    at TRPCClientError.fro…, elapsedMs: 178, context: Object} @ http://localhost:5173/_next/static/chunks/node_modules_next_dist_b0daae9a._.js:2359
+[  417903ms] [ERROR] %c << query #19 %csuggestions.getCount%c %O 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+   
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: bold; 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: normal; {input: undefined, result: TRPCClientError: Unexpected token 'I', "Internal S"... is not valid JSON
+    at TRPCClientError.fro…, elapsedMs: 178, context: Object} @ http://localhost:5173/_next/static/chunks/node_modules_next_dist_b0daae9a._.js:2359
