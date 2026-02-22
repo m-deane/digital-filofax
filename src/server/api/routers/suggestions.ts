@@ -2,6 +2,8 @@ import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { TRPCError } from "@trpc/server";
 import { AISuggestionService } from "@/lib/ai-suggestions";
+import { generateAISuggestions } from "@/lib/ai-client";
+import type { PlannerContext } from "@/lib/ai-client";
 import type { PrismaClient } from "@prisma/client";
 
 export const suggestionsRouter = createTRPCRouter({
@@ -132,6 +134,144 @@ export const suggestionsRouter = createTRPCRouter({
       count: created.count,
       message: `Generated ${created.count} new suggestions`,
     };
+  }),
+
+  /**
+   * Get AI-powered suggestions using the Anthropic API
+   */
+  getAISuggestions: protectedProcedure.query(async ({ ctx }) => {
+    const userId = ctx.session.user.id;
+
+    // Check rate limit
+    const prefs = await ctx.db.userPreferences.findUnique({
+      where: { userId },
+    });
+
+    if (prefs?.lastAICallAt) {
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+      if (prefs.lastAICallAt > oneHourAgo) {
+        return { rateLimited: true, suggestions: [] };
+      }
+    }
+
+    // Assemble planner context from DB
+    const now = new Date();
+    const threeDaysFromNow = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const endOfToday = new Date(startOfToday.getTime() + 24 * 60 * 60 * 1000);
+
+    const [overdueTasks, dueTodayTasks, dueSoonTasks, habits, lastReflection, inboxCount] =
+      await Promise.all([
+        ctx.db.task.count({
+          where: {
+            userId,
+            status: { not: "DONE" },
+            dueDate: { lt: startOfToday },
+          },
+        }),
+        ctx.db.task.count({
+          where: {
+            userId,
+            status: { not: "DONE" },
+            dueDate: { gte: startOfToday, lt: endOfToday },
+          },
+        }),
+        ctx.db.task.findMany({
+          where: {
+            userId,
+            status: { not: "DONE" },
+            dueDate: { gte: startOfToday, lte: threeDaysFromNow },
+          },
+          select: { title: true, dueDate: true },
+          orderBy: { dueDate: "asc" },
+          take: 10,
+        }),
+        ctx.db.habit.findMany({
+          where: {
+            userId,
+            isArchived: false,
+          },
+          select: {
+            name: true,
+            logs: {
+              orderBy: { date: "desc" },
+              take: 7,
+              select: { date: true },
+            },
+          },
+        }),
+        ctx.db.dailyReflection.findFirst({
+          where: { userId },
+          orderBy: { createdAt: "desc" },
+          select: { createdAt: true },
+        }),
+        ctx.db.inboxItem.count({
+          where: {
+            userId,
+            processed: false,
+          },
+        }),
+      ]);
+
+    const plannerContext: PlannerContext = {
+      overdueCount: overdueTasks,
+      dueTodayCount: dueTodayTasks,
+      dueSoonTasks: dueSoonTasks
+        .filter((t): t is typeof t & { dueDate: Date } => t.dueDate !== null)
+        .map((t) => ({ title: t.title, dueDate: t.dueDate })),
+      lowStreakHabits: habits
+        .map((h) => {
+          // Calculate streak from recent logs
+          let streak = 0;
+          const today = new Date();
+          for (let i = 0; i < h.logs.length; i++) {
+            const expectedDate = new Date(today);
+            expectedDate.setDate(today.getDate() - i);
+            const logDate = h.logs[i]?.date;
+            if (
+              logDate &&
+              logDate.getFullYear() === expectedDate.getFullYear() &&
+              logDate.getMonth() === expectedDate.getMonth() &&
+              logDate.getDate() === expectedDate.getDate()
+            ) {
+              streak++;
+            } else {
+              break;
+            }
+          }
+          return { name: h.name, streak };
+        })
+        .filter((h) => h.streak <= 2)
+        .slice(0, 5),
+      lastReflectionDate: lastReflection?.createdAt ?? null,
+      unprocessedInboxCount: inboxCount,
+    };
+
+    // Set API key from user preferences if available
+    const originalKey = process.env.ANTHROPIC_API_KEY;
+    if (prefs?.aiApiKey) {
+      process.env.ANTHROPIC_API_KEY = prefs.aiApiKey;
+    }
+
+    const suggestions = await generateAISuggestions(plannerContext);
+
+    // Restore original API key
+    if (prefs?.aiApiKey) {
+      if (originalKey) {
+        process.env.ANTHROPIC_API_KEY = originalKey;
+      } else {
+        delete process.env.ANTHROPIC_API_KEY;
+      }
+    }
+
+    // Update last call timestamp
+    await ctx.db.userPreferences.upsert({
+      where: { userId },
+      update: { lastAICallAt: new Date() },
+      create: { userId, lastAICallAt: new Date() },
+    });
+
+    return { rateLimited: false, suggestions };
   }),
 
   /**

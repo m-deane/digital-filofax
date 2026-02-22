@@ -194,7 +194,7 @@ export default function ContextsPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Contexts</h1>
           <p className="text-muted-foreground">
-            Manage GTD-style contexts for organizing tasks by location or tool
+            Organize tasks by where or how you&apos;ll do them
           </p>
         </div>
         <Dialog open={isCreateOpen} onOpenChange={(open) => {
@@ -261,7 +261,7 @@ export default function ContextsPage() {
           <CardHeader>
             <CardTitle>Get Started with Default Contexts</CardTitle>
             <CardDescription>
-              Quick add common GTD contexts to get started
+              Add common contexts to organize your tasks
             </CardDescription>
           </CardHeader>
           <CardContent>

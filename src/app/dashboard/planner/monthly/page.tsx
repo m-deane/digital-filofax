@@ -19,6 +19,7 @@ import {
   Plus,
   Calendar,
   Loader2,
+  Printer,
 } from "lucide-react";
 import {
   format,
@@ -137,16 +138,25 @@ export default function MonthlyPlannerPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="no-print"
+            onClick={() => window.print()}
+            title="Print monthly planner"
+          >
+            <Printer className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" size="icon" className="no-print" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <Button variant="outline" onClick={() => setCurrentMonth(new Date())}>
+          <Button variant="outline" className="no-print" onClick={() => setCurrentMonth(new Date())}>
             Today
           </Button>
-          <Button variant="outline" size="icon" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>
+          <Button variant="outline" size="icon" className="no-print" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>
             <ChevronRight className="h-4 w-4" />
           </Button>
-          <Button className="gap-2 ml-2" onClick={() => {
+          <Button className="gap-2 ml-2 no-print" onClick={() => {
             setSelectedDate(new Date());
             setIsCreateOpen(true);
           }}>
@@ -176,7 +186,9 @@ export default function MonthlyPlannerPage() {
       {/* Calendar Grid */}
       {!isLoading && (
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="p-2 sm:p-4">
+            <div className="overflow-x-auto">
+            <div className="min-w-[500px]">
             {/* Week Day Headers */}
             <div className="grid grid-cols-7 mb-2">
               {weekDayHeaders.map((day) => (
@@ -250,6 +262,8 @@ export default function MonthlyPlannerPage() {
                   </div>
                 );
               })}
+            </div>
+            </div>
             </div>
           </CardContent>
         </Card>

@@ -312,6 +312,29 @@ export const templatesRouter = createTRPCRouter({
       };
     }),
 
+  // Get the user's default template for a given capture type
+  getDefaultForType: protectedProcedure
+    .input(z.object({ templateType: z.string().max(50) }))
+    .query(async ({ ctx, input }) => {
+      const prefs = await ctx.db.userPreferences.findUnique({
+        where: { userId: ctx.session.user.id },
+        select: { defaultTemplates: true },
+      });
+
+      if (!prefs?.defaultTemplates) return null;
+
+      const defaults = prefs.defaultTemplates as Record<string, string>;
+      const templateId = defaults[input.templateType];
+      if (!templateId) return null;
+
+      return ctx.db.template.findFirst({
+        where: {
+          id: templateId,
+          OR: [{ userId: ctx.session.user.id }, { isPublic: true }],
+        },
+      });
+    }),
+
   getPublicTemplates: protectedProcedure
     .input(
       z.object({

@@ -5,7 +5,7 @@ import { SessionProvider } from "next-auth/react";
 
 export const metadata: Metadata = {
   title: "Filofax - Personal Organization App",
-  description: "Your digital command center for personal organization",
+  description: "Your personal digital planner for everyday life",
   icons: {
     icon: "/favicon.ico",
   },

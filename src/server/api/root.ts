@@ -28,6 +28,7 @@ import { analyticsRouter } from "@/server/api/routers/analytics";
 import { importRouter } from "@/server/api/routers/import";
 import { collaborationRouter } from "@/server/api/routers/collaboration";
 import { suggestionsRouter } from "@/server/api/routers/suggestions";
+import { inboxRouter } from "@/server/api/routers/inbox";
 
 export const appRouter = createTRPCRouter({
   tasks: tasksRouter,
@@ -59,6 +60,7 @@ export const appRouter = createTRPCRouter({
   import: importRouter,
   collaboration: collaborationRouter,
   suggestions: suggestionsRouter,
+  inbox: inboxRouter,
 });
 
 export type AppRouter = typeof appRouter;

@@ -28,6 +28,7 @@ import {
   Plus,
   Calendar,
   Loader2,
+  Printer,
 } from "lucide-react";
 import {
   format,
@@ -279,16 +280,25 @@ export default function WeeklyPlannerPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" onClick={() => setCurrentWeek(subWeeks(currentWeek, 1))}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="no-print"
+              onClick={() => window.print()}
+              title="Print weekly planner"
+            >
+              <Printer className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" size="icon" className="no-print" onClick={() => setCurrentWeek(subWeeks(currentWeek, 1))}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <Button variant="outline" onClick={() => setCurrentWeek(new Date())}>
+            <Button variant="outline" className="no-print" onClick={() => setCurrentWeek(new Date())}>
               Today
             </Button>
-            <Button variant="outline" size="icon" onClick={() => setCurrentWeek(addWeeks(currentWeek, 1))}>
+            <Button variant="outline" size="icon" className="no-print" onClick={() => setCurrentWeek(addWeeks(currentWeek, 1))}>
               <ChevronRight className="h-4 w-4" />
             </Button>
-            <Button className="gap-2 ml-2" onClick={() => {
+            <Button className="gap-2 ml-2 no-print" onClick={() => {
               setSelectedDate(new Date());
               setSelectedHour(9);
               setIsCreateOpen(true);

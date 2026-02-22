@@ -108,6 +108,7 @@ model User {
   ownedSharedLists  SharedList[]       @relation("OwnedSharedLists")
   sharedListMemberships SharedListMember[] @relation("SharedListMemberships")
   sharedTasksAdded  SharedTask[]       @relation("SharedTasksAdded")
+  inboxItems        InboxItem[]
 }
 
 model Category {
@@ -354,6 +355,7 @@ model UserPreferences {
   defaultView     String   @default("dashboard")
   weekStartsOn    Int      @default(1)
   dashboardLayout Json?
+  sectionOrder    Json?
   enabledWidgets  String[] @default(["agenda", "habits", "tasks"])
   enabledModules  String[] @default([])
 
@@ -362,6 +364,13 @@ model UserPreferences {
   pomodoroShortBreakMinutes   Int @default(5)
   pomodoroLongBreakMinutes    Int @default(15)
   pomodoroSessionsUntilLong   Int @default(4)
+
+  // AI integration
+  lastAICallAt  DateTime?
+  aiApiKey      String?
+
+  // Default templates per capture type (e.g. { "MEMO": "templateId" })
+  defaultTemplates Json?
 
   userId String @unique
 
@@ -1140,4 +1149,20 @@ enum SharedListRole {
   OWNER
   EDITOR
   VIEWER
+}
+
+model InboxItem {
+  id          String   @id @default(cuid())
+  title       String
+  content     String?
+  sourceHint  String?
+  processed   Boolean  @default(false)
+  userId      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([processed])
 }

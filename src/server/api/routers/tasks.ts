@@ -680,4 +680,34 @@ export const tasksRouter = createTRPCRouter({
         orderBy: { scheduledStart: "asc" },
       });
     }),
+
+  getYesterdaysUnfinished: protectedProcedure.query(async ({ ctx }) => {
+    const now = new Date();
+    const yesterdayStart = new Date(now);
+    yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+    yesterdayStart.setHours(0, 0, 0, 0);
+    const yesterdayEnd = new Date(yesterdayStart);
+    yesterdayEnd.setHours(23, 59, 59, 999);
+
+    return ctx.db.task.findMany({
+      where: {
+        userId: ctx.session.user.id,
+        status: { not: "DONE" },
+        dueDate: {
+          gte: yesterdayStart,
+          lte: yesterdayEnd,
+        },
+      },
+      select: {
+        id: true,
+        title: true,
+        priority: true,
+        status: true,
+        dueDate: true,
+        category: { select: { name: true, color: true } },
+      },
+      orderBy: { priority: "desc" },
+      take: 20,
+    });
+  }),
 });

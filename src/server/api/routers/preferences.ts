@@ -12,15 +12,25 @@ export const preferencesRouter = createTRPCRouter({
     });
 
     if (existing) {
-      return existing;
+      return {
+        ...existing,
+        hasAiKey: !!existing.aiApiKey,
+        aiApiKey: undefined,
+      };
     }
 
     // Create default preferences
-    return ctx.db.userPreferences.create({
+    const created = await ctx.db.userPreferences.create({
       data: {
         userId: ctx.session.user.id,
       },
     });
+
+    return {
+      ...created,
+      hasAiKey: false,
+      aiApiKey: undefined,
+    };
   }),
 
   // Update general preferences
@@ -104,6 +114,24 @@ export const preferencesRouter = createTRPCRouter({
       });
     }),
 
+  // Update sidebar section order
+  updateSectionOrder: protectedProcedure
+    .input(
+      z.object({
+        sectionOrder: z.array(z.string().max(50)).max(20),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      return ctx.db.userPreferences.upsert({
+        where: { userId: ctx.session.user.id },
+        update: { sectionOrder: input.sectionOrder },
+        create: {
+          userId: ctx.session.user.id,
+          sectionOrder: input.sectionOrder,
+        },
+      });
+    }),
+
   // Update enabled widgets
   updateEnabledWidgets: protectedProcedure
     .input(
@@ -143,5 +171,55 @@ export const preferencesRouter = createTRPCRouter({
           ...input,
         },
       });
+    }),
+
+  // Set default template for a capture type (e.g. MEMO, MEETING_NOTES)
+  updateDefaultTemplate: protectedProcedure
+    .input(
+      z.object({
+        templateType: z.string().max(50),
+        templateId: z.string().nullable(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const prefs = await ctx.db.userPreferences.findUnique({
+        where: { userId: ctx.session.user.id },
+        select: { defaultTemplates: true },
+      });
+
+      const current = (prefs?.defaultTemplates as Record<string, string>) ?? {};
+      if (input.templateId === null) {
+        delete current[input.templateType];
+      } else {
+        current[input.templateType] = input.templateId;
+      }
+
+      await ctx.db.userPreferences.upsert({
+        where: { userId: ctx.session.user.id },
+        update: { defaultTemplates: current },
+        create: { userId: ctx.session.user.id, defaultTemplates: current },
+      });
+
+      return { success: true };
+    }),
+
+  // Update AI API key
+  updateAiApiKey: protectedProcedure
+    .input(
+      z.object({
+        aiApiKey: z.string().max(200).nullable(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const result = await ctx.db.userPreferences.upsert({
+        where: { userId: ctx.session.user.id },
+        update: { aiApiKey: input.aiApiKey },
+        create: {
+          userId: ctx.session.user.id,
+          aiApiKey: input.aiApiKey,
+        },
+      });
+
+      return { success: true, hasAiKey: !!result.aiApiKey };
     }),
 });

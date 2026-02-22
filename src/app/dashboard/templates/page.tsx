@@ -43,6 +43,7 @@ import {
   Users,
   ListChecks,
   Loader2,
+  Star,
 } from "lucide-react";
 import { api } from "@/lib/trpc";
 import { TemplateType } from "@prisma/client";
@@ -100,6 +101,23 @@ export default function TemplatesPage() {
   const { data: publicTemplates, isLoading: isLoadingPublic } = api.templates.getPublicTemplates.useQuery({
     type: selectedType === "ALL" ? undefined : selectedType,
   });
+
+  // Fetch current user preferences to know which templates are defaults
+  const { data: prefs } = api.preferences.get.useQuery();
+  const defaultTemplates = (prefs?.defaultTemplates as Record<string, string> | null | undefined) ?? {};
+
+  // Set / clear default template mutation
+  const updateDefaultTemplate = api.preferences.updateDefaultTemplate.useMutation({
+    onSuccess: () => utils.preferences.get.invalidate(),
+  });
+
+  const handleSetDefault = (templateType: TemplateType, templateId: string) => {
+    const isAlreadyDefault = defaultTemplates[templateType] === templateId;
+    updateDefaultTemplate.mutate({
+      templateType,
+      templateId: isAlreadyDefault ? null : templateId,
+    });
+  };
 
   // Create template mutation
   const createTemplate = api.templates.create.useMutation({
@@ -295,6 +313,8 @@ export default function TemplatesPage() {
                 onDelete={handleDeleteTemplate}
                 onDuplicate={handleDuplicateTemplate}
                 onApply={handleApplyTemplate}
+                onSetDefault={handleSetDefault}
+                isDefault={defaultTemplates[template.type] === template.id}
                 isOwner={true}
               />
             ))}
@@ -330,10 +350,12 @@ interface TemplateCardProps {
   onDelete?: (id: string) => void;
   onDuplicate: (id: string, name: string) => void;
   onApply: (id: string) => void;
+  onSetDefault?: (templateType: TemplateType, templateId: string) => void;
+  isDefault?: boolean;
   isOwner: boolean;
 }
 
-function TemplateCard({ template, onDelete, onDuplicate, onApply, isOwner }: TemplateCardProps) {
+function TemplateCard({ template, onDelete, onDuplicate, onApply, onSetDefault, isDefault, isOwner }: TemplateCardProps) {
   return (
     <Card className="hover:shadow-md transition-shadow">
       <CardHeader className="pb-3">
@@ -343,6 +365,12 @@ function TemplateCard({ template, onDelete, onDuplicate, onApply, isOwner }: Tem
             <Badge variant="outline" className="text-xs">
               {TEMPLATE_LABELS[template.type]}
             </Badge>
+            {isDefault && (
+              <Badge variant="secondary" className="text-xs gap-1">
+                <Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500" />
+                Default
+              </Badge>
+            )}
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -359,6 +387,12 @@ function TemplateCard({ template, onDelete, onDuplicate, onApply, isOwner }: Tem
                 <Copy className="h-4 w-4 mr-2" />
                 Duplicate
               </DropdownMenuItem>
+              {isOwner && onSetDefault && (
+                <DropdownMenuItem onClick={() => onSetDefault(template.type, template.id)}>
+                  <Star className="h-4 w-4 mr-2" />
+                  {isDefault ? "Remove as Default" : "Set as Default"}
+                </DropdownMenuItem>
+              )}
               {isOwner && onDelete && (
                 <>
                   <DropdownMenuSeparator />

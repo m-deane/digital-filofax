@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,6 +45,8 @@ import {
 import { cn } from "@/lib/utils";
 import { formatDate } from "@/lib/utils";
 import { api } from "@/lib/trpc";
+import { RichTextEditor } from "@/components/rich-text-editor";
+import { RichTextViewer } from "@/components/rich-text-viewer";
 
 type MemoType = "NOTE" | "ANECDOTE" | "JOURNAL" | "MEETING" | "QUICK_THOUGHT";
 
@@ -157,9 +159,9 @@ function MemoCard({
         </div>
 
         <h3 className="font-semibold mb-2">{memo.title}</h3>
-        <p className="text-sm text-muted-foreground line-clamp-3 mb-3">
-          {memo.content}
-        </p>
+        <div className="text-sm text-muted-foreground line-clamp-3 mb-3">
+          <RichTextViewer content={memo.content} />
+        </div>
 
         <div className="flex items-center justify-between">
           <div className="flex gap-1 flex-wrap">
@@ -178,6 +180,32 @@ function MemoCard({
   );
 }
 
+// Map MemoType to TemplateType key for auto-apply
+const MEMO_TO_TEMPLATE_TYPE: Partial<Record<MemoType, string>> = {
+  MEETING: "MEETING_NOTES",
+};
+
+// Convert a MEETING_NOTES template content to Tiptap JSON string
+function meetingTemplateTotiptap(content: unknown): string {
+  try {
+    const c = content as { sections?: Array<{ heading: string; content: string }> };
+    const sections = c?.sections ?? [];
+    const doc = {
+      type: "doc",
+      content: sections.flatMap((s) => [
+        { type: "heading", attrs: { level: 2 }, content: [{ type: "text", text: s.heading }] },
+        {
+          type: "paragraph",
+          content: s.content ? [{ type: "text", text: s.content }] : [],
+        },
+      ]),
+    };
+    return JSON.stringify(doc);
+  } catch {
+    return "";
+  }
+}
+
 export default function MemosPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedType, setSelectedType] = useState<MemoType | "ALL">("ALL");
@@ -188,6 +216,22 @@ export default function MemosPage() {
   const [pinningMemoId, setPinningMemoId] = useState<string | null>(null);
 
   const utils = api.useUtils();
+
+  // Fetch default template for MEETING type (used when creating meeting notes)
+  const templateTypeKey = MEMO_TO_TEMPLATE_TYPE[newMemoType];
+  const { data: defaultTemplate } = api.templates.getDefaultForType.useQuery(
+    { templateType: templateTypeKey ?? "" },
+    { enabled: isCreateOpen && !!templateTypeKey }
+  );
+
+  // Auto-populate content when a default template is available for the selected type
+  useEffect(() => {
+    if (!isCreateOpen || !defaultTemplate) return;
+    if (newMemoType === "MEETING") {
+      setNewMemoContent(meetingTemplateTotiptap(defaultTemplate.content));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [defaultTemplate?.id, newMemoType, isCreateOpen]);
 
   // Fetch memos from API with filters
   const { data, isLoading, error } = api.memos.getAll.useQuery({
@@ -306,11 +350,10 @@ export default function MemosPage() {
                   <SelectItem value="QUICK_THOUGHT">Quick Thought</SelectItem>
                 </SelectContent>
               </Select>
-              <textarea
-                className="flex min-h-[200px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                placeholder="Start writing..."
+              <RichTextEditor
                 value={newMemoContent}
-                onChange={(e) => setNewMemoContent(e.target.value)}
+                onChange={setNewMemoContent}
+                placeholder="Start writing..."
               />
             </div>
             <DialogFooter>

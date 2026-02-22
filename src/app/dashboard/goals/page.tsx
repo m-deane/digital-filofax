@@ -517,7 +517,7 @@ export default function GoalsPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Goals</h1>
           <p className="text-muted-foreground">
-            Cascade your vision into actionable objectives
+            Set and track your goals
           </p>
         </div>
         <CreateGoalDialog onSuccess={handleRefresh} />

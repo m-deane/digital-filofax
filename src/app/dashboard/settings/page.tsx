@@ -1,9 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   User,
   Palette,
@@ -16,8 +19,12 @@ import {
   Plus,
   Check,
   Puzzle,
+  Sparkles,
+  Trash2,
 } from "lucide-react";
 import Link from "next/link";
+import { api } from "@/lib/trpc";
+import { toast } from "sonner";
 
 const settingsSections = [
   {
@@ -80,6 +87,34 @@ const integrations = [
 ];
 
 export default function SettingsPage() {
+  const [apiKeyInput, setApiKeyInput] = useState("");
+  const utils = api.useUtils();
+  const { data: prefs } = api.preferences.get.useQuery();
+
+  const updateAiApiKey = api.preferences.updateAiApiKey.useMutation({
+    onSuccess: (data) => {
+      void utils.preferences.get.invalidate();
+      if (data.hasAiKey) {
+        toast.success("API key saved");
+      } else {
+        toast.success("API key removed");
+      }
+      setApiKeyInput("");
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to update API key");
+    },
+  });
+
+  const handleSaveApiKey = () => {
+    if (!apiKeyInput.trim()) return;
+    updateAiApiKey.mutate({ aiApiKey: apiKeyInput.trim() });
+  };
+
+  const handleRemoveApiKey = () => {
+    updateAiApiKey.mutate({ aiApiKey: null });
+  };
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -196,6 +231,63 @@ export default function SettingsPage() {
               )}
             </div>
           ))}
+        </CardContent>
+      </Card>
+
+      {/* AI Integration */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-purple-500" />
+            AI Integration
+          </CardTitle>
+          <CardDescription>
+            Connect to Anthropic Claude for personalised AI suggestions
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="api-key">Anthropic API Key</Label>
+            <div className="flex gap-2">
+              <Input
+                id="api-key"
+                type="password"
+                placeholder={prefs?.hasAiKey ? "Key saved - enter new key to replace" : "sk-ant-..."}
+                value={apiKeyInput}
+                onChange={(e) => setApiKeyInput(e.target.value)}
+                className="flex-1"
+              />
+              <Button
+                onClick={handleSaveApiKey}
+                disabled={!apiKeyInput.trim() || updateAiApiKey.isPending}
+              >
+                Save
+              </Button>
+              {prefs?.hasAiKey && (
+                <Button
+                  variant="outline"
+                  onClick={handleRemoveApiKey}
+                  disabled={updateAiApiKey.isPending}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Get your API key at console.anthropic.com. Your key is stored securely and never shared.
+            </p>
+          </div>
+          {prefs?.hasAiKey && (
+            <div className="flex items-center gap-2">
+              <Badge variant="default" className="gap-1 bg-green-600">
+                <Check className="h-3 w-3" />
+                Connected
+              </Badge>
+              <span className="text-sm text-muted-foreground">
+                AI suggestions are available
+              </span>
+            </div>
+          )}
         </CardContent>
       </Card>
 

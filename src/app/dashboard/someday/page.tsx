@@ -189,7 +189,7 @@ export default function SomedayMaybePage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Someday/Maybe</h1>
           <p className="text-muted-foreground">
-            Ideas and projects you might do someday - GTD style
+            Ideas and projects for when the time is right
           </p>
         </div>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>

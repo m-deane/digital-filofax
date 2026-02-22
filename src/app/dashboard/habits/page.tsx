@@ -266,7 +266,7 @@ function TodayOverview({ habits }: { habits: Habit[] }) {
       </CardHeader>
       <CardContent>
         <Progress value={progress} className="h-3 mb-4" />
-        <div className="grid grid-cols-2 gap-4 text-center">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-center">
           <div className="p-3 rounded-lg bg-muted">
             <div className="text-2xl font-bold text-orange-500">
               {bestStreak}

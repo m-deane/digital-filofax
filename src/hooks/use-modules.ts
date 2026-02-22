@@ -27,6 +27,21 @@ export function useIsWidgetEnabled(widgetType: string): boolean {
   return isWidgetEnabled(widgetType, enabledModules);
 }
 
+export function useSectionOrder(): string[] | null {
+  const { data: prefs } = usePreferences();
+  return (prefs?.sectionOrder as string[] | null) ?? null;
+}
+
+export function useUpdateSectionOrder() {
+  const utils = api.useUtils();
+
+  return api.preferences.updateSectionOrder.useMutation({
+    onSuccess: () => {
+      utils.preferences.get.invalidate();
+    },
+  });
+}
+
 export function useToggleModule() {
   const utils = api.useUtils();
 

@@ -14,6 +14,7 @@ import {
   X,
   Clock,
   Command,
+  Menu,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,14 +27,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { QuickCaptureDialog } from "@/components/quick-capture-dialog";
+import { CommandPalette } from "@/components/command-palette";
 import {
   Popover,
   PopoverContent,
@@ -44,11 +39,14 @@ import Link from "next/link";
 import { api } from "@/lib/trpc";
 import { SearchResults } from "@/components/search/search-results";
 import { useRecentSearches } from "@/hooks/use-recent-searches";
+import { useMobileSidebar } from "./dashboard-shell";
 
 export function Header() {
   const { data: session } = useSession();
   const { theme, setTheme } = useTheme();
+  const mobileSidebar = useMobileSidebar();
   const [quickCaptureOpen, setQuickCaptureOpen] = useState(false);
+  const [commandOpen, setCommandOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
@@ -111,7 +109,12 @@ export function Header() {
     const down = (e: KeyboardEvent) => {
       if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
-        searchInputRef.current?.focus();
+        setCommandOpen((prev) => !prev);
+      }
+      // Cmd+J or Ctrl+J for Quick Capture
+      if (e.key === "j" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setQuickCaptureOpen(true);
       }
       if (e.key === "Escape") {
         setSearchOpen(false);
@@ -133,7 +136,18 @@ export function Header() {
   const showSearchResults = searchOpen && debouncedQuery.length > 0;
 
   return (
-    <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b bg-background px-6">
+    <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b bg-background px-4 md:px-6">
+      {/* Mobile hamburger */}
+      <Button
+        variant="ghost"
+        size="icon"
+        className="md:hidden shrink-0"
+        onClick={mobileSidebar.toggle}
+      >
+        <Menu className="h-5 w-5" />
+        <span className="sr-only">Toggle menu</span>
+      </Button>
+
       {/* Search */}
       <Popover open={searchOpen} onOpenChange={setSearchOpen}>
         <PopoverTrigger asChild>
@@ -253,38 +267,16 @@ export function Header() {
       {/* Actions */}
       <div className="flex items-center gap-2 ml-auto">
         {/* Quick Capture */}
-        <Dialog open={quickCaptureOpen} onOpenChange={setQuickCaptureOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm" className="gap-2">
-              <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">Quick Capture</span>
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Quick Capture</DialogTitle>
-              <DialogDescription>
-                Quickly add a task, note, or idea
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-3 gap-2">
-                <Button variant="outline" className="h-20 flex-col gap-2">
-                  <Plus className="h-5 w-5" />
-                  Task
-                </Button>
-                <Button variant="outline" className="h-20 flex-col gap-2">
-                  <Plus className="h-5 w-5" />
-                  Note
-                </Button>
-                <Button variant="outline" className="h-20 flex-col gap-2">
-                  <Plus className="h-5 w-5" />
-                  Idea
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <Button size="sm" className="gap-2" onClick={() => setQuickCaptureOpen(true)}>
+          <Plus className="h-4 w-4" />
+          <span className="hidden sm:inline">Quick Capture</span>
+        </Button>
+        <QuickCaptureDialog open={quickCaptureOpen} onOpenChange={setQuickCaptureOpen} />
+        <CommandPalette
+          open={commandOpen}
+          onOpenChange={setCommandOpen}
+          onQuickCapture={() => setQuickCaptureOpen(true)}
+        />
 
         {/* Notifications */}
         <Button variant="ghost" size="icon" className="relative">

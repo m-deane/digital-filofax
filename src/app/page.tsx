@@ -146,8 +146,8 @@ export default function HomePage() {
               <div className="mt-4 space-y-2">
                 <h3 className="font-bold">Integrations</h3>
                 <p className="text-sm text-muted-foreground">
-                  Connect with GitHub and Google Calendar for a unified
-                  command center experience.
+                  Connect with GitHub and Google Calendar to keep
+                  everything in one place.
                 </p>
               </div>
             </div>

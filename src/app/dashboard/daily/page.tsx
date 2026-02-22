@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,10 +16,13 @@ import {
   FileText,
   Loader2,
   GripVertical,
+  Printer,
+  Sunrise,
 } from "lucide-react";
 import { format, addDays, subDays, startOfDay, isSameDay } from "date-fns";
 import { api } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
+import { PlanningRitualDialog } from "./planning-ritual";
 
 // Time slots from 7am to 9pm
 const TIME_SLOTS = Array.from({ length: 15 }, (_, i) => {
@@ -97,7 +100,7 @@ function TimeGrid({
           <div
             key={hour}
             className={cn(
-              "flex border-b min-h-[60px] transition-colors",
+              "flex border-b ruled-border min-h-[60px] transition-colors",
               isDragOver && "bg-primary/10"
             )}
             onDragOver={(e) => handleDragOver(e, hour)}
@@ -271,9 +274,28 @@ function HabitChecklist({
   );
 }
 
+const RITUAL_STORAGE_KEY = "filofax-ritual-done";
+
 export default function DailyPlanningPage() {
   const [selectedDate, setSelectedDate] = useState(startOfDay(new Date()));
+  const [ritualOpen, setRitualOpen] = useState(false);
   const utils = api.useUtils();
+
+  // Auto-show ritual once per calendar day
+  useEffect(() => {
+    const today = format(new Date(), "yyyy-MM-dd");
+    const done = localStorage.getItem(RITUAL_STORAGE_KEY);
+    if (done !== today) {
+      setRitualOpen(true);
+    }
+  }, []);
+
+  const handleRitualClose = (open: boolean) => {
+    if (!open) {
+      localStorage.setItem(RITUAL_STORAGE_KEY, format(new Date(), "yyyy-MM-dd"));
+    }
+    setRitualOpen(open);
+  };
 
   const { data, isLoading } = api.daily.getDailyView.useQuery({
     date: selectedDate,
@@ -336,16 +358,39 @@ export default function DailyPlanningPage() {
 
   return (
     <div className="space-y-4">
+      <PlanningRitualDialog
+        open={ritualOpen}
+        onOpenChange={handleRitualClose}
+        date={selectedDate}
+      />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Daily Planner</h1>
           <p className="text-muted-foreground">
-            Plan your day with time blocking and priorities
+            Your planner for today
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={goToPreviousDay}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="no-print gap-2 text-amber-600 border-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/20"
+            onClick={() => setRitualOpen(true)}
+          >
+            <Sunrise className="h-4 w-4" />
+            Begin Day
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="no-print"
+            onClick={() => window.print()}
+            title="Print daily planner"
+          >
+            <Printer className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" size="icon" className="no-print" onClick={goToPreviousDay}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <Button
@@ -355,7 +400,7 @@ export default function DailyPlanningPage() {
           >
             {format(selectedDate, "EEEE, MMMM d, yyyy")}
           </Button>
-          <Button variant="outline" size="icon" onClick={goToNextDay}>
+          <Button variant="outline" size="icon" className="no-print" onClick={goToNextDay}>
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>

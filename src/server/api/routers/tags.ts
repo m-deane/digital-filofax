@@ -158,6 +158,55 @@ export const tagsRouter = createTRPCRouter({
       });
     }),
 
+  // Get all items for a specific tag (cross-module summary)
+  getTagSummary: protectedProcedure
+    .input(z.object({ id: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const tag = await ctx.db.tag.findFirst({
+        where: { id: input.id, userId: ctx.session.user.id },
+        include: {
+          tasks: {
+            orderBy: { createdAt: "desc" },
+            take: 50,
+            select: {
+              id: true,
+              title: true,
+              status: true,
+              priority: true,
+              dueDate: true,
+              createdAt: true,
+            },
+          },
+          memos: {
+            orderBy: { createdAt: "desc" },
+            take: 50,
+            select: {
+              id: true,
+              title: true,
+              memoType: true,
+              createdAt: true,
+            },
+          },
+          ideas: {
+            orderBy: { createdAt: "desc" },
+            take: 50,
+            select: {
+              id: true,
+              title: true,
+              status: true,
+              createdAt: true,
+            },
+          },
+        },
+      });
+
+      if (!tag) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Tag not found" });
+      }
+
+      return tag;
+    }),
+
   // Search tags by name
   search: protectedProcedure
     .input(z.object({ query: z.string().min(1) }))

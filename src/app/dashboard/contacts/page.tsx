@@ -288,7 +288,7 @@ function ContactDialog({ open, onOpenChange, contact, categories }: ContactDialo
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="col-span-2">
                 <Label htmlFor="name">Name *</Label>
                 <Input
@@ -470,8 +470,17 @@ export default function ContactsPage() {
   const favoriteCount = allContacts.filter((c) => c.isFavorite).length;
   const uncategorizedCount = allContacts.filter((c) => !c.categoryId).length;
 
+  const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+
+  const scrollToLetter = (letter: string) => {
+    const el = document.getElementById(`contact-group-${letter}`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto p-6 space-y-6 relative">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Contacts</h1>
@@ -539,8 +548,8 @@ export default function ContactsPage() {
             </Card>
           ) : (
             alphabeticalGroups.map((letter) => (
-              <div key={letter}>
-                <h2 className="text-2xl font-bold text-muted-foreground mb-3">{letter}</h2>
+              <div key={letter} id={`contact-group-${letter}`}>
+                <h2 className="text-2xl font-bold text-muted-foreground mb-3 scroll-mt-20">{letter}</h2>
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {groupedContacts[letter]?.map((contact) => (
                     <ContactCard
@@ -568,6 +577,30 @@ export default function ContactsPage() {
         contact={editingContact}
         categories={categories}
       />
+
+      {/* A-Z Letter Strip (filofax address book tabs) */}
+      {!isLoading && filteredContacts.length > 0 && (
+        <div className="fixed right-2 top-1/2 -translate-y-1/2 z-30 hidden lg:flex flex-col items-center gap-0.5 bg-background/80 backdrop-blur-sm rounded-full py-2 px-1 border shadow-sm">
+          {ALPHABET.map((letter) => {
+            const hasContacts = alphabeticalGroups.includes(letter);
+            return (
+              <button
+                key={letter}
+                onClick={() => scrollToLetter(letter)}
+                disabled={!hasContacts}
+                className={cn(
+                  "w-6 h-5 text-[11px] font-medium rounded-sm transition-colors leading-none flex items-center justify-center",
+                  hasContacts
+                    ? "text-foreground hover:bg-primary hover:text-primary-foreground cursor-pointer"
+                    : "text-muted-foreground/30 cursor-default"
+                )}
+              >
+                {letter}
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

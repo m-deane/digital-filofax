@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,6 +30,8 @@ import {
   Lightbulb,
   ArrowRight,
   Loader2,
+  List,
+  LayoutGrid,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/trpc";
@@ -58,6 +60,8 @@ const statusConfig: Record<IdeaStatus, { label: string; color: string }> = {
   IMPLEMENTED: { label: "Implemented", color: "bg-green-500" },
   ARCHIVED: { label: "Archived", color: "bg-gray-500" },
 };
+
+const VIEW_STORAGE_KEY = "filofax-ideas-view";
 
 function IdeaCard({
   idea,
@@ -91,47 +95,7 @@ function IdeaCard({
               ))}
             </div>
           </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8" disabled={isUpdating}>
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem>
-                <Edit className="h-4 w-4 mr-2" />
-                Edit
-              </DropdownMenuItem>
-              {idea.status !== "NEW" && (
-                <DropdownMenuItem onClick={() => onMove("NEW")}>
-                  <ArrowRight className="h-4 w-4 mr-2" />
-                  Move to New
-                </DropdownMenuItem>
-              )}
-              {idea.status !== "EXPLORING" && (
-                <DropdownMenuItem onClick={() => onMove("EXPLORING")}>
-                  <ArrowRight className="h-4 w-4 mr-2" />
-                  Move to Exploring
-                </DropdownMenuItem>
-              )}
-              {idea.status !== "IN_PROGRESS" && (
-                <DropdownMenuItem onClick={() => onMove("IN_PROGRESS")}>
-                  <ArrowRight className="h-4 w-4 mr-2" />
-                  Move to In Progress
-                </DropdownMenuItem>
-              )}
-              {idea.status !== "IMPLEMENTED" && (
-                <DropdownMenuItem onClick={() => onMove("IMPLEMENTED")}>
-                  <ArrowRight className="h-4 w-4 mr-2" />
-                  Move to Implemented
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuItem className="text-destructive" onClick={onDelete}>
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <IdeaActions idea={idea} onMove={onMove} onDelete={onDelete} isUpdating={isUpdating} />
         </div>
 
         <h3 className="font-semibold mb-1">{idea.title}</h3>
@@ -150,6 +114,165 @@ function IdeaCard({
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+function IdeaActions({
+  idea,
+  onMove,
+  onDelete,
+  isUpdating,
+  className,
+}: {
+  idea: Idea;
+  onMove: (status: IdeaStatus) => void;
+  onDelete: () => void;
+  isUpdating: boolean;
+  className?: string;
+}) {
+  const moveTargets: IdeaStatus[] = ["NEW", "EXPLORING", "IN_PROGRESS", "IMPLEMENTED"];
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" className={cn("h-8 w-8", className)} disabled={isUpdating}>
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem>
+          <Edit className="h-4 w-4 mr-2" />
+          Edit
+        </DropdownMenuItem>
+        {moveTargets
+          .filter((s) => s !== idea.status)
+          .map((status) => (
+            <DropdownMenuItem key={status} onClick={() => onMove(status)}>
+              <ArrowRight className="h-4 w-4 mr-2" />
+              Move to {statusConfig[status].label}
+            </DropdownMenuItem>
+          ))}
+        <DropdownMenuItem className="text-destructive" onClick={onDelete}>
+          <Trash2 className="h-4 w-4 mr-2" />
+          Delete
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+function IdeaListItem({
+  idea,
+  onMove,
+  onDelete,
+  onUpdatePriority,
+  isUpdating,
+}: {
+  idea: Idea;
+  onMove: (status: IdeaStatus) => void;
+  onDelete: () => void;
+  onUpdatePriority: (priority: number) => void;
+  isUpdating: boolean;
+}) {
+  const config = statusConfig[idea.status];
+
+  return (
+    <div className="flex items-center gap-3 p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors group">
+      <div className={cn("w-2.5 h-2.5 rounded-full flex-shrink-0", config.color)} />
+      <div className="flex-1 min-w-0">
+        <p className="font-medium truncate">{idea.title}</p>
+        {idea.description && (
+          <p className="text-sm text-muted-foreground truncate">{idea.description}</p>
+        )}
+      </div>
+      <div className="hidden sm:flex items-center gap-1 flex-shrink-0">
+        {[...Array(5)].map((_, i) => (
+          <Star
+            key={i}
+            className={cn(
+              "h-3 w-3 cursor-pointer transition-colors",
+              i < idea.priority ? "fill-yellow-400 text-yellow-400" : "text-muted hover:text-yellow-400"
+            )}
+            onClick={() => onUpdatePriority(i + 1)}
+          />
+        ))}
+      </div>
+      {idea.tags.length > 0 && (
+        <div className="hidden md:flex gap-1 flex-shrink-0">
+          {idea.tags.slice(0, 2).map((tag) => (
+            <Badge key={tag.id} variant="outline" className="text-xs">
+              {tag.name}
+            </Badge>
+          ))}
+        </div>
+      )}
+      <IdeaActions
+        idea={idea}
+        onMove={onMove}
+        onDelete={onDelete}
+        isUpdating={isUpdating}
+        className="opacity-0 group-hover:opacity-100 flex-shrink-0"
+      />
+    </div>
+  );
+}
+
+function IdeasListView({
+  ideas,
+  onMove,
+  onDelete,
+  onUpdatePriority,
+  onAddIdea,
+  updatingIdeaId,
+}: {
+  ideas: Idea[];
+  onMove: (id: string, status: IdeaStatus) => void;
+  onDelete: (id: string) => void;
+  onUpdatePriority: (id: string, priority: number) => void;
+  onAddIdea: (status: IdeaStatus) => void;
+  updatingIdeaId: string | null;
+}) {
+  const statusOrder: IdeaStatus[] = ["NEW", "EXPLORING", "IN_PROGRESS", "IMPLEMENTED", "ARCHIVED"];
+
+  return (
+    <div className="space-y-6">
+      {statusOrder.map((status) => {
+        const statusIdeas = ideas.filter((i) => i.status === status);
+        if (statusIdeas.length === 0) return null;
+        const config = statusConfig[status];
+
+        return (
+          <div key={status}>
+            <div className="flex items-center gap-2 mb-3">
+              <div className={cn("w-3 h-3 rounded-full", config.color)} />
+              <h3 className="font-semibold text-sm">{config.label}</h3>
+              <Badge variant="secondary">{statusIdeas.length}</Badge>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="ml-auto h-7 gap-1 text-muted-foreground"
+                onClick={() => onAddIdea(status)}
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Add
+              </Button>
+            </div>
+            <div className="space-y-2">
+              {statusIdeas.map((idea) => (
+                <IdeaListItem
+                  key={idea.id}
+                  idea={idea}
+                  onMove={(newStatus) => onMove(idea.id, newStatus)}
+                  onDelete={() => onDelete(idea.id)}
+                  onUpdatePriority={(priority) => onUpdatePriority(idea.id, priority)}
+                  isUpdating={updatingIdeaId === idea.id}
+                />
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
@@ -215,8 +338,20 @@ export default function IdeasPage() {
   const [newIdeaDescription, setNewIdeaDescription] = useState("");
   const [newIdeaStatus, setNewIdeaStatus] = useState<IdeaStatus>("NEW");
   const [updatingIdeaId, setUpdatingIdeaId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<"list" | "board">("list");
 
   const utils = api.useUtils();
+
+  // Load saved view preference
+  useEffect(() => {
+    const saved = localStorage.getItem(VIEW_STORAGE_KEY) as "list" | "board" | null;
+    if (saved) setViewMode(saved);
+  }, []);
+
+  const toggleView = (mode: "list" | "board") => {
+    setViewMode(mode);
+    localStorage.setItem(VIEW_STORAGE_KEY, mode);
+  };
 
   // Fetch ideas from API
   const { data, isLoading, error } = api.ideas.getAll.useQuery({
@@ -306,42 +441,65 @@ export default function IdeasPage() {
             Capture, develop, and track your ideas
           </p>
         </div>
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" />
-              Capture Idea
+        <div className="flex items-center gap-3">
+          {/* View Toggle */}
+          <div className="flex items-center gap-1 rounded-lg border p-1">
+            <Button
+              variant={viewMode === "list" ? "default" : "ghost"}
+              size="sm"
+              className="h-7 gap-1.5"
+              onClick={() => toggleView("list")}
+            >
+              <List className="h-3.5 w-3.5" />
+              List
             </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Capture New Idea</DialogTitle>
-              <DialogDescription>
-                Quick capture a new idea to explore later
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <Input
-                placeholder="Idea title"
-                value={newIdeaTitle}
-                onChange={(e) => setNewIdeaTitle(e.target.value)}
-              />
-              <textarea
-                className="flex min-h-[100px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                placeholder="Description (optional)"
-                value={newIdeaDescription}
-                onChange={(e) => setNewIdeaDescription(e.target.value)}
-              />
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
-              <Button onClick={handleCreateIdea} disabled={createIdea.isPending || !newIdeaTitle.trim()}>
-                {createIdea.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                Save Idea
+            <Button
+              variant={viewMode === "board" ? "default" : "ghost"}
+              size="sm"
+              className="h-7 gap-1.5"
+              onClick={() => toggleView("board")}
+            >
+              <LayoutGrid className="h-3.5 w-3.5" />
+              Board
+            </Button>
+          </div>
+          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Plus className="h-4 w-4" />
+                Capture Idea
               </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Capture New Idea</DialogTitle>
+                <DialogDescription>
+                  Quick capture a new idea to explore later
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <Input
+                  placeholder="Idea title"
+                  value={newIdeaTitle}
+                  onChange={(e) => setNewIdeaTitle(e.target.value)}
+                />
+                <textarea
+                  className="flex min-h-[100px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  placeholder="Description (optional)"
+                  value={newIdeaDescription}
+                  onChange={(e) => setNewIdeaDescription(e.target.value)}
+                />
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
+                <Button onClick={handleCreateIdea} disabled={createIdea.isPending || !newIdeaTitle.trim()}>
+                  {createIdea.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  Save Idea
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       {/* Search */}
@@ -376,50 +534,63 @@ export default function IdeasPage() {
         </Card>
       )}
 
-      {/* Kanban Board */}
+      {/* Ideas Content */}
       {!isLoading && (ideas.length > 0 || searchQuery) && (
-        <div className="flex gap-6 overflow-x-auto pb-4">
-          <KanbanColumn
-            title="New"
-            status="NEW"
-            ideas={ideas}
-            onMove={handleMove}
-            onDelete={handleDelete}
-            onUpdatePriority={handleUpdatePriority}
-            onAddIdea={handleAddIdea}
-            updatingIdeaId={updatingIdeaId}
-          />
-          <KanbanColumn
-            title="Exploring"
-            status="EXPLORING"
-            ideas={ideas}
-            onMove={handleMove}
-            onDelete={handleDelete}
-            onUpdatePriority={handleUpdatePriority}
-            onAddIdea={handleAddIdea}
-            updatingIdeaId={updatingIdeaId}
-          />
-          <KanbanColumn
-            title="In Progress"
-            status="IN_PROGRESS"
-            ideas={ideas}
-            onMove={handleMove}
-            onDelete={handleDelete}
-            onUpdatePriority={handleUpdatePriority}
-            onAddIdea={handleAddIdea}
-            updatingIdeaId={updatingIdeaId}
-          />
-          <KanbanColumn
-            title="Implemented"
-            status="IMPLEMENTED"
-            ideas={ideas}
-            onMove={handleMove}
-            onDelete={handleDelete}
-            onUpdatePriority={handleUpdatePriority}
-            onAddIdea={handleAddIdea}
-            updatingIdeaId={updatingIdeaId}
-          />
-        </div>
+        <>
+          {viewMode === "list" ? (
+            <IdeasListView
+              ideas={ideas}
+              onMove={handleMove}
+              onDelete={handleDelete}
+              onUpdatePriority={handleUpdatePriority}
+              onAddIdea={handleAddIdea}
+              updatingIdeaId={updatingIdeaId}
+            />
+          ) : (
+            <div className="flex gap-6 overflow-x-auto pb-4">
+              <KanbanColumn
+                title="New"
+                status="NEW"
+                ideas={ideas}
+                onMove={handleMove}
+                onDelete={handleDelete}
+                onUpdatePriority={handleUpdatePriority}
+                onAddIdea={handleAddIdea}
+                updatingIdeaId={updatingIdeaId}
+              />
+              <KanbanColumn
+                title="Exploring"
+                status="EXPLORING"
+                ideas={ideas}
+                onMove={handleMove}
+                onDelete={handleDelete}
+                onUpdatePriority={handleUpdatePriority}
+                onAddIdea={handleAddIdea}
+                updatingIdeaId={updatingIdeaId}
+              />
+              <KanbanColumn
+                title="In Progress"
+                status="IN_PROGRESS"
+                ideas={ideas}
+                onMove={handleMove}
+                onDelete={handleDelete}
+                onUpdatePriority={handleUpdatePriority}
+                onAddIdea={handleAddIdea}
+                updatingIdeaId={updatingIdeaId}
+              />
+              <KanbanColumn
+                title="Implemented"
+                status="IMPLEMENTED"
+                ideas={ideas}
+                onMove={handleMove}
+                onDelete={handleDelete}
+                onUpdatePriority={handleUpdatePriority}
+                onAddIdea={handleAddIdea}
+                updatingIdeaId={updatingIdeaId}
+              />
+            </div>
+          )}
+        </>
       )}
     </div>
   );

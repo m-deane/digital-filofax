@@ -5,7 +5,7 @@ import { api } from "@/lib/trpc";
 import { SuggestionCard } from "./suggestion-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Sparkles, RefreshCw, Trash2, Filter } from "lucide-react";
+import { Sparkles, RefreshCw, Trash2, Filter, Loader2, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import {
   Select,
@@ -14,14 +14,31 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
+
+const PRIORITY_COLORS = {
+  URGENT: "text-red-600 bg-red-50",
+  HIGH: "text-orange-600 bg-orange-50",
+  MEDIUM: "text-yellow-600 bg-yellow-50",
+  LOW: "text-green-600 bg-green-50",
+} as const;
 
 export function SuggestionsPanel() {
   const [selectedType, setSelectedType] = useState<string>("all");
+  const [aiEnabled, setAiEnabled] = useState(false);
   const utils = api.useUtils();
 
   const { data: suggestions = [], isLoading } = api.suggestions.getAll.useQuery({
     type: selectedType === "all" ? undefined : (selectedType as "TASK_SUGGESTION" | "PRIORITY_CHANGE" | "DUE_DATE" | "CONTEXT" | "BREAKDOWN" | "RECURRING" | "RESCHEDULE" | "CATEGORY_BALANCE"),
   });
+
+  const { data: aiData, isLoading: aiLoading } = api.suggestions.getAISuggestions.useQuery(
+    undefined,
+    { enabled: aiEnabled }
+  );
+
+  const { data: prefs } = api.preferences.get.useQuery();
 
   const regenerate = api.suggestions.regenerate.useMutation({
     onSuccess: (data) => {
@@ -87,10 +104,109 @@ export function SuggestionsPanel() {
     }
   };
 
+  const handleGenerateAI = () => {
+    setAiEnabled(true);
+    void utils.suggestions.getAISuggestions.invalidate();
+  };
+
   const isProcessing = accept.isPending || dismiss.isPending;
+
+  const hasAiKey = prefs?.hasAiKey ?? false;
+  const aiSuggestions = aiData?.suggestions ?? [];
+  const isRateLimited = aiData?.rateLimited ?? false;
 
   return (
     <div className="space-y-4">
+      {/* AI Suggestions Section */}
+      {aiEnabled && aiLoading && (
+        <Card>
+          <CardContent className="py-8">
+            <div className="flex items-center justify-center gap-3 text-muted-foreground">
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <span>Asking your AI assistant...</span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {aiEnabled && !aiLoading && isRateLimited && (
+        <Card className="border-amber-200 bg-amber-50/50">
+          <CardContent className="py-4">
+            <p className="text-sm text-amber-700 text-center">
+              AI suggestions refresh every hour. Check back later for new suggestions.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {aiEnabled && !aiLoading && !isRateLimited && aiSuggestions.length > 0 && (
+        <Card className="border-purple-200">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Sparkles className="w-5 h-5 text-purple-500" />
+              AI Suggestions
+              <Badge variant="secondary" className="text-purple-600 bg-purple-100">
+                <Sparkles className="w-3 h-3 mr-1" />
+                AI
+              </Badge>
+            </CardTitle>
+            <CardDescription>
+              Personalised recommendations from your AI assistant
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {aiSuggestions.map((suggestion, index) => (
+              <Card key={index} className="overflow-hidden border-l-4 border-l-purple-400 hover:shadow-md transition-shadow">
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 rounded-lg bg-purple-50 flex-shrink-0">
+                      <Sparkles className="w-5 h-5 text-purple-500" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded ${PRIORITY_COLORS[suggestion.priority]}`}>
+                          {suggestion.priority}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {suggestion.actionType.replace(/_/g, " ")}
+                        </span>
+                      </div>
+                      <p className="text-sm font-medium text-foreground mb-1">
+                        {suggestion.title}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {suggestion.description}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {aiEnabled && !aiLoading && !isRateLimited && aiSuggestions.length === 0 && !hasAiKey && (
+        <Card className="border-dashed border-purple-200">
+          <CardContent className="py-6">
+            <div className="text-center space-y-2">
+              <Sparkles className="w-8 h-8 text-purple-400 mx-auto" />
+              <p className="font-medium">Connect AI</p>
+              <p className="text-sm text-muted-foreground">
+                Add your Anthropic API key in Settings to get personalised suggestions
+              </p>
+              <Link href="/dashboard/settings">
+                <Button variant="outline" size="sm" className="mt-2 gap-2">
+                  Go to Settings
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Rule-based Suggestions */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -104,6 +220,15 @@ export function SuggestionsPanel() {
               </CardDescription>
             </div>
             <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleGenerateAI}
+                disabled={aiLoading}
+              >
+                <Sparkles className={`w-4 h-4 mr-2 text-purple-500 ${aiLoading ? "animate-pulse" : ""}`} />
+                Generate AI Suggestions
+              </Button>
               <Button
                 variant="outline"
                 size="sm"

@@ -25,6 +25,11 @@
     --ring: 221.2 83.2% 53.3%;
     --radius: 0.5rem;
 
+    /* Paper design system */
+    --paper: 40 33% 98%;
+    --ruled-line: 220 20% 93%;
+    --ring-dot: 220 13% 82%;
+
     /* Sidebar */
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
@@ -57,6 +62,11 @@
     --input: 217.2 32.6% 17.5%;
     --ring: 224.3 76.3% 48%;
 
+    /* Paper design system */
+    --paper: 222 50% 6.5%;
+    --ruled-line: 217 33% 15%;
+    --ring-dot: 217 33% 22%;
+
     /* Sidebar Dark */
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
@@ -76,6 +86,59 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Paper-like design treatment */
+.paper-bg {
+  background-color: hsl(var(--paper));
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Cpath d='M1 3h1v1H1V3zm2-2h1v1H3V1z' fill='%23000' fill-opacity='0.015'/%3E%3C/svg%3E");
+}
+
+/* Ring-binding dots along left edge */
+.ring-binding {
+  position: relative;
+}
+
+.ring-binding::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 20px;
+  background-image: radial-gradient(circle, hsl(var(--ring-dot)) 3px, transparent 3px);
+  background-size: 20px 32px;
+  background-position: 10px 16px;
+  pointer-events: none;
+  z-index: 10;
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .ring-binding::before {
+    display: block;
+  }
+}
+
+/* Ruled line border color for daily planner */
+.ruled-border {
+  border-color: hsl(var(--ruled-line));
+}
+
+/* Page transition animation */
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateX(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.page-transition {
+  animation: page-in 200ms ease-out;
 }
 
 /* Custom scrollbar */
@@ -185,4 +248,102 @@
 
 .animate-slide-out-to-right {
   animation: slide-out-to-right 0.3s ease-out;
+}
+
+/* =========================================
+   Print / PDF Export Styles
+   @media print hides UI chrome and formats
+   planner pages for clean paper output
+   ========================================= */
+
+@media print {
+  /* Hide all navigation and chrome */
+  aside,
+  header,
+  nav,
+  .no-print,
+  [data-no-print] {
+    display: none !important;
+  }
+
+  /* Full-width content area */
+  main {
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: white !important;
+  }
+
+  /* Remove paper texture and ring binding for print */
+  .paper-bg {
+    background: white !important;
+    background-image: none !important;
+  }
+
+  .ring-binding::before {
+    display: none !important;
+  }
+
+  /* Reset page transitions */
+  .page-transition {
+    animation: none !important;
+    padding-left: 0 !important;
+  }
+
+  /* Print-friendly cards */
+  .card,
+  [class*="rounded"] {
+    box-shadow: none !important;
+    border: 1px solid #e5e7eb !important;
+    break-inside: avoid;
+  }
+
+  /* Clean typography */
+  body {
+    font-size: 11pt;
+    color: #000 !important;
+    background: white !important;
+  }
+
+  h1 { font-size: 18pt; }
+  h2 { font-size: 14pt; }
+  h3 { font-size: 12pt; }
+
+  /* Page breaks */
+  .print-break-before { page-break-before: always; }
+  .print-break-after  { page-break-after: always; }
+  .print-avoid-break  { page-break-inside: avoid; }
+
+  /* Show print-only elements */
+  .print-only {
+    display: block !important;
+  }
+
+  /* Time grid lines look clean on paper */
+  .ruled-border {
+    border-color: #d1d5db !important;
+  }
+
+  /* Filofax header for printed pages */
+  .print-header {
+    display: flex !important;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2pt solid #000;
+    padding-bottom: 8pt;
+    margin-bottom: 16pt;
+    font-size: 9pt;
+    color: #6b7280;
+  }
+
+  /* @page setup */
+  @page {
+    size: A4 portrait;
+    margin: 15mm 15mm 15mm 20mm;
+  }
+}
+
+/* Print-only elements hidden on screen */
+.print-only {
+  display: none;
 }

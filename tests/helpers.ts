@@ -54,6 +54,7 @@ export function createMockPrismaClient() {
     focusSession: createModelMock(),
     visionBoard: createModelMock(),
     visionItem: createModelMock(),
+    inboxItem: createModelMock(),
     $transaction: vi.fn().mockImplementation((promises: Promise<unknown>[]) => Promise.all(promises)),
   };
 }
