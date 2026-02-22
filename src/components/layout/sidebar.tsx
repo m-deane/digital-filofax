@@ -325,6 +325,7 @@ interface SidebarProps {
 
 export function Sidebar({ onNavigate }: SidebarProps = {}) {
   const pathname = usePathname();
+  const [mounted, setMounted] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState<string[]>([]);
   const enabledModules = useEnabledModules();
@@ -334,6 +335,7 @@ export function Sidebar({ onNavigate }: SidebarProps = {}) {
   // Load collapsed sections from localStorage on mount
   useEffect(() => {
     setCollapsedSections(getStoredCollapsedSections());
+    setMounted(true);
   }, []);
 
   // Get urgent task count
@@ -480,6 +482,9 @@ export function Sidebar({ onNavigate }: SidebarProps = {}) {
             ))}
 
             {/* Collapsible Sections with Colored Tabs + Drag-and-Drop */}
+            {/* DndContext must be client-only — dnd-kit generates incrementing aria IDs that
+                differ between SSR and client renders, causing hydration mismatches. */}
+            {mounted && (
             <DndContext
               sensors={sensors}
               collisionDetection={closestCenter}
@@ -581,6 +586,7 @@ export function Sidebar({ onNavigate }: SidebarProps = {}) {
                 })}
               </SortableContext>
             </DndContext>
+            )}
           </nav>
         </ScrollArea>
 

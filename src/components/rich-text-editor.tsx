@@ -32,6 +32,7 @@ export function RichTextEditor({
       Placeholder.configure({ placeholder }),
     ],
     content: parseContent(value),
+    immediatelyRender: false,
     onUpdate: ({ editor }) => {
       onChange(JSON.stringify(editor.getJSON()));
     },

@@ -14,6 +14,7 @@ export function RichTextViewer({ content }: RichTextViewerProps) {
     extensions: [StarterKit],
     content: parsedContent,
     editable: false,
+    immediatelyRender: false,
   });
 
   if (!editor) {
