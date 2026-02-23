@@ -77,6 +77,28 @@ describe("Habits Router", () => {
       );
     });
 
+    it("should filter by categoryId when provided", async () => {
+      db.habit.findMany.mockResolvedValue([]);
+
+      await db.habit.findMany({
+        where: {
+          userId: TEST_USER_ID,
+          isArchived: false,
+          categoryId: "cat-1",
+        },
+        include: { category: true, logs: expect.any(Object) },
+        orderBy: { createdAt: "asc" },
+      });
+
+      expect(db.habit.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            categoryId: "cat-1",
+          }),
+        })
+      );
+    });
+
     it("should filter by habitType when provided", async () => {
       db.habit.findMany.mockResolvedValue([]);
 
@@ -175,6 +197,40 @@ describe("Habits Router", () => {
       );
     });
 
+    it("should create a habit with categoryId when provided", async () => {
+      db.habit.create.mockResolvedValue({
+        id: "habit-cat",
+        name: "Meditate",
+        habitType: "BOOLEAN",
+        frequency: "DAILY",
+        color: "#10b981",
+        userId: TEST_USER_ID,
+        categoryId: "cat-1",
+        category: { id: "cat-1", name: "Wellness", color: "#6366f1" },
+      });
+
+      await db.habit.create({
+        data: {
+          name: "Meditate",
+          habitType: "BOOLEAN",
+          frequency: "DAILY",
+          color: "#10b981",
+          categoryId: "cat-1",
+          userId: TEST_USER_ID,
+        },
+        include: { category: true },
+      });
+
+      expect(db.habit.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            categoryId: "cat-1",
+            userId: TEST_USER_ID,
+          }),
+        })
+      );
+    });
+
     it("should accept optional fields", async () => {
       db.habit.create.mockResolvedValue({
         id: "habit-new",
@@ -250,6 +306,58 @@ describe("Habits Router", () => {
         where: { id: "habit-1", userId: TEST_USER_ID },
       });
       expect(existing).toBeNull();
+    });
+
+    it("should update habit categoryId", async () => {
+      db.habit.findFirst.mockResolvedValue({ id: "habit-1", userId: TEST_USER_ID });
+      db.habit.update.mockResolvedValue({
+        id: "habit-1",
+        name: "Exercise",
+        userId: TEST_USER_ID,
+        categoryId: "cat-2",
+        category: { id: "cat-2", name: "Health", color: "#10b981" },
+      });
+
+      const existing = await db.habit.findFirst({
+        where: { id: "habit-1", userId: TEST_USER_ID },
+      });
+      expect(existing).not.toBeNull();
+
+      const result = await db.habit.update({
+        where: { id: "habit-1" },
+        data: { categoryId: "cat-2" },
+        include: { category: true },
+      });
+
+      expect(result.categoryId).toBe("cat-2");
+      expect(db.habit.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ categoryId: "cat-2" }),
+        })
+      );
+    });
+
+    it("should clear habit categoryId when set to null", async () => {
+      db.habit.findFirst.mockResolvedValue({ id: "habit-1", userId: TEST_USER_ID, categoryId: "cat-1" });
+      db.habit.update.mockResolvedValue({
+        id: "habit-1",
+        userId: TEST_USER_ID,
+        categoryId: null,
+        category: null,
+      });
+
+      const existing = await db.habit.findFirst({
+        where: { id: "habit-1", userId: TEST_USER_ID },
+      });
+      expect(existing).not.toBeNull();
+
+      const result = await db.habit.update({
+        where: { id: "habit-1" },
+        data: { categoryId: null },
+        include: { category: true },
+      });
+
+      expect(result.categoryId).toBeNull();
     });
 
     it("should allow archiving a habit", async () => {

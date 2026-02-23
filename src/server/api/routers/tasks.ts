@@ -2,6 +2,7 @@ import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { TRPCError } from "@trpc/server";
 import { parseRecurrenceRule, getNextDueDate } from "@/lib/recurrence";
+import { addWeeks, addMonths, startOfWeek, startOfMonth } from "date-fns";
 
 export const tasksRouter = createTRPCRouter({
   getAll: protectedProcedure
@@ -90,6 +91,7 @@ export const tasksRouter = createTRPCRouter({
         weekOf: z.date().optional(),
         monthOf: z.date().optional(),
         recurrenceRule: z.string().max(500).optional(),
+        projectId: z.string().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -116,6 +118,21 @@ export const tasksRouter = createTRPCRouter({
         },
       });
 
+      // Update project progress if task belongs to a project
+      if (task.projectId) {
+        const projectTasks = await ctx.db.task.findMany({
+          where: { projectId: task.projectId },
+          select: { status: true },
+        });
+        const total = projectTasks.length;
+        const done = projectTasks.filter((t) => t.status === "DONE").length;
+        const progress = total === 0 ? 0 : Math.round((done / total) * 100);
+        await ctx.db.project.update({
+          where: { id: task.projectId },
+          data: { progress },
+        });
+      }
+
       return task;
     }),
 
@@ -136,6 +153,7 @@ export const tasksRouter = createTRPCRouter({
         order: z.number().optional(),
         completedAt: z.date().nullable().optional(),
         recurrenceRule: z.string().max(500).nullable().optional(),
+        projectId: z.string().nullable().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -176,8 +194,11 @@ export const tasksRouter = createTRPCRouter({
       if (isMarkingDone && existing.recurrenceRule) {
         const rule = parseRecurrenceRule(existing.recurrenceRule);
         const base = existing.dueDate ?? (updateData.dueDate instanceof Date ? updateData.dueDate : null);
-        if (rule && base) {
-          const nextDue = getNextDueDate(base, rule);
+        const hasTimePeriod = existing.weekOf || existing.monthOf;
+        if (rule && (base || hasTimePeriod)) {
+          const nextDue = base ? getNextDueDate(base, rule) : null;
+          const nextWeekOf = existing.weekOf ? addWeeks(existing.weekOf, 1) : null;
+          const nextMonthOf = existing.monthOf ? addMonths(existing.monthOf, 1) : null;
           const maxOrder = await ctx.db.task.aggregate({
             where: { userId: ctx.session.user.id, status: "TODO" },
             _max: { order: true },
@@ -192,13 +213,31 @@ export const tasksRouter = createTRPCRouter({
               goalId: existing.goalId,
               recurrenceRule: existing.recurrenceRule,
               parentTaskId: existing.id,
-              dueDate: nextDue,
+              ...(nextDue && { dueDate: nextDue }),
+              ...(nextWeekOf && { weekOf: nextWeekOf }),
+              ...(nextMonthOf && { monthOf: nextMonthOf }),
               status: "TODO",
               userId: ctx.session.user.id,
               order: (maxOrder._max.order ?? 0) + 1,
             },
           });
         }
+      }
+
+      // Update project progress if task belongs to a project
+      const projectId = task.projectId ?? existing.projectId;
+      if (projectId) {
+        const projectTasks = await ctx.db.task.findMany({
+          where: { projectId },
+          select: { status: true },
+        });
+        const total = projectTasks.length;
+        const done = projectTasks.filter((t) => t.status === "DONE").length;
+        const progress = total === 0 ? 0 : Math.round((done / total) * 100);
+        await ctx.db.project.update({
+          where: { id: projectId },
+          data: { progress },
+        });
       }
 
       return task;
@@ -324,37 +363,63 @@ export const tasksRouter = createTRPCRouter({
 
   // Get tasks for specific time periods
   getWeeklyTasks: protectedProcedure
-    .input(z.object({ weekOf: z.date() }))
+    .input(z.object({
+      weekOf: z.date(),
+      includeCarriedForward: z.boolean().default(true),
+    }))
     .query(async ({ ctx, input }) => {
-      return ctx.db.task.findMany({
-        where: {
-          userId: ctx.session.user.id,
-          weekOf: input.weekOf,
-        },
-        include: {
-          category: true,
-          tags: true,
-          subtasks: { orderBy: { order: "asc" } },
-        },
-        orderBy: [{ order: "asc" }, { createdAt: "desc" }],
+      const userId = ctx.session.user.id;
+      const weekStart = startOfWeek(input.weekOf, { weekStartsOn: 1 });
+
+      const weekTasks = await ctx.db.task.findMany({
+        where: { userId, weekOf: weekStart },
+        include: { category: true, tags: true, subtasks: { orderBy: { order: "asc" } } },
+        orderBy: { order: "asc" },
       });
+
+      const carriedForward = input.includeCarriedForward
+        ? await ctx.db.task.findMany({
+            where: {
+              userId,
+              weekOf: { lt: weekStart },
+              status: { not: "DONE" },
+            },
+            include: { category: true, tags: true, subtasks: { orderBy: { order: "asc" } } },
+            orderBy: { weekOf: "asc" },
+          })
+        : [];
+
+      return { weekTasks, carriedForward };
     }),
 
   getMonthlyTasks: protectedProcedure
-    .input(z.object({ monthOf: z.date() }))
+    .input(z.object({
+      monthOf: z.date(),
+      includeCarriedForward: z.boolean().default(true),
+    }))
     .query(async ({ ctx, input }) => {
-      return ctx.db.task.findMany({
-        where: {
-          userId: ctx.session.user.id,
-          monthOf: input.monthOf,
-        },
-        include: {
-          category: true,
-          tags: true,
-          subtasks: { orderBy: { order: "asc" } },
-        },
-        orderBy: [{ order: "asc" }, { createdAt: "desc" }],
+      const userId = ctx.session.user.id;
+      const monthStart = startOfMonth(input.monthOf);
+
+      const monthTasks = await ctx.db.task.findMany({
+        where: { userId, monthOf: monthStart },
+        include: { category: true, tags: true, subtasks: { orderBy: { order: "asc" } } },
+        orderBy: { order: "asc" },
       });
+
+      const carriedForward = input.includeCarriedForward
+        ? await ctx.db.task.findMany({
+            where: {
+              userId,
+              monthOf: { lt: monthStart },
+              status: { not: "DONE" },
+            },
+            include: { category: true, tags: true, subtasks: { orderBy: { order: "asc" } } },
+            orderBy: { monthOf: "asc" },
+          })
+        : [];
+
+      return { monthTasks, carriedForward };
     }),
 
   getDueSoon: protectedProcedure

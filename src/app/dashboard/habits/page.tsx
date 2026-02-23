@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -33,6 +33,8 @@ import {
   Trash2,
   BarChart2,
   Loader2,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -43,6 +45,7 @@ import {
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/trpc";
 import { startOfDay, subDays, isSameDay } from "date-fns";
+import { SortDropdown } from "@/components/ui/sort-dropdown";
 import { HabitHeatmap } from "@/components/habits/habit-heatmap";
 import { StreakDisplay } from "@/components/habits/streak-display";
 
@@ -52,6 +55,12 @@ interface HabitLog {
   id: string;
   date: Date;
   value: number | null;
+}
+
+interface HabitCategory {
+  id: string;
+  name: string;
+  color: string;
 }
 
 interface Habit {
@@ -64,6 +73,8 @@ interface Habit {
   color: string;
   logs: HabitLog[];
   completedToday?: boolean;
+  categoryId?: string | null;
+  category?: HabitCategory | null;
 }
 
 const weekDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -291,13 +302,22 @@ export default function HabitsPage() {
   const [newHabitDescription, setNewHabitDescription] = useState("");
   const [newHabitType, setNewHabitType] = useState<HabitType>("BOOLEAN");
   const [newHabitColor, setNewHabitColor] = useState("#10b981");
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>("");
+  const [newGroupName, setNewGroupName] = useState("");
   const [togglingHabitId, setTogglingHabitId] = useState<string | null>(null);
   const [selectedHabitId, setSelectedHabitId] = useState<string | undefined>(undefined);
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  const [sortHabitsBy, setSortHabitsBy] = useState<string>(() =>
+    typeof window !== "undefined" ? (localStorage.getItem("filofax-sort-habits") ?? "alpha-asc") : "alpha-asc"
+  );
 
   const utils = api.useUtils();
 
   // Fetch habits from API
   const { data, isLoading, error } = api.habits.getAll.useQuery({});
+
+  // Fetch categories for grouping
+  const { data: categories } = api.categories.getAll.useQuery();
 
   // Fetch heatmap data
   const { data: heatmapData = [], isLoading: isLoadingHeatmap } = api.habits.getHeatmapData.useQuery(
@@ -306,6 +326,15 @@ export default function HabitsPage() {
 
   // Fetch streak stats
   const { data: streakStats = [], isLoading: isLoadingStats } = api.habits.getStreakStats.useQuery();
+
+  // Create category mutation (for inline group creation)
+  const createCategory = api.categories.create.useMutation({
+    onSuccess: (newCat) => {
+      utils.categories.getAll.invalidate();
+      setSelectedCategoryId(newCat.id);
+      setNewGroupName("");
+    },
+  });
 
   // Create habit mutation
   const createHabit = api.habits.create.useMutation({
@@ -316,6 +345,8 @@ export default function HabitsPage() {
       setNewHabitDescription("");
       setNewHabitType("BOOLEAN");
       setNewHabitColor("#10b981");
+      setSelectedCategoryId("");
+      setNewGroupName("");
     },
   });
 
@@ -355,6 +386,24 @@ export default function HabitsPage() {
       description: newHabitDescription || undefined,
       habitType: newHabitType,
       color: newHabitColor,
+      categoryId: selectedCategoryId || undefined,
+    });
+  };
+
+  const handleCreateGroup = () => {
+    if (!newGroupName.trim()) return;
+    createCategory.mutate({ name: newGroupName });
+  };
+
+  const toggleGroupCollapse = (groupKey: string) => {
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(groupKey)) {
+        next.delete(groupKey);
+      } else {
+        next.add(groupKey);
+      }
+      return next;
     });
   };
 
@@ -383,7 +432,45 @@ export default function HabitsPage() {
     deleteHabit.mutate({ id: habitId });
   };
 
-  const habits = (data ?? []) as Habit[];
+  const habits = useMemo(() => (data ?? []) as Habit[], [data]);
+
+  // Group habits by category
+  const grouped = useMemo(() => {
+    const groups = new Map<string, { category: HabitCategory | null; habits: Habit[] }>();
+    for (const habit of habits) {
+      const key = habit.categoryId ?? "__none";
+      const existing = groups.get(key);
+      if (existing) {
+        existing.habits.push(habit);
+      } else {
+        groups.set(key, {
+          category: habit.category ?? null,
+          habits: [habit],
+        });
+      }
+    }
+    // Sort habits within each group
+    for (const [, group] of groups) {
+      group.habits.sort((a, b) => {
+        switch (sortHabitsBy) {
+          case "alpha-desc":
+            return b.name.localeCompare(a.name);
+          case "streak":
+            return (b.logs?.length ?? 0) - (a.logs?.length ?? 0);
+          case "alpha-asc":
+          default:
+            return a.name.localeCompare(b.name);
+        }
+      });
+    }
+    // Sort: categorized groups first (alphabetically), then uncategorized last
+    const sorted = Array.from(groups.entries()).sort(([keyA, a], [keyB, b]) => {
+      if (keyA === "__none") return 1;
+      if (keyB === "__none") return -1;
+      return (a.category?.name ?? "").localeCompare(b.category?.name ?? "");
+    });
+    return sorted;
+  }, [habits, sortHabitsBy]);
 
   if (error) {
     return (
@@ -403,7 +490,17 @@ export default function HabitsPage() {
             Track and build consistent daily habits
           </p>
         </div>
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+        <div className="flex items-center gap-2">
+          <SortDropdown
+            value={sortHabitsBy}
+            onChange={(v) => { setSortHabitsBy(v); localStorage.setItem("filofax-sort-habits", v); }}
+            options={[
+              { label: "A → Z", value: "alpha-asc" },
+              { label: "Z → A", value: "alpha-desc" },
+              { label: "Most logs", value: "streak" },
+            ]}
+          />
+          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
             <Button className="gap-2">
               <Plus className="h-4 w-4" />
@@ -447,6 +544,55 @@ export default function HabitsPage() {
                   className="w-10 h-10 rounded cursor-pointer"
                 />
               </div>
+              <div className="space-y-2">
+                <label className="text-sm text-muted-foreground">Group (optional)</label>
+                <Select value={selectedCategoryId} onValueChange={setSelectedCategoryId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="No group" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">No group</SelectItem>
+                    {(categories ?? []).map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-3 h-3 rounded-full"
+                            style={{ backgroundColor: cat.color }}
+                          />
+                          {cat.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <div className="flex items-center gap-2">
+                  <Input
+                    placeholder="New group name..."
+                    value={newGroupName}
+                    onChange={(e) => setNewGroupName(e.target.value)}
+                    className="text-sm"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleCreateGroup();
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCreateGroup}
+                    disabled={!newGroupName.trim() || createCategory.isPending}
+                  >
+                    {createCategory.isPending ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <Plus className="h-3 w-3" />
+                    )}
+                  </Button>
+                </div>
+              </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
@@ -456,7 +602,8 @@ export default function HabitsPage() {
               </Button>
             </DialogFooter>
           </DialogContent>
-        </Dialog>
+          </Dialog>
+        </div>
       </div>
 
       {/* Loading State */}
@@ -533,15 +680,51 @@ export default function HabitsPage() {
               <TodayOverview habits={habits} />
             </div>
             <div className="lg:col-span-2 space-y-4">
-              {habits.map((habit) => (
-                <HabitCard
-                  key={habit.id}
-                  habit={habit}
-                  onToggle={() => handleToggleHabit(habit)}
-                  onDelete={() => handleDeleteHabit(habit.id)}
-                  isToggling={togglingHabitId === habit.id}
-                />
-              ))}
+              {grouped.map(([groupKey, group]) => {
+                const isCollapsed = collapsedGroups.has(groupKey);
+                const groupName = group.category?.name ?? "Other";
+                const groupColor = group.category?.color ?? "#9ca3af";
+                const completedCount = group.habits.filter((h) => {
+                  const wd = getWeekData(h.logs);
+                  return h.completedToday ?? wd[wd.length - 1];
+                }).length;
+
+                return (
+                  <div key={groupKey} className="space-y-2">
+                    <button
+                      onClick={() => toggleGroupCollapse(groupKey)}
+                      className="flex items-center gap-2 w-full text-left py-1.5 px-1 rounded-md hover:bg-muted/50 transition-colors"
+                    >
+                      {isCollapsed ? (
+                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      )}
+                      <div
+                        className="w-3 h-3 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: groupColor }}
+                      />
+                      <span className="font-medium text-sm">{groupName}</span>
+                      <Badge variant="secondary" className="ml-auto text-xs">
+                        {completedCount}/{group.habits.length} today
+                      </Badge>
+                    </button>
+                    {!isCollapsed && (
+                      <div className="space-y-3 pl-2">
+                        {group.habits.map((habit) => (
+                          <HabitCard
+                            key={habit.id}
+                            habit={habit}
+                            onToggle={() => handleToggleHabit(habit)}
+                            onDelete={() => handleDeleteHabit(habit.id)}
+                            isToggling={togglingHabitId === habit.id}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         </>

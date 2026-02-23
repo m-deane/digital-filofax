@@ -8,6 +8,7 @@ export const memosRouter = createTRPCRouter({
       z.object({
         includeArchived: z.boolean().default(false),
         memoType: z.array(z.enum(["NOTE", "ANECDOTE", "JOURNAL", "MEETING", "QUICK_THOUGHT"])).optional(),
+        categoryId: z.string().optional(),
         tagIds: z.array(z.string()).optional(),
         search: z.string().max(500).optional(),
         pinnedOnly: z.boolean().optional(),
@@ -21,6 +22,7 @@ export const memosRouter = createTRPCRouter({
           userId: ctx.session.user.id,
           ...(!input?.includeArchived && { isArchived: false }),
           ...(input?.memoType && { memoType: { in: input.memoType } }),
+          ...(input?.categoryId && { categoryId: input.categoryId }),
           ...(input?.tagIds && {
             tags: { some: { id: { in: input.tagIds } } },
           }),
@@ -33,6 +35,7 @@ export const memosRouter = createTRPCRouter({
           }),
         },
         include: {
+          category: true,
           tags: true,
         },
         orderBy: [{ isPinned: "desc" }, { updatedAt: "desc" }],
@@ -52,6 +55,7 @@ export const memosRouter = createTRPCRouter({
       const memo = await ctx.db.memo.findFirst({
         where: { id: input.id, userId: ctx.session.user.id },
         include: {
+          category: true,
           tags: true,
         },
       });
@@ -70,6 +74,7 @@ export const memosRouter = createTRPCRouter({
         content: z.string().max(100000),
         memoType: z.enum(["NOTE", "ANECDOTE", "JOURNAL", "MEETING", "QUICK_THOUGHT"]).default("NOTE"),
         isPinned: z.boolean().default(false),
+        categoryId: z.string().optional(),
         tagIds: z.array(z.string()).optional(),
       })
     )
@@ -85,6 +90,7 @@ export const memosRouter = createTRPCRouter({
           }),
         },
         include: {
+          category: true,
           tags: true,
         },
       });
@@ -99,6 +105,7 @@ export const memosRouter = createTRPCRouter({
         memoType: z.enum(["NOTE", "ANECDOTE", "JOURNAL", "MEETING", "QUICK_THOUGHT"]).optional(),
         isPinned: z.boolean().optional(),
         isArchived: z.boolean().optional(),
+        categoryId: z.string().nullable().optional(),
         tagIds: z.array(z.string()).optional(),
       })
     )
@@ -122,6 +129,7 @@ export const memosRouter = createTRPCRouter({
           }),
         },
         include: {
+          category: true,
           tags: true,
         },
       });
@@ -157,7 +165,7 @@ export const memosRouter = createTRPCRouter({
       return ctx.db.memo.update({
         where: { id: input.id },
         data: { isPinned: !existing.isPinned },
-        include: { tags: true },
+        include: { category: true, tags: true },
       });
     }),
 
@@ -175,7 +183,7 @@ export const memosRouter = createTRPCRouter({
       return ctx.db.memo.update({
         where: { id: input.id },
         data: { isArchived: true, isPinned: false },
-        include: { tags: true },
+        include: { category: true, tags: true },
       });
     }),
 
@@ -193,7 +201,7 @@ export const memosRouter = createTRPCRouter({
       return ctx.db.memo.update({
         where: { id: input.id },
         data: { isArchived: false },
-        include: { tags: true },
+        include: { category: true, tags: true },
       });
     }),
 
@@ -218,6 +226,7 @@ export const memosRouter = createTRPCRouter({
           userId: ctx.session.user.id,
         },
         include: {
+          category: true,
           tags: true,
         },
       });
@@ -233,6 +242,7 @@ export const memosRouter = createTRPCRouter({
           isArchived: false,
         },
         include: {
+          category: true,
           tags: true,
         },
         orderBy: { updatedAt: "desc" },
@@ -254,6 +264,7 @@ export const memosRouter = createTRPCRouter({
           ],
         },
         include: {
+          category: true,
           tags: true,
         },
         orderBy: { updatedAt: "desc" },

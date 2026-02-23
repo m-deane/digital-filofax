@@ -21,6 +21,7 @@ vi.mock("lucide-react", () => {
     Sparkles: icon,
     LayoutTemplate: icon,
     Image: icon,
+    FolderKanban: icon,
   };
 });
 

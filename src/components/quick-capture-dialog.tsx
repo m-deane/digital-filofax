@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/trpc";
+import { useToast } from "@/hooks/use-toast";
 import {
   parseTaskInput,
   hasNlpTokens,
@@ -57,18 +58,20 @@ interface MinimalSpeechRecognition extends EventTarget {
 const captureTypes: {
   type: CaptureType;
   label: string;
+  description: string;
   icon: typeof CheckSquare;
   placeholder: string;
 }[] = [
-  { type: "inbox", label: "Inbox", icon: Inbox, placeholder: "What's on your mind? File it later." },
+  { type: "inbox", label: "Inbox", description: "Process later", icon: Inbox, placeholder: "What's on your mind? File it later." },
   {
     type: "task",
     label: "Task",
+    description: "Goes to Tasks",
     icon: CheckSquare,
     placeholder: 'What needs to be done? Try "Call dentist tomorrow !high #health"',
   },
-  { type: "memo", label: "Note", icon: FileText, placeholder: "Quick note..." },
-  { type: "idea", label: "Idea", icon: Lightbulb, placeholder: "What's on your mind?" },
+  { type: "memo", label: "Memo", description: "Goes to Memos", icon: FileText, placeholder: "Quick note..." },
+  { type: "idea", label: "Idea", description: "Goes to Ideas", icon: Lightbulb, placeholder: "What's on your mind?" },
 ];
 
 interface QuickCaptureDialogProps {
@@ -84,6 +87,7 @@ export function QuickCaptureDialog({ open, onOpenChange }: QuickCaptureDialogPro
   const [voiceSupported, setVoiceSupported] = useState(false);
   const recognitionRef = useRef<MinimalSpeechRecognition | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
   const utils = api.useUtils();
 
   // Check Web Speech API support on mount
@@ -134,6 +138,7 @@ export function QuickCaptureDialog({ open, onOpenChange }: QuickCaptureDialogPro
     onSuccess: () => {
       utils.tasks.getAll.invalidate();
       utils.tasks.getDueSoon.invalidate();
+      toast({ title: "Task added", description: "Added to your task list." });
       handleClose();
     },
   });
@@ -141,6 +146,7 @@ export function QuickCaptureDialog({ open, onOpenChange }: QuickCaptureDialogPro
   const createMemo = api.memos.create.useMutation({
     onSuccess: () => {
       utils.memos.getAll.invalidate();
+      toast({ title: "Memo saved", description: "Added to your memos." });
       handleClose();
     },
   });
@@ -148,6 +154,7 @@ export function QuickCaptureDialog({ open, onOpenChange }: QuickCaptureDialogPro
   const createIdea = api.ideas.create.useMutation({
     onSuccess: () => {
       utils.ideas.getAll.invalidate();
+      toast({ title: "Idea captured", description: "Added to your ideas." });
       handleClose();
     },
   });
@@ -156,6 +163,7 @@ export function QuickCaptureDialog({ open, onOpenChange }: QuickCaptureDialogPro
     onSuccess: () => {
       utils.inbox.getAll.invalidate();
       utils.inbox.getCount.invalidate();
+      toast({ title: "Captured to Inbox", description: "Open your Inbox to process it." });
       handleClose();
     },
   });
@@ -316,21 +324,28 @@ export function QuickCaptureDialog({ open, onOpenChange }: QuickCaptureDialogPro
           />
 
           {/* Type selector - secondary */}
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col gap-1.5">
             <span className="text-xs text-muted-foreground">Save as:</span>
-            {captureTypes.map(({ type, label, icon: Icon }) => (
-              <Button
-                key={type}
-                type="button"
-                variant={captureType === type ? "default" : "outline"}
-                size="sm"
-                className={cn("gap-1.5 h-8", captureType === type && "shadow-sm")}
-                onClick={() => setCaptureType(type)}
-              >
-                <Icon className="h-3.5 w-3.5" />
-                {label}
-              </Button>
-            ))}
+            <div className="flex items-center gap-2">
+              {captureTypes.map(({ type, label, description, icon: Icon }) => (
+                <Button
+                  key={type}
+                  type="button"
+                  variant={captureType === type ? "default" : "outline"}
+                  size="sm"
+                  className={cn("gap-1.5 h-auto py-1.5 flex-col items-center", captureType === type && "shadow-sm")}
+                  onClick={() => setCaptureType(type)}
+                >
+                  <span className="flex items-center gap-1">
+                    <Icon className="h-3.5 w-3.5" />
+                    {label}
+                  </span>
+                  <span className={cn("text-[10px] font-normal", captureType === type ? "text-primary-foreground/70" : "text-muted-foreground")}>
+                    {description}
+                  </span>
+                </Button>
+              ))}
+            </div>
           </div>
 
           {/* Submit */}

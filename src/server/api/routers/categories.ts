@@ -13,6 +13,7 @@ export const categoriesRouter = createTRPCRouter({
             tasks: true,
             habits: true,
             ideas: true,
+            memos: true,
           },
         },
       },

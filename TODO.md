@@ -1,6 +1,6 @@
 1. research how to host this
 2. research how to host this as an iOS app?
-3. openclaw
+3. openclaw integration - research
 4. project management - trello style
 5. project management from _projects folder TODO.md files and import
 6. support catgeories and tags in Ideas & Memos - allow custom created and create new categories and tags

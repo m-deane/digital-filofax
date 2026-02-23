@@ -103,6 +103,7 @@ model User {
   focusSessions     FocusSession[]
   importLogs        ImportLog[]
   aiSuggestions     AISuggestion[]
+  projects          Project[]
 
   // Collaboration relations
   ownedSharedLists  SharedList[]       @relation("OwnedSharedLists")
@@ -125,6 +126,7 @@ model Category {
   tasks  Task[]
   habits Habit[]
   ideas  Idea[]
+  memos  Memo[]
   goals  Goal[]
 
   @@unique([userId, name])
@@ -162,6 +164,9 @@ model Task {
   // Goal linking
   goalId String?
 
+  // Project linking
+  projectId String?
+
   // Relations
   userId     String
   categoryId String?
@@ -172,6 +177,7 @@ model Task {
   category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   context       Context?       @relation(fields: [contextId], references: [id], onDelete: SetNull)
   goal          Goal?          @relation(fields: [goalId], references: [id], onDelete: SetNull)
+  project       Project?       @relation(fields: [projectId], references: [id], onDelete: SetNull)
   tags          Tag[]          @relation("TaskTags")
   subtasks      Subtask[]
   focusSessions FocusSession[]
@@ -182,6 +188,7 @@ model Task {
   @@index([categoryId])
   @@index([contextId])
   @@index([goalId])
+  @@index([projectId])
   @@index([parentTaskId])
   @@index([status])
   @@index([dueDate])
@@ -257,14 +264,17 @@ model Memo {
   isArchived Boolean  @default(false)
   memoType   MemoType @default(NOTE)
 
-  userId    String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  userId     String
+  categoryId String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tags Tag[] @relation("MemoTags")
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  tags     Tag[]     @relation("MemoTags")
 
   @@index([userId])
+  @@index([categoryId])
   @@index([isPinned])
 }
 
@@ -618,6 +628,7 @@ model Goal {
   childGoals Goal[]      @relation("GoalHierarchy")
   milestones Milestone[]
   tasks      Task[]
+  projects   Project[]
 
   @@index([userId])
   @@index([type])
@@ -1031,6 +1042,7 @@ enum ImportSource {
   TODOIST
   APPLE_REMINDERS
   JSON
+  MARKDOWN
 }
 
 // ============================================================================
@@ -1165,4 +1177,45 @@ model InboxItem {
 
   @@index([userId])
   @@index([processed])
+}
+
+// ============================================================================
+// PROJECTS (Kanban & Checklists)
+// ============================================================================
+
+enum ProjectStatus {
+  PLANNING
+  ACTIVE
+  ON_HOLD
+  COMPLETED
+  ARCHIVED
+}
+
+enum ProjectType {
+  KANBAN
+  CHECKLIST
+}
+
+model Project {
+  id          String        @id @default(cuid())
+  name        String        @db.VarChar(200)
+  description String?       @db.Text
+  status      ProjectStatus @default(ACTIVE)
+  projectType ProjectType   @default(KANBAN)
+  color       String?       @db.VarChar(7)
+  icon        String?       @db.VarChar(50)
+  dueDate     DateTime?
+  progress    Int           @default(0)
+  sourceFile  String?       @db.VarChar(500)
+  goalId      String?
+  userId      String
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  goal  Goal?  @relation(fields: [goalId], references: [id])
+  tasks Task[]
+
+  @@index([userId])
+  @@index([status])
 }

@@ -4,6 +4,7 @@ import { useState, useEffect, createContext, useContext } from "react";
 import { usePathname } from "next/navigation";
 import { Sidebar } from "./sidebar";
 import { Header } from "./header";
+import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
 
 interface MobileSidebarContextValue {
   isOpen: boolean;
@@ -92,6 +93,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           </main>
         </div>
       </div>
+      <PwaInstallPrompt />
     </MobileSidebarContext.Provider>
   );
 }

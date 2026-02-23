@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { api } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,6 +40,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
+import { SortDropdown } from "@/components/ui/sort-dropdown";
 
 type SomedayItemType = "TASK" | "PROJECT" | "IDEA";
 
@@ -48,6 +49,9 @@ export default function SomedayMaybePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedType, setSelectedType] = useState<SomedayItemType | "ALL">("ALL");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<string>(() =>
+    typeof window !== "undefined" ? (localStorage.getItem("filofax-sort-someday") ?? "createdAt-desc") : "createdAt-desc"
+  );
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
   const [itemToPromote, setItemToPromote] = useState<{
@@ -159,6 +163,27 @@ export default function SomedayMaybePage() {
   const categories = Array.from(
     new Set(items.map((item) => item.category).filter(Boolean))
   ) as string[];
+
+  const sortedItems = useMemo(() => {
+    const arr = [...items];
+    switch (sortBy) {
+      case "createdAt-asc":
+        arr.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+        break;
+      case "alpha-asc":
+        arr.sort((a, b) => a.title.localeCompare(b.title));
+        break;
+      case "alpha-desc":
+        arr.sort((a, b) => b.title.localeCompare(a.title));
+        break;
+      case "type":
+        arr.sort((a, b) => a.type.localeCompare(b.type));
+        break;
+      default:
+        arr.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    }
+    return arr;
+  }, [items, sortBy]);
 
   const getTypeIcon = (type: SomedayItemType) => {
     switch (type) {
@@ -431,6 +456,21 @@ export default function SomedayMaybePage() {
                 ))}
               </SelectContent>
             </Select>
+            <SortDropdown
+              options={[
+                { label: "Newest first", value: "createdAt-desc" },
+                { label: "Oldest first", value: "createdAt-asc" },
+                { label: "A → Z", value: "alpha-asc" },
+                { label: "Z → A", value: "alpha-desc" },
+                { label: "By type", value: "type" },
+              ]}
+              value={sortBy}
+              onChange={(v) => {
+                setSortBy(v);
+                localStorage.setItem("filofax-sort-someday", v);
+              }}
+              className="w-full sm:w-auto"
+            />
           </div>
         </CardContent>
       </Card>
@@ -439,7 +479,7 @@ export default function SomedayMaybePage() {
       <div className="space-y-2">
         {isLoading ? (
           <div className="text-center text-muted-foreground py-8">Loading...</div>
-        ) : items.length === 0 ? (
+        ) : sortedItems.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12">
               <CloudOff className="h-12 w-12 text-muted-foreground mb-4" />
@@ -454,7 +494,7 @@ export default function SomedayMaybePage() {
             </CardContent>
           </Card>
         ) : (
-          items.map((item) => (
+          sortedItems.map((item) => (
             <Card key={item.id}>
               <CardContent className="flex items-start justify-between pt-6">
                 <div className="flex items-start gap-4 flex-1">

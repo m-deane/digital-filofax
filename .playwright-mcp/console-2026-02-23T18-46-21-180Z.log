@@ -1,0 +1,170 @@
+[    8059ms] [ERROR] %c << query #5 %cdaily.getDailyView%c %O 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+   
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: bold; 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: normal; {input: Object, result: TRPCClientError: 
+Invalid `ctx.db.task.findMany()` invocation in
+/Users/matthewdeane/Documents/Data…, elapsedMs: 2564, context: Object} @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_b0daae9a._.js:2359
+[    9892ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3000/api/trpc/daily.getDailyView?batch=1&input=%7B%220%22%3A%7B%22json%22%3A%7B%22date%22%3A%222026-02-23T00%3A00%3A00.000Z%22%7D%2C%22meta%22%3A%7B%22values%22%3A%7B%22date%22%3A%5B%22Date%22%5D%7D%2C%22v%22%3A1%7D%7D%7D:0
+[    9892ms] [ERROR] %c << query #7 %cdaily.getDailyView%c %O 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+   
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: bold; 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: normal; {input: Object, result: TRPCClientError: 
+Invalid `ctx.db.task.findMany()` invocation in
+/Users/matthewdeane/Documents/Data…, elapsedMs: 832, context: Object} @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_b0daae9a._.js:2359
+[   12762ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3000/api/trpc/daily.getDailyView?batch=1&input=%7B%220%22%3A%7B%22json%22%3A%7B%22date%22%3A%222026-02-23T00%3A00%3A00.000Z%22%7D%2C%22meta%22%3A%7B%22values%22%3A%7B%22date%22%3A%5B%22Date%22%5D%7D%2C%22v%22%3A1%7D%7D%7D:0
+[   12763ms] [ERROR] %c << query #8 %cdaily.getDailyView%c %O 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+   
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: bold; 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: normal; {input: Object, result: TRPCClientError: 
+Invalid `ctx.db.task.findMany()` invocation in
+/Users/matthewdeane/Documents/Data…, elapsedMs: 868, context: Object} @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_b0daae9a._.js:2359
+[   13706ms] [ERROR] %c << query #9 %ccategories.getAll%c %O 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+   
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: bold; 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: normal; {input: undefined, result: TRPCClientError: 
+Invalid `ctx.db.category.findMany()` invocation in
+/Users/matthewdeane/Documents/…, elapsedMs: 1201, context: Object} @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_b0daae9a._.js:2359
+[   13706ms] [ERROR] %c << query #12 %ctasks.getAll%c %O 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+   
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: bold; 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: normal; {input: Object, result: TRPCClientError: 
+Invalid `ctx.db.task.findMany()` invocation in
+/Users/matthewdeane/Documents/Data…, elapsedMs: 1200, context: Object} @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_b0daae9a._.js:2359
+[   15474ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3000/api/trpc/categories.getAll,tasks.getAll?batch=1&input=%7B%220%22%3A%7B%22json%22%3Anull%2C%22meta%22%3A%7B%22values%22%3A%5B%22undefined%22%5D%2C%22v%22%3A1%7D%7D%2C%221%22%3A%7B%22json%22%3A%7B%22status%22%3Anull%2C%22priority%22%3Anull%2C%22categoryId%22%3Anull%2C%22contextId%22%3Anull%2C%22search%22%3Anull%7D%2C%22meta%22%3A%7B%22values%22%3A%7B%22status%22%3A%5B%22undefined%22%5D%2C%22priority%22%3A%5B%22undefined%22%5D%2C%22categoryId%22%3A%5B%22undefined%22%5D%2C%22contextId%22%3A%5B%22undefined%22%5D%2C%22search%22%3A%5B%22undefined%22%5D%7D%2C%22v%22%3A1%7D%7D%7D:0
+[   15475ms] [ERROR] %c << query #13 %ccategories.getAll%c %O 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+   
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: bold; 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: normal; {input: undefined, result: TRPCClientError: 
+Invalid `ctx.db.category.findMany()` invocation in
+/Users/matthewdeane/Documents/…, elapsedMs: 767, context: Object} @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_b0daae9a._.js:2359
+[   15475ms] [ERROR] %c << query #14 %ctasks.getAll%c %O 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+   
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: bold; 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: normal; {input: Object, result: TRPCClientError: 
+Invalid `ctx.db.task.findMany()` invocation in
+/Users/matthewdeane/Documents/Data…, elapsedMs: 767, context: Object} @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_b0daae9a._.js:2359
+[   18449ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3000/api/trpc/categories.getAll,tasks.getAll?batch=1&input=%7B%220%22%3A%7B%22json%22%3Anull%2C%22meta%22%3A%7B%22values%22%3A%5B%22undefined%22%5D%2C%22v%22%3A1%7D%7D%2C%221%22%3A%7B%22json%22%3A%7B%22status%22%3Anull%2C%22priority%22%3Anull%2C%22categoryId%22%3Anull%2C%22contextId%22%3Anull%2C%22search%22%3Anull%7D%2C%22meta%22%3A%7B%22values%22%3A%7B%22status%22%3A%5B%22undefined%22%5D%2C%22priority%22%3A%5B%22undefined%22%5D%2C%22categoryId%22%3A%5B%22undefined%22%5D%2C%22contextId%22%3A%5B%22undefined%22%5D%2C%22search%22%3A%5B%22undefined%22%5D%7D%2C%22v%22%3A1%7D%7D%7D:0
+[   18449ms] [ERROR] %c << query #15 %ccategories.getAll%c %O 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+   
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: bold; 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: normal; {input: undefined, result: TRPCClientError: 
+Invalid `ctx.db.category.findMany()` invocation in
+/Users/matthewdeane/Documents/…, elapsedMs: 974, context: Object} @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_b0daae9a._.js:2359
+[   18449ms] [ERROR] %c << query #16 %ctasks.getAll%c %O 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+   
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: bold; 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: normal; {input: Object, result: TRPCClientError: 
+Invalid `ctx.db.task.findMany()` invocation in
+/Users/matthewdeane/Documents/Data…, elapsedMs: 973, context: Object} @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_b0daae9a._.js:2359
+[   23636ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3000/api/trpc/categories.getAll,tasks.getAll?batch=1&input=%7B%220%22%3A%7B%22json%22%3Anull%2C%22meta%22%3A%7B%22values%22%3A%5B%22undefined%22%5D%2C%22v%22%3A1%7D%7D%2C%221%22%3A%7B%22json%22%3A%7B%22status%22%3Anull%2C%22priority%22%3Anull%2C%22categoryId%22%3Anull%2C%22contextId%22%3Anull%2C%22search%22%3Anull%7D%2C%22meta%22%3A%7B%22values%22%3A%7B%22status%22%3A%5B%22undefined%22%5D%2C%22priority%22%3A%5B%22undefined%22%5D%2C%22categoryId%22%3A%5B%22undefined%22%5D%2C%22contextId%22%3A%5B%22undefined%22%5D%2C%22search%22%3A%5B%22undefined%22%5D%7D%2C%22v%22%3A1%7D%7D%7D:0
+[   23637ms] [ERROR] %c << query #17 %ccategories.getAll%c %O 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+   
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: bold; 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: normal; {input: undefined, result: TRPCClientError: 
+Invalid `ctx.db.category.findMany()` invocation in
+/Users/matthewdeane/Documents/…, elapsedMs: 1186, context: Object} @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_b0daae9a._.js:2359
+[   23638ms] [ERROR] %c << query #18 %ctasks.getAll%c %O 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+   
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: bold; 
+    background-color: #3fb0d8;
+    color: white;
+    padding: 2px;
+  ; font-weight: normal; {input: Object, result: TRPCClientError: 
+Invalid `ctx.db.task.findMany()` invocation in
+/Users/matthewdeane/Documents/Data…, elapsedMs: 1186, context: Object} @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_b0daae9a._.js:2359

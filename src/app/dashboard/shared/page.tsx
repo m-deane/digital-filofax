@@ -3,7 +3,7 @@
 import { api } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Users, CheckSquare, Share2 } from "lucide-react";
+import { Clock, Mail, Plus, Users, CheckSquare, Share2 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import {
@@ -19,7 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { formatDistanceToNow } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 
 export default function SharedListsPage() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -30,6 +30,8 @@ export default function SharedListsPage() {
     refetchInterval: 30000, // Refetch every 30 seconds
   });
 
+  const { data: pendingInvites } = api.collaboration.getMyPendingInvites.useQuery();
+
   const utils = api.useUtils();
 
   const createListMutation = api.collaboration.createSharedList.useMutation({
@@ -38,6 +40,13 @@ export default function SharedListsPage() {
       setIsCreateDialogOpen(false);
       setName("");
       setDescription("");
+    },
+  });
+
+  const acceptInviteMutation = api.collaboration.acceptInvite.useMutation({
+    onSuccess: () => {
+      utils.collaboration.getSharedLists.invalidate();
+      utils.collaboration.getMyPendingInvites.invalidate();
     },
   });
 
@@ -124,6 +133,56 @@ export default function SharedListsPage() {
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* Pending Invites */}
+      {pendingInvites && pendingInvites.length > 0 && (
+        <div>
+          <h2 className="text-xl font-semibold mb-4">Pending Invites</h2>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {pendingInvites.map((invite) => (
+              <Card key={invite.id}>
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <CardTitle className="text-lg">{invite.list.name}</CardTitle>
+                      <CardDescription className="mt-1">
+                        <div className="flex items-center gap-2">
+                          <Avatar className="h-5 w-5">
+                            <AvatarImage src={invite.list.owner.image || undefined} />
+                            <AvatarFallback className="text-xs">
+                              {invite.list.owner.name?.[0] || invite.list.owner.email?.[0] || "?"}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span>Invited by {invite.list.owner.name || invite.list.owner.email}</span>
+                        </div>
+                      </CardDescription>
+                    </div>
+                    <Badge variant="outline" className="ml-2">
+                      <Mail className="mr-1 h-3 w-3" />
+                      {invite.role}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Clock className="h-3 w-3" />
+                      <span>Expires {format(new Date(invite.expiresAt), "MMM d, yyyy")}</span>
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() => acceptInviteMutation.mutate({ token: invite.token })}
+                      disabled={acceptInviteMutation.isPending}
+                    >
+                      {acceptInviteMutation.isPending ? "Accepting..." : "Accept"}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Owned Lists */}
       {ownedLists.length > 0 && (

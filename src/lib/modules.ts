@@ -16,6 +16,7 @@ import {
   Sparkles,
   LayoutTemplate,
   Image,
+  FolderKanban,
   type LucideIcon,
 } from "lucide-react";
 
@@ -38,6 +39,7 @@ export const MODULE_IDS = [
   "suggestions",
   "templates",
   "vision",
+  "projects",
 ] as const;
 
 export type ModuleId = (typeof MODULE_IDS)[number];
@@ -190,6 +192,14 @@ export const MODULES: Record<ModuleId, ModuleConfig> = {
     routes: ["/dashboard/vision"],
     widgets: [],
   },
+  projects: {
+    id: "projects",
+    name: "Projects",
+    description: "Organize work into Kanban boards and checklists",
+    icon: FolderKanban,
+    routes: ["/dashboard/projects"],
+    widgets: [],
+  },
 };
 
 // Default enabled modules for new users
@@ -199,6 +209,7 @@ export const DEFAULT_ENABLED_MODULES: ModuleId[] = [
   "memos",
   "ideas",
   "calendar",
+  "projects",
 ];
 
 // Check if a route is enabled based on enabled modules

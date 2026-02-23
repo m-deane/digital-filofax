@@ -91,18 +91,18 @@ export default function InboxPage() {
           <CardContent className="flex flex-col items-center justify-center py-16 text-center">
             <Inbox className="h-12 w-12 text-muted-foreground/40 mb-4" />
             <h3 className="text-lg font-medium text-muted-foreground">
-              Your inbox is empty
+              Your inbox is clear
             </h3>
-            <p className="mt-1 text-sm text-muted-foreground/70">
-              Use Quick Capture (
-              <kbd className="rounded border bg-muted px-1 py-0.5 font-mono text-xs">
+            <p className="mt-2 text-sm text-muted-foreground/70 max-w-xs">
+              Capture ideas, tasks, and notes with{" "}
+              <kbd className="inline-flex items-center gap-0.5 rounded border bg-muted px-1.5 py-0.5 font-mono text-xs font-medium text-muted-foreground shadow-sm">
                 {typeof navigator !== "undefined" &&
                 navigator.platform?.includes("Mac")
-                  ? "Cmd"
-                  : "Ctrl"}
-                +J
+                  ? "\u2318"
+                  : "Ctrl+"}
+                J
               </kbd>
-              ) to add items
+              {" "}&mdash; they&apos;ll appear here for processing
             </p>
           </CardContent>
         </Card>

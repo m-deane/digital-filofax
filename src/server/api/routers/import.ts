@@ -8,6 +8,7 @@ import {
   validateImportData,
   type ImportTaskData,
 } from "@/lib/import";
+import { parseMarkdownTodo } from "@/lib/import-markdown";
 import type { ImportSource } from "@prisma/client";
 
 // ============================================================================
@@ -274,6 +275,136 @@ export const importRouter = createTRPCRouter({
       };
     }),
 
+  // Import from Markdown TODO file
+  fromMarkdown: protectedProcedure
+    .input(
+      z.object({
+        markdownContent: z.string().min(1, "Content is required").max(5_000_000, "File too large (max 5MB)"),
+        filename: z.string().min(1).max(255),
+        projectId: z.string().optional(), // if provided, add tasks to existing project
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const userId = ctx.session.user.id;
+
+      const parseResult = parseMarkdownTodo(input.markdownContent, input.filename);
+
+      if (!parseResult.success || !parseResult.data) {
+        await ctx.db.importLog.create({
+          data: {
+            source: "MARKDOWN",
+            filename: input.filename,
+            recordsImported: 0,
+            errors: parseResult.errors,
+            userId,
+          },
+        });
+        return { success: false, recordsImported: 0, projectId: null, errors: parseResult.errors, warnings: parseResult.warnings };
+      }
+
+      const { name, tasks } = parseResult.data;
+      const allWarnings = [...parseResult.warnings];
+
+      // Resolve or create the project
+      let project;
+      if (input.projectId) {
+        project = await ctx.db.project.findFirst({ where: { id: input.projectId, userId } });
+        if (!project) {
+          const err = ["Project not found"];
+          return { success: false, recordsImported: 0, projectId: null, errors: err, warnings: allWarnings };
+        }
+      } else {
+        // Try to find existing project by sourceFile
+        project = await ctx.db.project.findFirst({
+          where: { userId, sourceFile: input.filename },
+        });
+        if (!project) {
+          project = await ctx.db.project.create({
+            data: {
+              name: name.slice(0, 200),
+              projectType: "CHECKLIST",
+              status: "ACTIVE",
+              sourceFile: input.filename,
+              userId,
+            },
+          });
+        }
+      }
+
+      // Get existing tasks in project for dedup by title
+      const existingTasks = await ctx.db.task.findMany({
+        where: { projectId: project.id, userId },
+        select: { id: true, title: true },
+      });
+      const existingByTitle = new Map(existingTasks.map((t) => [t.title.toLowerCase(), t.id]));
+
+      let imported = 0;
+
+      for (const task of tasks) {
+        const titleKey = task.title.toLowerCase();
+        const status = task.completed ? "DONE" : "TODO";
+
+        if (existingByTitle.has(titleKey)) {
+          // Update status on re-import
+          await ctx.db.task.update({
+            where: { id: existingByTitle.get(titleKey)! },
+            data: { status },
+          });
+        } else {
+          const created = await ctx.db.task.create({
+            data: {
+              title: task.title,
+              status,
+              priority: "MEDIUM",
+              projectId: project.id,
+              userId,
+            },
+          });
+          imported++;
+
+          // Create subtasks
+          for (let si = 0; si < task.subtasks.length; si++) {
+            const sub = task.subtasks[si]!;
+            await ctx.db.subtask.create({
+              data: {
+                title: sub.title,
+                completed: sub.completed,
+                order: si,
+                taskId: created.id,
+              },
+            });
+          }
+        }
+      }
+
+      // Update project progress
+      const allTasks = await ctx.db.task.findMany({
+        where: { projectId: project.id, userId },
+        select: { status: true },
+      });
+      const doneCount = allTasks.filter((t) => t.status === "DONE").length;
+      const progress = allTasks.length === 0 ? 0 : Math.round((doneCount / allTasks.length) * 100);
+      await ctx.db.project.update({ where: { id: project.id }, data: { progress } });
+
+      await ctx.db.importLog.create({
+        data: {
+          source: "MARKDOWN",
+          filename: input.filename,
+          recordsImported: imported,
+          errors: [],
+          userId,
+        },
+      });
+
+      return {
+        success: true,
+        recordsImported: imported,
+        projectId: project.id,
+        errors: [] as string[],
+        warnings: allWarnings,
+      };
+    }),
+
   // Get import history
   getImportHistory: protectedProcedure.query(async ({ ctx }) => {
     const userId = ctx.session.user.id;
@@ -306,6 +437,7 @@ export const importRouter = createTRPCRouter({
       TODOIST: 0,
       APPLE_REMINDERS: 0,
       JSON: 0,
+      MARKDOWN: 0,
     };
 
     for (const log of logs) {

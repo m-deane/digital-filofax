@@ -889,6 +889,201 @@ describe("Tasks Router", () => {
   });
 
   // =========================================================================
+  // weekly/monthly recurrence
+  // =========================================================================
+  describe("weekly/monthly recurrence", () => {
+    it("getWeeklyTasks returns tasks for given weekOf", async () => {
+      const weekStart = new Date("2026-02-23T00:00:00.000Z"); // Monday
+      const mockWeekTasks = [
+        { id: "wt-1", title: "Weekly Task 1", userId: TEST_USER_ID, weekOf: weekStart },
+        { id: "wt-2", title: "Weekly Task 2", userId: TEST_USER_ID, weekOf: weekStart },
+      ];
+
+      db.task.findMany.mockResolvedValue(mockWeekTasks);
+
+      const result = await db.task.findMany({
+        where: { userId: TEST_USER_ID, weekOf: weekStart },
+        include: { category: true, tags: true, subtasks: { orderBy: { order: "asc" } } },
+        orderBy: { order: "asc" },
+      });
+
+      expect(result).toEqual(mockWeekTasks);
+      expect(db.task.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ userId: TEST_USER_ID, weekOf: weekStart }),
+        })
+      );
+    });
+
+    it("getWeeklyTasks with includeCarriedForward returns incomplete tasks from prior weeks", async () => {
+      const weekStart = new Date("2026-02-23T00:00:00.000Z");
+      const priorWeek = new Date("2026-02-16T00:00:00.000Z");
+      const carriedTasks = [
+        { id: "cf-1", title: "Carried Task", userId: TEST_USER_ID, weekOf: priorWeek, status: "TODO" },
+      ];
+
+      db.task.findMany.mockResolvedValue(carriedTasks);
+
+      const result = await db.task.findMany({
+        where: {
+          userId: TEST_USER_ID,
+          weekOf: { lt: weekStart },
+          status: { not: "DONE" },
+        },
+        include: { category: true, tags: true, subtasks: { orderBy: { order: "asc" } } },
+        orderBy: { weekOf: "asc" },
+      });
+
+      expect(result).toEqual(carriedTasks);
+      expect(db.task.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            userId: TEST_USER_ID,
+            weekOf: { lt: weekStart },
+            status: { not: "DONE" },
+          }),
+        })
+      );
+    });
+
+    it("getMonthlyTasks returns tasks for given monthOf", async () => {
+      const monthStart = new Date("2026-02-01T00:00:00.000Z");
+      const mockMonthTasks = [
+        { id: "mt-1", title: "Monthly Task", userId: TEST_USER_ID, monthOf: monthStart },
+      ];
+
+      db.task.findMany.mockResolvedValue(mockMonthTasks);
+
+      const result = await db.task.findMany({
+        where: { userId: TEST_USER_ID, monthOf: monthStart },
+        include: { category: true, tags: true, subtasks: { orderBy: { order: "asc" } } },
+        orderBy: { order: "asc" },
+      });
+
+      expect(result).toEqual(mockMonthTasks);
+      expect(db.task.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ userId: TEST_USER_ID, monthOf: monthStart }),
+        })
+      );
+    });
+
+    it("completing recurring task with weekOf advances weekOf by 7 days in spawned child", async () => {
+      const rule = JSON.stringify({ frequency: "weekly" });
+      const weekOf = new Date("2026-02-23T00:00:00.000Z"); // Monday
+      const expectedNextWeekOf = new Date("2026-03-02T00:00:00.000Z"); // Next Monday
+
+      const existing = {
+        id: "task-weekly",
+        userId: TEST_USER_ID,
+        status: "TODO",
+        recurrenceRule: rule,
+        dueDate: null,
+        weekOf,
+        monthOf: null,
+        title: "Weekly Review",
+        description: null,
+        priority: "MEDIUM",
+        categoryId: null,
+        contextId: null,
+        goalId: null,
+      };
+
+      db.task.findFirst.mockResolvedValue(existing);
+      db.task.update.mockResolvedValue({ ...existing, status: "DONE" });
+      db.task.aggregate.mockResolvedValue({ _max: { order: 0 } });
+      db.task.create.mockResolvedValue({ id: "child-weekly" });
+
+      // Simulate spawn logic: weekOf should advance by 7 days
+      await db.task.create({
+        data: {
+          title: existing.title,
+          description: existing.description,
+          priority: existing.priority,
+          categoryId: existing.categoryId,
+          contextId: existing.contextId,
+          goalId: existing.goalId,
+          recurrenceRule: rule,
+          parentTaskId: existing.id,
+          weekOf: expectedNextWeekOf,
+          status: "TODO",
+          userId: TEST_USER_ID,
+          order: 1,
+        },
+      });
+
+      expect(db.task.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            parentTaskId: "task-weekly",
+            weekOf: expectedNextWeekOf,
+            recurrenceRule: rule,
+            status: "TODO",
+            userId: TEST_USER_ID,
+          }),
+        })
+      );
+    });
+
+    it("completing recurring task with monthOf advances monthOf by 1 month in spawned child", async () => {
+      const rule = JSON.stringify({ frequency: "monthly" });
+      const monthOf = new Date("2026-02-01T00:00:00.000Z");
+      const expectedNextMonthOf = new Date("2026-03-01T00:00:00.000Z");
+
+      const existing = {
+        id: "task-monthly",
+        userId: TEST_USER_ID,
+        status: "TODO",
+        recurrenceRule: rule,
+        dueDate: null,
+        weekOf: null,
+        monthOf,
+        title: "Monthly Report",
+        description: null,
+        priority: "HIGH",
+        categoryId: null,
+        contextId: null,
+        goalId: null,
+      };
+
+      db.task.findFirst.mockResolvedValue(existing);
+      db.task.update.mockResolvedValue({ ...existing, status: "DONE" });
+      db.task.aggregate.mockResolvedValue({ _max: { order: 0 } });
+      db.task.create.mockResolvedValue({ id: "child-monthly" });
+
+      // Simulate spawn logic: monthOf should advance by 1 month
+      await db.task.create({
+        data: {
+          title: existing.title,
+          description: existing.description,
+          priority: existing.priority,
+          categoryId: existing.categoryId,
+          contextId: existing.contextId,
+          goalId: existing.goalId,
+          recurrenceRule: rule,
+          parentTaskId: existing.id,
+          monthOf: expectedNextMonthOf,
+          status: "TODO",
+          userId: TEST_USER_ID,
+          order: 1,
+        },
+      });
+
+      expect(db.task.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            parentTaskId: "task-monthly",
+            monthOf: expectedNextMonthOf,
+            recurrenceRule: rule,
+            status: "TODO",
+            userId: TEST_USER_ID,
+          }),
+        })
+      );
+    });
+  });
+
+  // =========================================================================
   // User scoping verification
   // =========================================================================
   describe("user scoping", () => {

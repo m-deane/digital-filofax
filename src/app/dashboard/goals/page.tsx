@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -48,6 +48,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import { api } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
+import { SortDropdown } from "@/components/ui/sort-dropdown";
 
 const GOAL_TYPE_LABELS: Record<string, string> = {
   LIFETIME: "Lifetime Vision",
@@ -474,10 +475,17 @@ function GoalHierarchyItem({
   );
 }
 
+const GOAL_TYPE_ORDER: Record<string, number> = {
+  LIFETIME: 0, THREE_YEAR: 1, ANNUAL: 2, QUARTERLY: 3, MONTHLY: 4,
+};
+
 export default function GoalsPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [view, setView] = useState<"hierarchy" | "grid">("hierarchy");
+  const [sortBy, setSortBy] = useState<string>(() =>
+    typeof window !== "undefined" ? (localStorage.getItem("filofax-sort-goals") ?? "type") : "type"
+  );
   const utils = api.useUtils();
 
   const { data: hierarchyGoals, isLoading: isLoadingHierarchy } = api.goals.getHierarchy.useQuery();
@@ -509,6 +517,33 @@ export default function GoalsPage() {
   });
 
   const goalsToDisplay = view === "hierarchy" ? filteredHierarchyGoals : gridGoals;
+
+  const sortedGoals = useMemo(() => {
+    if (!goalsToDisplay) return goalsToDisplay;
+    const arr = [...goalsToDisplay];
+    switch (sortBy) {
+      case "alpha-asc":
+        arr.sort((a: GoalData, b: GoalData) => a.title.localeCompare(b.title));
+        break;
+      case "alpha-desc":
+        arr.sort((a: GoalData, b: GoalData) => b.title.localeCompare(a.title));
+        break;
+      case "targetDate":
+        arr.sort((a: GoalData, b: GoalData) => {
+          if (!a.targetDate && !b.targetDate) return 0;
+          if (!a.targetDate) return 1;
+          if (!b.targetDate) return -1;
+          return new Date(a.targetDate).getTime() - new Date(b.targetDate).getTime();
+        });
+        break;
+      case "status":
+        arr.sort((a: GoalData, b: GoalData) => a.status.localeCompare(b.status));
+        break;
+      default: // type
+        arr.sort((a: GoalData, b: GoalData) => (GOAL_TYPE_ORDER[a.type] ?? 99) - (GOAL_TYPE_ORDER[b.type] ?? 99));
+    }
+    return arr;
+  }, [goalsToDisplay, sortBy]);
 
   return (
     <div className="space-y-6">
@@ -618,6 +653,20 @@ export default function GoalsPage() {
               <SelectItem value="ON_HOLD">On Hold</SelectItem>
             </SelectContent>
           </Select>
+          <SortDropdown
+            options={[
+              { label: "By type", value: "type" },
+              { label: "A → Z", value: "alpha-asc" },
+              { label: "Z → A", value: "alpha-desc" },
+              { label: "Target date", value: "targetDate" },
+              { label: "By status", value: "status" },
+            ]}
+            value={sortBy}
+            onChange={(v) => {
+              setSortBy(v);
+              localStorage.setItem("filofax-sort-goals", v);
+            }}
+          />
         </div>
       </div>
 
@@ -628,7 +677,7 @@ export default function GoalsPage() {
         </div>
       )}
 
-      {!isLoading && goalsToDisplay && goalsToDisplay.length === 0 && (
+      {!isLoading && sortedGoals && sortedGoals.length === 0 && (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Trophy className="h-12 w-12 text-muted-foreground mb-4" />
@@ -640,9 +689,9 @@ export default function GoalsPage() {
         </Card>
       )}
 
-      {!isLoading && goalsToDisplay && goalsToDisplay.length > 0 && (
+      {!isLoading && sortedGoals && sortedGoals.length > 0 && (
         <div className="space-y-4">
-          {goalsToDisplay.map((goal: GoalData) => (
+          {sortedGoals.map((goal: GoalData) => (
             <GoalHierarchyItem key={goal.id} goal={goal} onUpdate={handleRefresh} />
           ))}
         </div>

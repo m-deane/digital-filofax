@@ -22,6 +22,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   ChevronLeft,
   ChevronRight,
@@ -29,6 +37,9 @@ import {
   Calendar,
   Loader2,
   Printer,
+  MoreVertical,
+  Repeat,
+  Undo2,
 } from "lucide-react";
 import {
   format,
@@ -103,6 +114,12 @@ export default function WeeklyPlannerPage() {
     (task) => !task.scheduledStart
   );
 
+  // Fetch weekly tasks (assigned to this week + carried forward)
+  const { data: weeklyTasksData } = api.tasks.getWeeklyTasks.useQuery({
+    weekOf: weekStart,
+    includeCarriedForward: true,
+  });
+
   // Create event mutation
   const createEvent = api.calendar.create.useMutation({
     onSuccess: () => {
@@ -125,6 +142,15 @@ export default function WeeklyPlannerPage() {
     onSuccess: () => {
       utils.tasks.getScheduledTasks.invalidate();
       utils.tasks.getAll.invalidate();
+    },
+  });
+
+  // Update task mutation (for weekOf assignment, recurrence toggle, status)
+  const updateTask = api.tasks.update.useMutation({
+    onSuccess: () => {
+      utils.tasks.getWeeklyTasks.invalidate();
+      utils.tasks.getAll.invalidate();
+      utils.tasks.getScheduledTasks.invalidate();
     },
   });
 
@@ -320,9 +346,139 @@ export default function WeeklyPlannerPage() {
         </Card>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Unscheduled Tasks Sidebar */}
-          <div className="lg:col-span-1">
+          {/* Sidebar: Unscheduled + Week Tasks */}
+          <div className="lg:col-span-1 space-y-4">
             <TaskSidebar tasks={unscheduledTasks} />
+
+            {/* Week Tasks Panel */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Calendar className="h-5 w-5" />
+                  Week Tasks
+                  {(weeklyTasksData?.weekTasks?.length ?? 0) > 0 && (
+                    <span className="ml-auto text-sm font-normal text-muted-foreground">
+                      {weeklyTasksData?.weekTasks.length}
+                    </span>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {/* Carried Forward */}
+                {(weeklyTasksData?.carriedForward?.length ?? 0) > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Carried Forward</p>
+                    {weeklyTasksData!.carriedForward.map((task) => (
+                      <div key={task.id} className="flex items-start gap-2 p-2 rounded-md border border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30">
+                        <Checkbox
+                          checked={task.status === "DONE"}
+                          onCheckedChange={(checked) => {
+                            updateTask.mutate({
+                              id: task.id,
+                              status: checked ? "DONE" : "TODO",
+                            });
+                          }}
+                          className="mt-0.5"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm truncate">{task.title}</p>
+                          <div className="flex items-center gap-1 mt-1">
+                            <Badge variant="outline" className="text-[10px] px-1 py-0 text-amber-700 border-amber-300 dark:text-amber-400 dark:border-amber-700">
+                              <Undo2 className="h-2.5 w-2.5 mr-0.5" />
+                              Carried forward
+                            </Badge>
+                          </div>
+                        </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0">
+                              <MoreVertical className="h-3.5 w-3.5" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => {
+                              updateTask.mutate({ id: task.id, weekOf: weekStart });
+                            }}>
+                              Move to this week
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => {
+                              updateTask.mutate({
+                                id: task.id,
+                                recurrenceRule: task.recurrenceRule
+                                  ? null
+                                  : JSON.stringify({ frequency: "weekly" }),
+                              });
+                            }}>
+                              <Repeat className="h-3.5 w-3.5 mr-2" />
+                              {task.recurrenceRule ? "Remove recurrence" : "Repeat weekly"}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Current Week Tasks */}
+                {(weeklyTasksData?.weekTasks?.length ?? 0) > 0 ? (
+                  <div className="space-y-2">
+                    {(weeklyTasksData?.carriedForward?.length ?? 0) > 0 && (
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">This Week</p>
+                    )}
+                    {weeklyTasksData!.weekTasks.map((task) => (
+                      <div key={task.id} className="flex items-start gap-2 p-2 rounded-md border">
+                        <Checkbox
+                          checked={task.status === "DONE"}
+                          onCheckedChange={(checked) => {
+                            updateTask.mutate({
+                              id: task.id,
+                              status: checked ? "DONE" : "TODO",
+                            });
+                          }}
+                          className="mt-0.5"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className={cn(
+                            "text-sm truncate",
+                            task.status === "DONE" && "line-through text-muted-foreground"
+                          )}>{task.title}</p>
+                          {task.recurrenceRule && (
+                            <Badge variant="outline" className="text-[10px] px-1 py-0 mt-1">
+                              <Repeat className="h-2.5 w-2.5 mr-0.5" />
+                              Recurring
+                            </Badge>
+                          )}
+                        </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0">
+                              <MoreVertical className="h-3.5 w-3.5" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => {
+                              updateTask.mutate({
+                                id: task.id,
+                                recurrenceRule: task.recurrenceRule
+                                  ? null
+                                  : JSON.stringify({ frequency: "weekly" }),
+                              });
+                            }}>
+                              <Repeat className="h-3.5 w-3.5 mr-2" />
+                              {task.recurrenceRule ? "Remove recurrence" : "Repeat weekly"}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    No tasks assigned to this week
+                  </p>
+                )}
+              </CardContent>
+            </Card>
           </div>
 
           {/* Calendar Grid */}

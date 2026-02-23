@@ -119,6 +119,12 @@ const mainNavItems: NavItem[] = [
     icon: LayoutGrid,
     module: "tasks",
   },
+  {
+    title: "Projects",
+    href: "/dashboard/projects",
+    icon: FolderKanban,
+    module: "projects",
+  },
 ];
 
 const DEFAULT_SECTIONS: NavSection[] = [

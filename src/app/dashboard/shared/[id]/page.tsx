@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ArrowLeft,
+  Check,
+  Copy,
   Mail,
   Plus,
   Trash2,
@@ -55,6 +57,8 @@ export default function SharedListDetailPage({ params }: { params: Promise<{ id:
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<SharedListRole>("VIEWER");
+  const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [linkCopied, setLinkCopied] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState("");
 
   const { data: list, isLoading } = api.collaboration.getSharedListById.useQuery(
@@ -69,9 +73,9 @@ export default function SharedListDetailPage({ params }: { params: Promise<{ id:
   const utils = api.useUtils();
 
   const inviteMutation = api.collaboration.inviteToList.useMutation({
-    onSuccess: () => {
+    onSuccess: (data) => {
       utils.collaboration.getSharedListById.invalidate({ id: unwrappedParams.id });
-      setIsInviteDialogOpen(false);
+      setInviteLink(`${window.location.origin}/invite/${data.token}`);
       setInviteEmail("");
       setInviteRole("VIEWER");
     },
@@ -489,54 +493,110 @@ export default function SharedListDetailPage({ params }: { params: Promise<{ id:
       </div>
 
       {/* Invite Dialog */}
-      <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
+      <Dialog
+        open={isInviteDialogOpen}
+        onOpenChange={(open) => {
+          setIsInviteDialogOpen(open);
+          if (!open) {
+            setInviteLink(null);
+            setLinkCopied(false);
+          }
+        }}
+      >
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Invite Member</DialogTitle>
-            <DialogDescription>
-              Invite someone to collaborate on this shared list
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleInvite} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={inviteEmail}
-                onChange={(e) => setInviteEmail(e.target.value)}
-                placeholder="colleague@example.com"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="role">Role</Label>
-              <Select
-                value={inviteRole}
-                onValueChange={(value: SharedListRole) => setInviteRole(value)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="VIEWER">Viewer - Can view tasks</SelectItem>
-                  <SelectItem value="EDITOR">Editor - Can add and edit tasks</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsInviteDialogOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={inviteMutation.isPending}>
-                {inviteMutation.isPending ? "Inviting..." : "Send Invite"}
-              </Button>
-            </div>
-          </form>
+          {inviteLink ? (
+            <>
+              <DialogHeader>
+                <DialogTitle>Invite link created!</DialogTitle>
+                <DialogDescription>
+                  Share this link with the person you want to invite
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <Input value={inviteLink} readOnly />
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      navigator.clipboard.writeText(inviteLink);
+                      setLinkCopied(true);
+                      setTimeout(() => setLinkCopied(false), 2000);
+                    }}
+                  >
+                    {linkCopied ? (
+                      <>
+                        <Check className="mr-2 h-4 w-4" />
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="mr-2 h-4 w-4" />
+                        Copy Link
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setIsInviteDialogOpen(false);
+                      setInviteLink(null);
+                      setLinkCopied(false);
+                    }}
+                  >
+                    Done
+                  </Button>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <DialogHeader>
+                <DialogTitle>Invite Member</DialogTitle>
+                <DialogDescription>
+                  Invite someone to collaborate on this shared list
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleInvite} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={inviteEmail}
+                    onChange={(e) => setInviteEmail(e.target.value)}
+                    placeholder="colleague@example.com"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="role">Role</Label>
+                  <Select
+                    value={inviteRole}
+                    onValueChange={(value: SharedListRole) => setInviteRole(value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="VIEWER">Viewer - Can view tasks</SelectItem>
+                      <SelectItem value="EDITOR">Editor - Can add and edit tasks</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsInviteDialogOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={inviteMutation.isPending}>
+                    {inviteMutation.isPending ? "Inviting..." : "Send Invite"}
+                  </Button>
+                </div>
+              </form>
+            </>
+          )}
         </DialogContent>
       </Dialog>
 
